@@ -1,0 +1,15 @@
+# komodo files & folders
+*.komodoproject
+.komodotools/
+
+# release directory
+build/release/
+
+# python pyc files
+*.pyc
+
+# Mac OS X files
+.DS_Store
+
+# sphinx documentation
+docs/_build/

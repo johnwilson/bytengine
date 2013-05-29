@@ -1,0 +1,92 @@
+/*@import url(http://fonts.googleapis.com/css?family=Droid+Sans:400,700|Droid+Serif);*/
+    @font-face {
+        font-family: 'Droid Sans';
+        font-style: normal;
+        font-weight: bold;
+        src: local('Droid Sans Bold'), local('DroidSans-Bold'), url('./EFpQQyG9GqCrobXxL-KRMQFhaRv2pGgT5Kf0An0s4MM.woff') format('woff');
+    }
+    @font-face {
+        font-family: 'Droid Sans';
+        font-style: normal;
+        font-weight: normal;
+        src: local('Droid Sans'), local('DroidSans'), url('./s-BiyweUPV0v-yRb-cjciBsxEYwM7FgeyaSgU71cLG0.woff') format('woff');
+    }
+    @font-face {
+        font-family: 'Droid Serif';
+        font-style: normal;
+        font-weight: normal;
+        src: local('Droid Serif'), local('DroidSerif'), url('./0AKsP294HTD-nvJgucYTaIbN6UDyHWBl620a-IRfuBk.woff') format('woff');
+    }
+
+    @font-face {
+	font-family: 'Yanone Kaffeesatz';
+    font-style: normal;
+    font-weight: normal;
+	src: url('./Yanone-Kaffeesatz/YanoneKaffeesatz-Regular-webfont.eot'); /* IE9 Compat Modes */
+	src: url('./Yanone-Kaffeesatz/YanoneKaffeesatz-Regular-webfont.eot?#iefix') format('embedded-opentype'), /* IE6-IE8 */
+	     url('./Yanone-Kaffeesatz/YanoneKaffeesatz-Regular-webfont.woff') format('woff'), /* Modern Browsers */
+	     url('./Yanone-Kaffeesatz/YanoneKaffeesatz-Regular-webfont.ttf')  format('truetype'), /* Safari, Android, iOS */
+	     url('./Yanone-Kaffeesatz/YanoneKaffeesatz-Regular-webfont.svg#svgYanoneKaffeesatz') format('svg'); /* Legacy iOS */
+	}
+    
+
+	/*here we style elements using the fonts we've imported */
+
+
+	/*fontface-1*/
+	body,
+	button,
+	input, textarea, select,option,optgroup,
+	.widget .title, 
+	.section-title,
+	.fontface,.post-info,
+
+	.title-format-1,
+	#page .title-format-1,
+	.fontface-1,
+	#page .fontface-1{
+		font-family:'Droid Sans', sans-serif !important; 
+		font-style:normal;
+	}
+
+
+
+	/*fontface-2*/
+	.title-format-2,
+	.post .title,
+	.recent-posts li .title,
+	.dropcap,
+	.pricing.box .price,
+	h1,h2,h3,h4,h5,h6, 
+	.demention-caption .title,
+	
+	.title-format-2,
+	#page .title-format-2,
+	.fontface-2,
+	#page .fontface-2 {
+		font-family:'Droid Serif', serif !important;
+		font-style:normal;
+		font-weight:normal;	
+	}
+
+
+
+	/*fontface-3*/
+	.sub-title,
+	thead,
+	#page-header .title,#page-header .sub,
+	.accordion .header,.tabbed .tabs ,
+	.success .title,.info .title,.alert .title,.error .title,.notes .title,
+	blockquote,
+	.pricing.box .title, .pricing.box .price small,
+	.flex-direction-nav a,
+	.comment .name,
+	.twitterStatus,
+
+	.title-format-3,
+	#page .title-format-3,
+	.fontface-3	,
+	#page .fontface-3 {
+		font-family:georgia, serif !important;
+		font-weight:normal;	
+	}

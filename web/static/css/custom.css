@@ -1,0 +1,213 @@
+/*!
+ * Byterminal v2.0
+ *
+ * Copyright 2012 Quest, Ltd
+ * Licensed under the Apache License v2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Added Tues Sept 4, 2012
+ */
+
+    /* Body and structure
+    -------------------------------------------------- */
+    
+    body {
+        position: relative;
+        padding-top: 40px;
+    }
+    
+    /* Code in headings */
+    h3 code {
+        font-size: 14px;
+        font-weight: normal;
+    }
+    
+    
+    
+    /* Tweak navbar brand link to be super sleek
+    -------------------------------------------------- */
+    
+    /* Change the docs' brand */
+    body > .navbar .brand {
+        font-family: 'Yanone Kaffeesatz',sans-serif !important;
+        font-size: 30px;
+        padding-right: 0;
+        margin-top: 7px;
+        padding-left: 0;
+        margin-left: 20px;
+        float: right;
+        font-weight: normal;
+        color: #000;
+        text-shadow: 0 1px 0 rgba(255,255,255,.1), 0 0 30px rgba(255,255,255,.125);
+        -webkit-transition: all .2s linear;
+           -moz-transition: all .2s linear;
+                transition: all .2s linear;
+    }
+    
+    /*Custom font sizes
+    -------------------------------------------------- */
+    
+	.f-11 		{font-size:11px;}
+	.f-12		{font-size:12px;}
+    .f-13		{font-size:13px;}
+	.f-14		{font-size:14px;}
+	.f-15		{font-size:15px;}
+    .f-16		{font-size:16px;}
+	.f-17 		{font-size:17px;}
+    .f-18		{font-size:18px;}
+    .f-19		{font-size:19px;}
+	.f-20 		{font-size:20px;}
+	.f-24 		{font-size:24px;}
+	.f-27 		{font-size:27px;}
+    .f-50 		{font-size:50px;}
+    .f-100 		{font-size:100px;}
+    .f-150 		{font-size:150px;}
+    .f-200 		{font-size:200px;}
+    .f-225 		{font-size:225px;}
+    .f-250 		{font-size:250px;}
+    
+    /* Margin padding Adjustment
+    -------------------------------------------------- */
+    
+    /*margin*/
+	.m-0 			{margin:0px !important;}
+	.m-10 			{margin:10px !important;}
+	.m-20			{margin:20px !important;}
+	.m-30			{margin:30px !important;}	
+	.m-40			{margin:40px !important;}	
+		
+	/*padding*/
+    .p-0 			{padding:0px !important;}
+	.p-10 			{padding:10px !important;}
+	.p-20		    {padding:20px !important;}
+	.p-30			{padding:30px !important;}
+	.p-40 			{padding:40px !important;}
+	
+	/*margin left*/
+    .m-l--30 		 {margin-left: -30px !important;}
+    .m-l--20 		 {margin-left: -20px !important;}
+    .m-l--10 		 {margin-left: -10px !important;}
+    .m-l--5 		 {margin-left: -5px !important;}	
+    .m-l-0 		 {margin-left:0px !important;}
+    .m-l-5 		 {margin-left:5px !important;}	
+	.m-l-10 		 {margin-left:10px !important;}	
+	.m-l-20       {margin-left:20px !important;}	
+	.m-l-30		 {margin-left:30px !important;}	
+	.m-l-40		 {margin-left:40px !important;}	
+	
+	/*margin right*/
+    .m-r-0 		 {margin-right:0px !important;}
+	.m-r-10 		 {margin-right:10px !important;}	
+	.m-r-20       {margin-right:20px !important;}	
+	.m-r-30		 {margin-right:30px !important;}	
+	.m-r-40		 {margin-right:40px !important;}		
+
+	
+	/*margin bottom*/
+    .m-b-0 		 {margin-bottom:0px !important;}
+	.m-b-10 		 {margin-bottom:10px !important;}
+	.m-b-20      {margin-bottom:20px !important;}
+	.m-b-30		 {margin-bottom:30px !important;}	
+	.m-b-40		 {margin-bottom:40px !important;}	
+	.m-b-50		 {margin-bottom:50px !important;}	
+	.m-b-60		 {margin-bottom:60px !important;}
+    .m-b-70		 {margin-bottom:70px !important;}
+    .m-b-80		 {margin-bottom:80px !important;}
+
+	/*margin top */
+	.m-t-0 		 {margin-top:0px !important;}
+	.m-t-10 		 {margin-top:10px !important;}
+	.m-t-20       {margin-top:20px !important;}
+	.m-t-30		 {margin-top:30px !important;}	
+	.m-t-40		 {margin-top:40px !important;}		
+	.m-t-50		 {margin-top:50px !important;}		
+	.m-t-60		 {margin-top:60px !important;}
+    .m-t-70		 {margin-top:70px !important;}
+    .m-t-80		 {margin-top:80px !important;}
+    .m-t-90		 {margin-top:90px !important;}
+    .m-t-100		 {margin-top:100px !important;}
+    .m-t-150		 {margin-top:150px !important;}
+    .m-t-200		 {margin-top:200px !important;}
+    .m-t-250		 {margin-top:250px !important;}
+
+	/*padding left*/
+    .p-l-0  {padding-left:0px !important;}
+	.p-l-10  {padding-left:10px !important;}	
+	.p-l-20 	{padding-left:20px !important;}	
+	.p-l-30 	{padding-left:30px !important;}	
+	.p-l-40 	{padding-left:40px !important;}	
+	
+	/*padding right*/
+    .p-r-0		 {padding-right:0px !important;}
+	.p-r-10		 {padding-right:10px !important;}	
+	.p-r-20       {padding-right:20px !important;}	
+	.p-r-30		 {padding-right:30px !important;}	
+	.p-r-40		 {padding-right:40px !important;}	
+	
+	/*padding bottom*/
+    .p-b-0		 {padding-bottom:0px !important;}
+	.p-b-10		 {padding-bottom:10px !important;}	
+	.p-b-20       {padding-bottom:20px !important;}	
+	.p-b-30		 {padding-bottom:30px !important;}	
+	.p-b-40		 {padding-bottom:40px !important;}	
+	
+	/*padding top*/
+    .p-t-0		 {padding-top:0px !important;}	
+	.p-t-10		 {padding-top:10px !important;}	
+	.p-t-20      {padding-top:20px !important;}	
+	.p-t-30		 {padding-top:30px !important;}	
+	.p-t-40		 {padding-top:40px !important;}
+    
+    
+    /*
+    ----------------------------------------------------*/
+    .smart-gray, .hover-smart-gray:hover {
+        background: none repeat scroll 0 0 rgba(69, 88, 127, 0.05);
+    }
+    
+    .smart-dark-gray, .hover-smart-dark-gray:hover {
+        background: none repeat scroll 0 0 rgba(69, 88, 127, 0.1);
+    }
+        
+    /* Footer
+    -------------------------------------------------- */
+    
+    footer
+    {
+        background-color: #191919;
+        margin-top: 120px;
+        padding: 15px 0 5px;
+    }
+    
+    footer p{margin : 0px 0px 20px;}
+    
+    /* misc
+    -------------------------------------------------- */
+    .align_center{
+        text-align: center;
+    }
+    
+    .blue-text, .hover-blue-text:hover {
+        color: #4292B5 !important;
+    }
+    .royal-blue-text, .royal-blue-text:hover {
+        color: #1F3F63 !important;
+    }
+    
+    .light-blue-text, .light-blue-text:hover {
+        color: #5681B1 !important;
+    }
+    
+    .electric-blue-text{
+        color: #0088CC !important;
+    }
+    
+    .centered, .center {
+        float: none !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
+    }
+    
+    blockquote {
+        border-left-color: #ffffff;
+    }

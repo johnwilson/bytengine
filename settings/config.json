@@ -1,0 +1,68 @@
+{
+    "general":{
+        "sa":"admin",
+        "password":"admin",
+        "version":"0.1.0",
+        "log":"/tmp/bytengine_server/logs"
+    },
+
+    "mongodb":{
+        "host":"localhost",
+        "port": 27017         
+    },
+
+    "redis":{
+        "host":"localhost",
+        "port":6379,
+        "password":"",
+        "authdb":1,
+        "uploaddb":2,
+        "ext":3,
+        "bfsdb":4
+    },
+
+    "web":{
+        "host":"0.0.0.0",
+        "port":8500,
+        "maxupload_size": 20,
+        "upload_tmp":"/tmp/bytengine_server/uploads"
+    },
+
+    "auth":{
+        "timeout":60,
+        "collection":"users"
+    },
+
+    "bfs":{
+        "attachments_dir":"/tmp/bytengine_server/attachments",
+        "reserved_dbs":["_bytengine","admin","local","dbusers"],
+        "sysdatabase":"_bytengine",
+        "content_collection":"bfs",
+        "counter_collection":"counters",
+        "session_timeout":60,
+        "upload_timeout":120,
+        "security_collection":"users"
+    },
+
+    "remote":{
+        "exec":{
+            "url":"http://localhost:5000/exec/",
+            "timeout":5
+        },
+        "pipe":{
+            "url":"http://localhost:5000/pipe/",
+            "timeout":5
+        }
+    },
+
+    "ext":{
+        "exec":{},
+        "pipe":{
+            "paginate":{
+                "dir":"/tmp/bytengine_server/cache",
+                "timeout":60,
+                "max_page_memory": 1048576
+            }
+        }
+    }
+}

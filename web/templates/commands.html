@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block css_files %}
+<link rel="stylesheet" href="/static/css/prettify.css" >
+{% endblock %}
+{% block page_content %}
+
+<div id="main-content" class="container"><!--container-->    
+    <div class="row-fluid m-t-40">
+        <div class="span3">
+            <div class="well sidebar-nav">
+                <ul class="nav nav-list">
+                    {% for category in commands %}
+                        <li class="nav-header">{{category}} Commands</li>
+                        {% for command in commands[category] %}
+                            <li><a class="command" href="#{{command}}">{{command}}</a></li>
+                        {% endfor %}
+                    {% endfor %}
+                </ul>
+            </div><!--/.well -->
+        </div><!--/span-->
+        
+        <div id="content_viewport" class="span9">
+            <h3>Welcome! Use the menu on the left to navigate.</h3>
+        </div><!--/span-->
+        
+    </div><!--/row-->
+    
+</div><!--/container-->
+
+{% endblock %}
+{% block js_files %}{% endblock %}
+{% block page_js %}
+<script type="text/javascript">
+    // handle command links click
+    $(".command").click(function(e){
+        e.preventDefault();
+        if ($(e.target).is('a')) {
+            var ctrl = $(e.target);
+            // remove any highlighted command
+            $("a[class~=command]").parent().removeClass("active")
+            // highlight command
+            ctrl.parent().addClass("active")
+            var command = ctrl.text();
+            var url = "static/commands/" + command + ".html";
+            // get data from server
+            $("#content_viewport").load(url, function(data, status){
+                $('html,body').scrollTop(0);
+                if (status != "success") {
+                    $(this).html("<h3>Command Documentation Not Found!</h3>")
+                }                
+                // apply css
+                $("#content_viewport blockquote p:eq(0)").addClass("electric-blue-text");
+            });
+        }
+    });
+</script>
+{% endblock %}

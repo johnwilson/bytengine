@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block css_files %}
+<link rel="stylesheet" href="/static/css/pygments.css" >
+{% endblock %}
+{% block page_content %}
+
+<div id="main-content" class="container"><!--container-->    
+    <div class="row-fluid m-t-40">
+        <div class="span3">
+            <div class="well sidebar-nav">
+                <ul class="nav nav-list">
+                    {% for item in menu %}
+                        <li><a class="showpage" href="{{item.url}}">{{item.title}}</a></li>
+                    {% endfor %}
+                </ul>
+            </div><!--/.well -->
+        </div><!--/span-->
+        
+        <div id="content_viewport" class="span9">
+
+        </div><!--/span-->
+        
+    </div><!--/row-->
+    
+</div><!--/container-->
+
+{% endblock %}
+{% block js_files %}{% endblock %}
+{% block page_js %}
+<script type="text/javascript">
+    function loadPage(page) {
+        var url = "";
+        if (page == "index") {
+            url = "static/docs/";
+        } else {
+            url = "static/docs/" + page + ".html";
+        }
+        // get data from server
+        $("#content_viewport").load(url, function(data, status){
+            $('html,body').scrollTop(0);
+            if (status != "success") {
+                $(this).html("<h3>Documentation Page Not Found!</h3>")
+            } else {
+                // handle internal doc links click
+                $(".reference.internal").click(function(e){
+                    e.preventDefault();
+                    var page = $(e.target).parent().attr("href").match(/[\w]+/);
+                    loadPage(page);
+                });
+            }
+        });
+    }
+
+    // handle menu links click
+    $(".showpage").click(function(e){
+        e.preventDefault();
+        if ($(e.target).is('a')) {
+            var ctrl = $(e.target);
+            // remove any highlighted command
+            $("a[class~=showpage]").parent().removeClass("active")
+            // highlight command
+            ctrl.parent().addClass("active")
+            var page = ctrl.attr("href");
+            loadPage(page);
+        }
+    });    
+
+    // load index page
+    $(document).ready(function(){
+        loadPage("index");
+    });    
+
+</script>
+{% endblock %}
