@@ -356,10 +356,8 @@ func buildRoutes() (*mux.Router, error) {
 	r.HandleFunc("/cds/{type:fd|fa}/{database}/{path:[\\w\\.0-9/_\\-]+}", contentDileveryHandler).Methods("GET")
 	
 	/*
-		Help and Info Url
+		Info Url
 		=================
-		/help/ --> all help commands
-		/help/{command} --> help for specific {command}
 		/info/version --> bytengine server version
 	*/
 	r.HandleFunc("/bfs/grq/{type}/{query:[\\w\\.0-9_@]*}", getRequestHandler).Methods("GET")

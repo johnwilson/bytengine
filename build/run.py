@@ -195,6 +195,22 @@ def buildHelpFiles():
         f.close()
     print "... ok"
 
+    # get commands
+    _keys = cmds.Repository.keys()
+    _keys.sort()
+    command_list = []
+    categories = {}
+    for item in _keys:
+        cmd = cmds.Repository[item]
+        command_list.append(cmd)
+        if cmd["category"] in categories:
+            categories[cmd["category"]].append(cmd["command"])
+        else:
+            categories[cmd["category"]] = [cmd["command"]]
+    f = open(os.path.join(docs_dir,"all.json"),"w+")
+    json.dump(categories,f)
+    f.close()    
+
 if __name__ == '__main__':    
     parser = argparse.ArgumentParser(description="Custome Make File")
     parser.add_argument(
