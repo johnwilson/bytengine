@@ -19,7 +19,7 @@ So for example if you were creating a blog post, a possible file and directory l
 
     /*------- new database ------*/
 
-    server.newdb "wordpress"
+    server.newdb "wordpress";
 
     /*------- create blog directories ------*/
 
