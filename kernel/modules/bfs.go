@@ -81,7 +81,7 @@ func makeUUID() (string, error) {
 	}
 	uuid := strings.Replace(out.String(),"-","",-1) // remove dashes
 	uuid = strings.Trim(uuid, "\n ") // remove newline and spaces from output
-	return uuid, nil
+    return uuid, nil
 }
 
 func makeRootDir() (*Directory, error) {

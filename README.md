@@ -16,6 +16,21 @@ Some of the server's features are:
 * Inbuilt Query language
 * Documentation
 
+Build Bytengine
+---------------
+
+1. Install Go
+    * go get github.com/vmihailenco/redis
+    * go get labix.org/v2/mgo
+    * go get github.com/gorilla/mux
+    * go get github.com/gorilla/schema
+2. Make sure you have Python (>= 2.6)
+    * easy_install sphinx
+    * easy_install requests
+3. cd to build dir and run:
+    * 'python run.py'
+4. cd to build/release/bytengine-server and run:
+    * ./bin/bytengine --config ./conf/config.json
 
 Some Handy Links
 ----------------
