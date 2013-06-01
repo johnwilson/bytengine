@@ -351,25 +351,25 @@ func buildRoutes() (*mux.Router, error) {
 	r := mux.NewRouter()
 	
 	// API urls
-	r.HandleFunc("/bfs/prq/{type}", runCommandHandler).Methods("POST")
-	r.HandleFunc("/bfs/upload/{ticket}", uploadAttachmentHandler).Methods("POST")
-	r.HandleFunc("/cds/{type:fd|fa}/{database}/{path:[\\w\\.0-9/_\\-]+}", contentDileveryHandler).Methods("GET")
+	r.HandleFunc("/bfs/prq/{type}", runCommandHandler).Methods("POST","HEAD")
+	r.HandleFunc("/bfs/upload/{ticket}", uploadAttachmentHandler).Methods("POST","HEAD")
+	r.HandleFunc("/cds/{type:fd|fa}/{database}/{path:[\\w\\.0-9/_\\-]+}", contentDileveryHandler).Methods("GET","HEAD")
 	
 	/*
 		Info Url
 		=================
 		/info/version --> bytengine server version
 	*/
-	r.HandleFunc("/bfs/grq/{type}/{query:[\\w\\.0-9_@]*}", getRequestHandler).Methods("GET")
+	r.HandleFunc("/bfs/grq/{type}/{query:[\\w\\.0-9_@]*}", getRequestHandler).Methods("GET","HEAD")
 	
 	// Web UI
-	r.HandleFunc("/", welcomeHandler).Methods("GET")
-	r.HandleFunc("/ping", pingHandler).Methods("GET")
-	r.HandleFunc("/docs", documentationHandler).Methods("GET")
-	r.HandleFunc("/commands", commandsHandler).Methods("GET")
+	r.HandleFunc("/", welcomeHandler).Methods("GET","HEAD")
+	r.HandleFunc("/ping", pingHandler).Methods("GET","HEAD")
+	r.HandleFunc("/docs", documentationHandler).Methods("GET","HEAD")
+	r.HandleFunc("/commands", commandsHandler).Methods("GET","HEAD")
 
 	// Static files	
-	r.HandleFunc("/static/{path:[\\w\\.0-9/_\\-]+}",staticFileHandler).Methods("GET")
+	r.HandleFunc("/static/{path:[\\w\\.0-9/_\\-]+}",staticFileHandler).Methods("GET","HEAD")
 
 	return r, nil
 }
