@@ -29,7 +29,7 @@ You can download Bytengine binaries for:
 
 **Extract downloaded file, 'cd' into directory and run**:
 
-`./bin/bytengine -c ./conf/config.json`
+`./bin/bytengine --config ./conf/config.json`
 
 ## Development
 
