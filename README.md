@@ -37,18 +37,36 @@ to your Os/Distro (Windows is currently not supported)
 Prerequisites:
 
 * [Mongodb](http://docs.mongodb.org/manual/installation/ "Mongodb")
+
 * [Redis](http://redis.io/download "Redis")
+
 * [Go](http://golang.org/doc/install "Go")
+
 * Python (>= 2.6)
+
 * Make sure you have 'uuidgen'
 
 1. Get Bytengine `go get github.com/johnwilson/bytengine`
+
 2. Install Python sphinx documentation tool `easy_install sphinx`
+
 3. Install Python [requests](http://docs.python-requests.org/en/latest/ "requests") `easy_install requests`
+
 4. `cd $GOPATH/src/github.com/johnwilson/bytengine`
+
 5. Build Bytengine `python ./build/run.py`
-6. Running Bytengine `cd ./build/release/bytengine-server/` and `./bin/bytengine -c ./bin/conf/config.json`
-7. Running Python test script (from '$GOPATH/src/github.com/johnwilson/bytengine' directory) `python ./tests/test.py`
+
+6. Running Bytengine
+	
+	* `cd ./build/release/bytengine-server/` 
+
+	* `./bin/bytengine -c ./bin/conf/config.json`
+
+7. Running Python test script
+	
+	* `cd $GOPATH/src/github.com/johnwilson/bytengine`
+
+	* `python ./tests/test.py`
 
 ## Some Handy Links
 
