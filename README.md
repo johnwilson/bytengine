@@ -60,15 +60,15 @@ Prerequisites:
 
 6. Running Bytengine
 	
-	* `cd ./build/release/bytengine-server/` 
+	cd ./build/release/bytengine-server/
 
-	* `./bin/bytengine --config ./bin/conf/config.json`
+	./bin/bytengine --config ./bin/conf/config.json
 
 7. Running Python test script
 	
-	* `cd $GOPATH/src/github.com/johnwilson/bytengine`
+	cd $GOPATH/src/github.com/johnwilson/bytengine
 
-	* `python ./tests/test.py`
+	python ./tests/test.py
 
 ## Some Handy Links
 
