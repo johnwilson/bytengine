@@ -27,7 +27,9 @@ You can download Bytengine binaries for:
 * **[Linux amd64](http://www.bytengine.com/static/dl/linux_amd64.tar.gz "Linux amd64")**
 * **[Mac OS X 10.6/10.7 amd64](http://www.bytengine.com/static/dl/osx_amd64.tar.gz "Mac OS X 10.6/10.7 amd64")**
 
-**Extract downloaded file, 'cd' into directory and run** `./bin/bytengine -c ./conf/config.json`
+**Extract downloaded file, 'cd' into directory and run**:
+
+`./bin/bytengine -c ./conf/config.json`
 
 ## Development
 
