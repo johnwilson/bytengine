@@ -1,5 +1,4 @@
-Bytengine
-=========
+## Bytengine
 
 [![Bytengine](http://www.bytengine.com/static/img/logo.jpg)](http://www.bytengine.com)
 
@@ -16,30 +15,49 @@ Some of the server's features are:
 * Inbuilt Query language
 * Documentation
 
-Build Bytengine
----------------
+## Installation
 
-1. Install Go
-    * go get github.com/vmihailenco/redis
-    * go get labix.org/v2/mgo
-    * go get github.com/gorilla/mux
-    * go get github.com/gorilla/schema
-2. Make sure you have Python (>= 2.6)
-    * easy_install sphinx
-    * easy_install requests
-3. cd to build dir and run:
-    * 'python run.py'
-4. cd to build/release/bytengine-server and run:
-    * ./bin/bytengine --config ./conf/config.json
+Prerequisites:
 
-Some Handy Links
-----------------
+* **[Mongodb](http://docs.mongodb.org/manual/installation/ "Mongodb")**
+* **[Redis](http://redis.io/download "Redis")**
+
+You can download Bytengine binaries for:
+
+* **[Linux amd64](http://www.bytengine.com/static/dl/linux_amd64.tar.gz "Linux amd64")**
+* **[Mac OS X 10.6/10.7 amd64](http://www.bytengine.com/static/dl/osx_amd64.tar.gz "Mac OS X 10.6/10.7 amd64")**
+
+**Extract downloaded file, 'cd' into directory and run** `./bin/bytengine -c ./conf/config.json`
+
+## Development
+
+Bytengine is developed on Ubuntu 12.04 so you should adapt the following instructions
+to your Os/Distro (Windows is currently not supported)
+
+Prerequisites:
+
+* [Mongodb](http://docs.mongodb.org/manual/installation/ "Mongodb")
+* [Redis](http://redis.io/download "Redis")
+* [Go](http://golang.org/doc/install "Go")
+* Python (>= 2.6)
+* Make sure you have 'uuidgen'
+
+1. Get Bytengine `go get github.com/johnwilson/bytengine`
+2. Install Python sphinx documentation tool `easy_install sphinx`
+3. Install Python [requests](http://docs.python-requests.org/en/latest/ "requests") `easy_install requests`
+4. `cd $GOPATH/src/github.com/johnwilson/bytengine`
+5. Build Bytengine `python ./build/run.py`
+6. Running Bytengine `cd ./build/release/bytengine-server/` and `./bin/bytengine -c ./bin/conf/config.json`
+7. Running Python test script (from '$GOPATH/src/github.com/johnwilson/bytengine' directory) `python ./tests/test.py`
+
+## Some Handy Links
 
 [Demo Server](http://www.bytengine.com/) - Demo server
 
 [Terminal](http://terminal.bytengine.com) - Sample application 1
 
-Get Support!
-------------
+[Blog](http://bytengine.blogspot.com/) - Blog
+
+[Twitter](https://twitter.com/bytengine) - Twitter
 
 [Bytengine Google Group](http://groups.google.com/group/bytengine) - Q & A

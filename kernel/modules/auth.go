@@ -55,7 +55,23 @@ func (auth *AuthManager) Authenticate(usr, pw string) (ReqMode, error) {
 	// check if root authentication
 	_admin_usr := auth.config.General.Admin
 	_admin_pw := auth.config.General.Password
-	if usr == _admin_usr && pw == _admin_pw {
+
+	
+	// compare
+	if usr == _admin_usr {
+		// hash passwords and compare : do I need to create a random salt too?
+		_admin_pw, err := auth.hashPassword([]byte(_admin_pw), []byte{})
+		if err != nil {
+			return GuestMode, errors.New("error hashing password")
+		}
+		pw, err := auth.hashPassword([]byte(pw), []byte{})
+		if err != nil {
+			return GuestMode, errors.New("error hashing password")
+		}
+		if _admin_pw != pw {
+			return GuestMode, errors.New("authentication failed: check username/password")
+		}
+
 		return RootMode, nil
 	}
 
@@ -67,8 +83,7 @@ func (auth *AuthManager) Authenticate(usr, pw string) (ReqMode, error) {
 	var _token authToken
 	err := col.Find(q).One(&_token)
 	if err != nil {
-		msg := fmt.Sprintf("authentication failed: user %s not found", usr)
-		return GuestMode, errors.New(msg)
+		return GuestMode, errors.New("authentication failed: check username/password")
 	}
 
 	// check if user is active
@@ -77,16 +92,56 @@ func (auth *AuthManager) Authenticate(usr, pw string) (ReqMode, error) {
 		return GuestMode, errors.New(msg)
 	}
 
-	// check password using sha1
-	h := sha1.New()
-	io.WriteString(h, pw + _token.Salt)
-	_encrypt_pw := fmt.Sprintf("%x", h.Sum(nil))
+	// convert salt to []byte
+	b, err := base64.URLEncoding.DecodeString(_token.Salt)
+	if err != nil {
+		return GuestMode, errors.New("error encoding salt")
+	}
+	// hash password
+	_encrypt_pw, err := auth.hashPassword([]byte(pw), b)
+	if err != nil {
+		return GuestMode, err
+	}
+	// compare passwords
 	if _encrypt_pw != _token.Password {
-		msg := "authentication failed: invalid password"
-		return GuestMode, errors.New(msg)
+		return GuestMode, errors.New("authentication failed: check username/password")
 	}
 
 	return UserMode, nil
+}
+
+func (auth *AuthManager) hashPassword(pw, salt []byte) (string, error) {
+	err_txt := "error hashing password"
+	h := sha1.New()
+	_, err := h.Write(pw)
+	if err != nil {
+		return "", errors.New(err_txt)
+	}
+    _, err = h.Write(salt)
+    if err != nil {
+		return "", errors.New(err_txt)
+	}
+	
+	_encrypt_pw := fmt.Sprintf("%x", h.Sum(nil))
+	return _encrypt_pw, nil
+}
+
+func (auth *AuthManager) passwordGen(pw string) (string, string, error) {
+    // create salt
+	c := 16
+	b := make([]byte, c)
+	n, err := io.ReadFull(rand.Reader, b)
+	if n != len(b) || err != nil {
+		return "", "", errors.New("error creating password")
+	}
+	_salt := base64.URLEncoding.EncodeToString(b)
+
+	_encrypt_pw, err := auth.hashPassword([]byte(pw), b)
+	if err != nil {
+		return "", "", err
+	}
+    
+    return _salt, _encrypt_pw, nil
 }
 
 func (auth *AuthManager) NewUser(usr, pw string) error {
@@ -118,21 +173,12 @@ func (auth *AuthManager) NewUser(usr, pw string) error {
 		msg := fmt.Sprintf("user %s already exists", usr)
 		return errors.New(msg)
 	}
-
-	// create salt
-	c := 16
-	b := make([]byte, c)
-	n, e3 := io.ReadFull(rand.Reader, b)
-	if n != len(b) || err != nil {
-		msg := fmt.Sprintf("user %s couldn't be created:\n%s", usr, e3)
-		return errors.New(msg)
-	}
-	_salt := base64.URLEncoding.EncodeToString(b)
-
-	// create encrypted password
-	h := sha1.New()
-	io.WriteString(h, pw + _salt)
-	_encrypt_pw := fmt.Sprintf("%x", h.Sum(nil))
+    
+    _salt, _encrypt_pw, err := auth.passwordGen(pw)
+    if err != nil {
+        msg := fmt.Sprintf("user %s couldn't be created:\n%s", usr, err)
+        return errors.New(msg)
+    }
 	
 	// create token
 	_token := authToken{usr, _salt, _encrypt_pw, true, []string{}}
@@ -155,20 +201,11 @@ func (auth *AuthManager) ChangeUserPassword(usr, pw string) error {
 	// get collection
 	col := auth.mongo.DB(auth.config.Bfs.SystemDb).C(auth.config.Bfs.SecurityCol)
 
-	// create salt
-	c := 16
-	b := make([]byte, c)
-	n, e3 := io.ReadFull(rand.Reader, b)
-	if n != len(b) || e3 != nil {
-		msg := fmt.Sprintf("user %s password couldn't be created:\n%s", usr, e3)
-		return errors.New(msg)
-	}
-	_salt := base64.URLEncoding.EncodeToString(b)
-
-	// create encrypted password
-	h := sha1.New()
-	io.WriteString(h, pw + _salt)
-	_encrypt_pw := fmt.Sprintf("%x", h.Sum(nil))
+	_salt, _encrypt_pw, err := auth.passwordGen(pw)
+    if err != nil {
+        msg := fmt.Sprintf("user %s couldn't be created:\n%s", usr, err)
+        return errors.New(msg)
+    }
 
 	// build query
 	q := map[string]interface{}{"username":usr}
@@ -362,16 +399,20 @@ func (auth *AuthManager) GetSession(sid string) (string, ReqMode, error) {
 }
 
 func (auth *AuthManager) validatePassword(pw string) error {
-	// regex verification
-	r, err := regexp.Compile("^\\w{8,}$")
+	// disallow whitespace
+	r, err := regexp.Compile("\\s")
 	if err != nil {
 		return err
 	}
 	if r.MatchString(pw) {
-		return nil
+		return errors.New("password cannot contain whitespace")
 	}
-	msg := "password isn't valid."
-	return errors.New(msg)
+	// minimum length 8 chars
+	if len(pw) < 8 {
+		return errors.New("password must be at least 8 chars")
+	}
+
+	return nil
 }
 
 func (auth *AuthManager) validateUsername(usr string) error {

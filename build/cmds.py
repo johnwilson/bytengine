@@ -10,7 +10,7 @@ Repository = {
     },
     "listdb": {
         "command":"server.listdb",
-        "category":"admin"
+        "category":"user"
     },
     "newdb": {
         "command":"server.newdb",
@@ -114,6 +114,10 @@ Repository = {
     },
     "unset": {
         "command":"unset",
+        "category":"user"
+    },
+    "whoami": {
+        "command":"whoami",
         "category":"user"
     }
 }
@@ -248,6 +252,30 @@ def listuser():
         {command} `^\w`        
     """
     pass
+
+def whoami():
+    """
+    **{command}**
+    
+    **Synopsis**:
+    
+    {command}
+
+    **{command}** returns current session user.
+
+    **Return Value**::
+
+        {{
+          "status":"ok",
+          "data":"username"
+        }}
+
+    **Example**::
+
+        {command}
+    """
+    pass
+
 
 def userinfo():
     """

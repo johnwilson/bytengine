@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"encoding/json"
 	
-	"bytengine/kernel/modules"
+	"github.com/johnwilson/bytengine/kernel/modules"
 	
 	"github.com/gorilla/mux"
 	"github.com/gorilla/schema"
