@@ -62,7 +62,7 @@ Prerequisites:
 	
 	* `cd ./build/release/bytengine-server/` 
 
-	* `./bin/bytengine -c ./bin/conf/config.json`
+	* `./bin/bytengine --config ./bin/conf/config.json`
 
 7. Running Python test script
 	
