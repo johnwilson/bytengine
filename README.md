@@ -48,7 +48,7 @@ Prerequisites:
 
 * Make sure you have 'uuidgen'
 
-1. Get Bytengine `go get github.com/johnwilson/bytengine`
+1. Get Bytengine `go get -d github.com/johnwilson/bytengine`
 
 2. Install Python sphinx documentation tool `easy_install sphinx`
 
