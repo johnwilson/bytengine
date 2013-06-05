@@ -85,15 +85,17 @@ type UploadCompleteRequest struct {
 	Database string
 	UploadFile string
 	ContentPath string
+	HFileName string // header file name
 	Size int
 	RequestHandler
 }
 
-func NewUploadCompleteRequest(db, upfile, bfsfile string, size int) UploadCompleteRequest {
+func NewUploadCompleteRequest(db, upfile, bfsfile, fname string, size int) UploadCompleteRequest {
 	r := UploadCompleteRequest{
 		Database: db,
 		UploadFile: upfile,
 		ContentPath: bfsfile,
+		HFileName: fname,
 		Size: size,
 	}
 	r.success = make(chan [][]byte, 1)

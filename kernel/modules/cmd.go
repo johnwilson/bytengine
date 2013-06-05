@@ -3,6 +3,8 @@ package modules
 import (
 	"fmt"
 	"errors"
+	"time"
+	"log"
 )
 
 // ############## Command ############## //
@@ -94,7 +96,8 @@ var f4 = &RuntimeFunction {
 	Modes: []ReqMode{RootMode,UserMode},
 	Handler: func(cmd *Command, u *SystemUser, m *ReqMode, eng *CommandEngine) (interface{}, error) {
 		if *m == RootMode {
-			_dbs, e := eng.Bfs.ListDatabases()
+			re := cmd.Args["regex"].(string)
+			_dbs, e := eng.Bfs.ListDatabases(re)
 			if e != nil {
 				return nil, e
 			}
@@ -140,7 +143,8 @@ var f7 = &RuntimeFunction {
 	Name: "listuser",
 	Modes: []ReqMode{RootMode},
 	Handler: func(cmd *Command, u *SystemUser, m *ReqMode, eng *CommandEngine) (interface{}, error) {
-		_list, e := eng.Auth.ListUsers()
+		re := cmd.Args["regex"].(string)
+		_list, e := eng.Auth.ListUsers(re)
 		if e != nil {
 			return nil, e
 		}
@@ -265,8 +269,9 @@ var f15 = &RuntimeFunction {
 	Modes: []ReqMode{RootMode,UserMode},
 	Handler: func(cmd *Command, u *SystemUser, m *ReqMode, eng *CommandEngine) (interface{}, error) {
 		pth := cmd.Args["path"].(string)
+		re := cmd.Args["regex"].(string)
 		db := cmd.Database
-		_list, e := eng.Bfs.DirectoryListing(pth,db)
+		_list, e := eng.Bfs.DirectoryListing(pth,re,db)
 		if e != nil {
 			return nil, e
 		}
@@ -457,7 +462,8 @@ var f26 = &RuntimeFunction {
 			return _data, nil
 		}
 
-		_data, e := eng.Bfs.CounterList(db)
+		re := cmd.Args["regex"].(string)
+		_data, e := eng.Bfs.CounterList(re, db)
 		if e != nil {
 			return nil, e
 		}
@@ -546,6 +552,7 @@ type  CommandEngine struct {
 	Auth *AuthManager // authentication module
 	Bfs *BFS // file system module
 	SysInit *System // initialization module
+	rm *RedisManager // contains redis connection clients
 	fm *FunctionManager // remote function module
 }
 
@@ -603,14 +610,14 @@ func NewCommandEngine(config string) *CommandEngine {
 	}
 
 	// redis connection
-	rm := s.RedisConnect()
+	ci.rm = s.RedisConnect()
 
 	// authentication module
-	auth := NewAuthManager(s.Config, ms, rm)
+	auth := NewAuthManager(s.Config, ms, ci.rm)
 	ci.Auth = auth
 
 	// file system module
-	bfs := NewBFS(s.Config, ms, rm)
+	bfs := NewBFS(s.Config, ms, ci.rm)
 	ci.Bfs = bfs
 	
 	// external functions module
@@ -841,7 +848,7 @@ func requestHandler(ch <- chan Job) {
 		break
 	case UploadCompleteRequest:
 		req := job.Req.(UploadCompleteRequest)
-		err := job.Engine.Bfs.AddAttachment(req.ContentPath, req.UploadFile, req.Database)
+		err := job.Engine.Bfs.AddAttachment(req.ContentPath, req.UploadFile, req.HFileName, req.Database)
 		if err != nil {
 			req.OnFailure(err.Error(), ItemNotFoundError)
 			break
@@ -864,6 +871,21 @@ func requestHandler(ch <- chan Job) {
 }
 
 func (ci *CommandEngine) Run(ch chan Request) {
+	// start loop to ping redis to keep connections alive
+	go func() {
+		interval := time.Duration(ci.SysInit.Config.Redis.PingInterval)		
+		for {
+			time.Sleep(time.Second * interval)
+			for _, client := range ci.rm.DbConnect {
+				ping := client.Ping()
+				if ping.Err() != nil {
+					log.Fatal("couldn't connect to Redis")
+				}
+			}
+			//fmt.Print(".")
+		}
+	}()
+
 	// start polling for request on channel(s)
 	for {
 		select {

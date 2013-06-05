@@ -15,6 +15,7 @@ ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)),"..")
 NavBar = [
     {"name":"Home","url":"/"},
     {"name":"Documentation","url":"/docs"},
+    {"name":"Terminal","url":"/terminal"},
     {"name":"Commands","url":"/commands"}
 ]
 
@@ -81,6 +82,20 @@ def buildWebTemplates():
     _file.write(_template.render(_index_template_data))
     _file.close()
 
+    # build terminal.html
+    _terminal_template_data = {
+        "page_title":"Bytengine :: Terminal",
+        "footer":False,
+        "page_description":"Bytengine web based terminal",
+        "page_keywords":"terminal, web console, bash",
+        "navbar":NavBar,
+        "navbar_active":"Terminal"
+    }
+    _template = _env.get_template("terminal.html")
+    _file = open(os.path.join(ROOT,_templatedir,"terminal.html"),"w")
+    _file.write(_template.render(_terminal_template_data))
+    _file.close()
+
     # get commands
     _keys = cmds.Repository.keys()
     _keys.sort()
@@ -136,8 +151,11 @@ def buildDocumentationFiles():
         for item in _files:
             fname = os.path.basename(item).split(".")[0]
             j = json.load(open(item,"r"))
+            # this is a hack for images
+            body = j["body"].replace('=\"../_images/','=\"/static/docs/images/')
+            
             f = open(docs_dist_dir + "/" + fname + ".html","w+")
-            f.write(j["body"])
+            f.write(body)
             f.close()
             pages.append(fname)
             pages_data[fname] = {"title":j["title"],"url":fname}

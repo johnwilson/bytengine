@@ -99,6 +99,10 @@ class TestUserManagement(unittest.TestCase):
         self.assertFalse(r["data"]["active"])
         self.assertTrue(len(r["data"]["databases"]) == 1)
         # delete user
+        r = runCommand(ticket, 'server.listuser')
+        self.assertTrue(r["status"] == "ok")
+        self.assertTrue(len(r["data"]) == 1)
+
         r = runCommand(ticket, 'server.dropuser "john"')
         self.assertTrue(r["status"] == "ok")
 
@@ -250,6 +254,18 @@ class TestCounter(unittest.TestCase):
         r = runCommand(ticket, '@test.counter "users" reset 5;')
         self.assertTrue(r["status"] == "ok")
         self.assertTrue(r["data"] == 5)
+
+        # create additional counters
+        r = runCommand(ticket, '@test.counter "users.likes" incr 1; @test.counter "car.models" incr 1')
+        self.assertTrue(r["status"] == "ok")
+        
+        r = runCommand(ticket, '@test.counter list')
+        self.assertTrue(r["status"] == "ok")
+        self.assertTrue(len(r["data"]) == 3)
+
+        r = runCommand(ticket, '@test.counter list `^users`')
+        self.assertTrue(r["status"] == "ok")
+        self.assertTrue(len(r["data"]) == 2)
 
 class TestAttachments(unittest.TestCase):
     def test_1(self):

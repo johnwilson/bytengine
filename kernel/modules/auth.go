@@ -235,12 +235,14 @@ func (auth *AuthManager) ChangeUserStatus(usr string, isactive bool) error {
 	return nil
 }
 
-func (auth *AuthManager) ListUsers() ([]interface{}, error) {
+func (auth *AuthManager) ListUsers(rgx string) ([]interface{}, error) {
 	// get collection
 	col := auth.mongo.DB(auth.config.Bfs.SystemDb).C(auth.config.Bfs.SecurityCol)
 
 	// build query
-	q := map[string]interface{}{}
+	qre := bson.RegEx {Pattern:rgx, Options:"i"} // case insensitive regex
+	q := bson.M{"username":bson.M{"$regex":qre}}
+
 	i := col.Find(q).Iter()
 	res := []interface{}{}
 	var usr SystemUser
@@ -326,6 +328,7 @@ func (auth *AuthManager) NewSession(mode ReqMode, usr string) (string, error) {
         c.RPush(_sessionkey, fmt.Sprint(mode))
 		c.Expire(_sessionkey, int64(_timeout))
 	})
+	
     if e != nil {
 		msg := fmt.Sprintf("session couldn't be created.\n%s", e)
 		return "", errors.New(msg)

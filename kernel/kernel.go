@@ -56,6 +56,12 @@ func welcomeHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(b)
 }
 
+func terminalHandler(w http.ResponseWriter, r *http.Request) {
+	b := renderView("terminal.html")
+	w.Header().Set("Content-Type","text/html")
+	w.Write(b)
+}
+
 func documentationHandler(w http.ResponseWriter, r *http.Request) {
 	b := renderView("documentation.html")
 	w.Header().Set("Content-Type","text/html")
@@ -84,9 +90,10 @@ func pingHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "pong!")
 }
 
-func readUploadData(outpath string, r *http.Request) (int, error) {
+func readUploadData(outpath string, r *http.Request) (string, int, error) {
 	total := 0 // total bytes
-	maxbytes := 102400 // hard limit of 100kb just for test
+	maxbytes := 1024 * 300 // hard limit of 300kb just for test
+	fname := "" // upload file name from header
 
 	// create read buffer
 	var bsize int64 = 16 * 1024 // 16 kb
@@ -95,18 +102,20 @@ func readUploadData(outpath string, r *http.Request) (int, error) {
 	// get stream
 	mr, err := r.MultipartReader()
 	if err != nil {
-		return total, err
+		return fname, total, err
 	}
 	in_f, err := mr.NextPart()
 	if err != nil {
-		return total, err
+		return fname, total, err
 	}
 	defer in_f.Close()
+
+	fname = in_f.FileName()
 
 	// create output file
 	out_f, err := os.OpenFile(outpath, os.O_WRONLY|os.O_CREATE, 0777)
 	if err != nil {
-		return total, err
+		return fname, total, err
 	}
 	defer out_f.Close()
 
@@ -117,21 +126,21 @@ func readUploadData(outpath string, r *http.Request) (int, error) {
 		n, err := in_f.Read(buffer)
 		if n == 0 { break }
 		if err != nil {
-			return total, err
+			return fname, total, err
 		}
 		// update total bytes
 		total += n
 		if total > maxbytes {
-			return total, fmt.Errorf("exceeded maximum file size of %d bytes",maxbytes)
+			return fname, total, fmt.Errorf("exceeded maximum file size of %d bytes",maxbytes)
 		}
 		// write
 		n, err = out_f.Write(buffer[:n])
 		if err != nil {
-			return total, err
+			return fname, total, err
 		}
 	}
 
-	return total, nil
+	return fname, total, nil
 }
 
 func writeDownloadData(filep, mime string, size int64, w http.ResponseWriter) {
@@ -203,16 +212,16 @@ func uploadAttachmentHandler(w http.ResponseWriter, r *http.Request) {
         	bpath := ticket_info[1].(string) // bfs content path to attach to
         	tpath := ticket_info[2].(string) // uploaded file path
 
-        	total, err := readUploadData(tpath, r)
+        	fname, total, err := readUploadData(tpath, r)
         	if err != nil {
-        		b2 := modules.ErrorResponse("Upload failed: error read/write data", modules.EngineError)
+        		b2 := modules.ErrorResponse("Upload failed: " + err.Error(), modules.EngineError)
         		w.Header().Set("Content-Type",string(msg[0]))
                 w.WriteHeader(http.StatusBadRequest)
         		w.Write(b2[1])
         		return
         	}
         	// send upload complete request
-        	req2 := modules.NewUploadCompleteRequest(db, tpath, bpath, total)
+        	req2 := modules.NewUploadCompleteRequest(db, tpath, bpath, fname, total)
         	success2, failure2 := req2.GetChannels()
     		EngReqChan <- req2
     		for {
@@ -367,6 +376,7 @@ func buildRoutes() (*mux.Router, error) {
 	r.HandleFunc("/ping", pingHandler).Methods("GET","HEAD")
 	r.HandleFunc("/docs", documentationHandler).Methods("GET","HEAD")
 	r.HandleFunc("/commands", commandsHandler).Methods("GET","HEAD")
+	r.HandleFunc("/terminal", terminalHandler).Methods("GET","HEAD")
 
 	// Static files	
 	r.HandleFunc("/static/{path:[\\w\\.0-9/_\\-]+}",staticFileHandler).Methods("GET","HEAD")

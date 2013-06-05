@@ -43,6 +43,7 @@ type ConfigRedis struct {
 	AuthDb int64 `json:"authdb"`
 	ExtDb int64 `json:"ext"`
 	BFSDb int64 `json:"bfsdb"`
+	PingInterval int64 `json:"pinginterval"`
 }
 type ConfigBFS struct {
 	ReservedDbs []string `json:"reserved_dbs"`

@@ -22,6 +22,9 @@ Topics
 
 :doc:`page_2`
     Overview of key concepts & features
+    
+:doc:`page_3`
+    Building an app with Bytengine
 
 
 .. toctree::
@@ -29,4 +32,5 @@ Topics
 
     page_1
     page_2
+    page_3
 

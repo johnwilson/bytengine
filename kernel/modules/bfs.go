@@ -202,16 +202,24 @@ func (fs *BFS) RebuildServer() (err error) {
 	return nil
 }
 
-func (fs *BFS) ListDatabases() (d []interface{}, err error) {
+func (fs *BFS) ListDatabases(rgx string) (d []interface{}, err error) {
 	dbs, err := fs.mongo.DatabaseNames()
 	if err != nil {
 		return nil, err
 	}
 
 	_list := []interface{} {}
+	r, err := regexp.Compile(rgx)
+	if err != nil {
+		return nil, err
+	}
+
 	for _, item := range dbs {
 		if !fs.IsReservedDb(item) {
-			_list = append(_list, item)
+			// regex match
+			if r.MatchString(item) {
+				_list = append(_list, item)
+			}			
 		}
 	}
 	return _list, nil
@@ -464,7 +472,7 @@ type SimpleResultItem struct {
 	Id string `bson:"_id"`
 }
 
-func (fs *BFS) DirectoryListing(p , db string) ([]interface{}, error) {
+func (fs *BFS) DirectoryListing(p, rgx , db string) ([]interface{}, error) {
 	// check path
 	p = path.Clean(p)
 	// check database access
@@ -489,7 +497,7 @@ func (fs *BFS) DirectoryListing(p , db string) ([]interface{}, error) {
 	}
 
 	// find children
-	q = fs.findChildrenQuery(p)
+	q = fs.findChildrenQuery(p, rgx)
 	i := c.Find(q).Sort("__header__.name").Iter()
 	var ri SimpleResultItem
 	res := []interface{} {}
@@ -1061,7 +1069,7 @@ func (fs *BFS) Info(p, db string) (interface{}, error) {
 	if ri.Header.Type == "Directory" {
 		_type := "directory"
 		// count child nodes
-		q = fs.findChildrenQuery(p)
+		q = fs.findChildrenQuery(p, ".")
 		_count, e := c.Find(q).Count()
 		if e != nil {
 			msg := fmt.Sprintf("couldn't retrieve info for '%s'.\n%s", p, e)
@@ -1138,8 +1146,6 @@ func (fs *BFS) ChangeAccess(p, db string, protect bool) error {
 }
 
 func (fs *BFS) Counter(c, a string, v int64, db string) (interface{}, error) {
-	prefix := "counters"
-
 	// update value 'v'
 	nv := math.Abs(float64(v))
 	v = int64(nv)	
@@ -1149,63 +1155,71 @@ func (fs *BFS) Counter(c, a string, v int64, db string) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// get collection	
+	col := fs.mongo.DB(db).C(fs.config.Bfs.CounterCol)
+
+	// check if counter exists
+	q := bson.M{"name":c}
+	num, err := col.Find(q).Count()
+	if err != nil {
+		return nil, err
+	}
+	// if not exists create new counter
+	if num < 1 {
+		err = fs.validateCounterName(c)
+		if err != nil {
+			return nil, err
+		}
+
+		doc := bson.M{"name":c,"value":v}
+		err = col.Insert(doc)
+		if err != nil {
+			return nil, err
+		}
+
+		return v, nil
+	}
 	
-	var q mgo.Change
+	var cq mgo.Change
 	switch a {
 		case "incr":
-			// check if counter name is valid
-			err = fs.validateCounterName(c)
-			if err != nil {
-				return nil, err
-			}
-			// update counter name
-			cnew := prefix + "." + c
-			// set query
-			q = mgo.Change{
-				Update: bson.M{"$inc":bson.M{cnew:v}},
+			cq = mgo.Change{
+				Update: bson.M{"$inc":bson.M{"value":v}},
 				ReturnNew: true,
 			}
 			break
 		case "decr":
-			// check if counter name is valid
-			err = fs.validateCounterName(c)
-			if err != nil {
-				return nil, err
-			}
-			// update counter name
-			cnew := prefix + "." + c
-			// set query
-			q = mgo.Change{
-				Update: bson.M{"$inc":bson.M{cnew:-v}},
+			cq = mgo.Change{
+				Update: bson.M{"$inc":bson.M{"value":-v}},
 				ReturnNew: true,
 			}
 			break
 		case "reset":
-			// update counter name
-			cnew := prefix + "." + c
-			// set query
-			q = mgo.Change{
-				Update: bson.M{"$set":bson.M{cnew:v}},
+			cq = mgo.Change{
+				Update: bson.M{"$set":bson.M{"value":v}},
 				ReturnNew: true,
 			}
 			break
 		default: // shouldn't reach here
 			return nil, errors.New("Invalid counter action.")
 	}
-
-	// get collection	
-	col := fs.mongo.DB(db).C(fs.config.Bfs.ContentCol)
-	var result interface{}
-	_, err = col.Find(bson.M{prefix:bson.M{"$exists":true}}).Apply(q, &result)
+	
+	var r interface{}
+	_, err = col.Find(q).Apply(cq, &r)
 	if err != nil {
 		return nil, err
 	}
 
-	return result.(bson.M)[prefix].(bson.M)[c], nil	
+	return r.(bson.M)["value"], nil	
 }
 
-func (fs *BFS) CounterList(db string) (interface{}, error) {
-	prefix := "counters"
+type counterItem struct {
+	Name string `json:"name"`
+	Value float64 `json:"value"`
+}
+
+func (fs *BFS) CounterList(rgx, db string) (interface{}, error) {
 	// check database access
 	err := fs.checkDbAccess(db)
 	if err != nil {
@@ -1213,16 +1227,25 @@ func (fs *BFS) CounterList(db string) (interface{}, error) {
 	}
 	
 	// get collection	
-	col := fs.mongo.DB(db).C(fs.config.Bfs.ContentCol)
-	var result interface{}
-	err = col.Find(bson.M{prefix:bson.M{"$exists":true}}).One(&result)
+	col := fs.mongo.DB(db).C(fs.config.Bfs.CounterCol)
+	
+	list := []counterItem{}
+	qre := bson.RegEx {Pattern:rgx, Options:"i"} // case insensitive regex
+	q := bson.M{"name":bson.M{"$regex":qre}}
+	iter := col.Find(q).Iter()
+	var ci counterItem
+	for iter.Next(&ci) {
+		list = append(list, ci)
+	}
+	err = iter.Close()
 	if err != nil {
 		return nil, err
 	}
-	return result.(bson.M)[prefix], nil	
+
+	return list, nil	
 }
 
-func (fs *BFS) AddAttachment(fp, ap, db string) error {
+func (fs *BFS) AddAttachment(fp, ap, fn, db string) error {
 	// check database access
 	err := fs.checkDbAccess(db)
 	if err != nil {
@@ -1267,6 +1290,20 @@ func (fs *BFS) AddAttachment(fp, ap, db string) error {
 		_, err = tmpfile.Read(mimebuffer)
 		if err != nil { return err }
 		mime := http.DetectContentType(mimebuffer)
+		
+		// if mime is 'text/plain' try and get exact mime from file extension
+		mimelist := map[string]string{
+			".js":"text/javascript",
+			".css":"text/css",			
+		}
+		prefix := "text/plain;"
+		if strings.HasPrefix(mime, prefix) {
+			ext := path.Ext(fn)
+			mval, exists := mimelist[ext]
+			if exists {
+				mime = strings.Replace(mime, prefix, mval,1)
+			}
+		}
 
 		// get total file size
 		f_info, _ := tmpfile.Stat()
@@ -1697,8 +1734,12 @@ func (fs *BFS) findPathQuery(p string) bson.M {
 	return q
 }
 
-func (fs *BFS) findChildrenQuery(p string) bson.M {
-	q := bson.M{"__header__.parent":p}
+func (fs *BFS) findChildrenQuery(p, rgx string) bson.M {
+	qre := bson.RegEx {Pattern:rgx, Options:"i"} // case insensitive regex
+	q := bson.M{
+		"__header__.parent":p,
+		 "__header__.name":bson.M{"$regex":qre},
+	}
 	return q
 }
 
@@ -1720,7 +1761,7 @@ func (fs *BFS) checkDbAccess(db string) error {
 		msg := fmt.Sprintf("connot perform action on system database.")
 		return errors.New(msg)
 	}
-	dbs, err := fs.ListDatabases()
+	dbs, err := fs.ListDatabases(".")
 	if err != nil {
 		return err
 	}
@@ -1753,19 +1794,20 @@ func (fs *BFS) validateDirName(d string) error {
 
 func (fs *BFS) validateCounterName(c string) error {
 	msg := fmt.Sprintf("counter name '%s' isn't valid.", c)
-	r, err := regexp.Compile("^[a-zA-Z0-9][a-zA-Z0-9_\\-]{0,}$")
+	r, err := regexp.Compile("[a-zA-Z0-9_\\.\\-]+")
 	if err != nil {
 		return errors.New(msg)
 	}
-	if r.MatchString(c) {
-		return nil
-	}	
-	return errors.New(msg)
+	match := r.FindString(c)
+	if match != c {
+		return errors.New(msg)
+	}
+	return nil	
 }
 
 func (fs *BFS) validateFileName(f string) error {
 	msg := fmt.Sprintf("file name '%s' isn't valid.", f)
-	r, err := regexp.Compile("^\\w[\\w\\-]{0,}(\\.[a-zA-Z0-9]+)?$")
+	r, err := regexp.Compile("^\\w[\\w\\-]{0,}(\\.[a-zA-Z0-9]+)*$")
 	if err != nil {
 		return errors.New(msg)
 	}

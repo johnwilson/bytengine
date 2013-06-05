@@ -346,8 +346,8 @@ func (p *Parser) parseWhoamiCmd() {
 func (p *Parser) parseListDatabasesCmd() {
 	context := "List Databases"
 	// check if regex filter has been added
-	_regex := "*"    
-	if p.peek().typ == itemString {
+	_regex := "."    
+	if p.peek().typ == itemRegex {
 		_token := p.next()
 		_r, err := formatString(_token.val)
 		_regex = _r
@@ -434,8 +434,8 @@ func (p *Parser) parseNewUserCmd() {
 func (p *Parser) parseListUsersCmd() {
 	context := "List Users"
 	// check if regex filter has been added
-	_regex := "*"    
-	if p.peek().typ == itemString {
+	_regex := "."    
+	if p.peek().typ == itemRegex {
 		_token := p.next()
 		_r, err := formatString(_token.val)
 		_regex = _r
@@ -651,8 +651,8 @@ func (p *Parser) parseListDirectoryCmd(db string) {
 	context := "List Directory"
     _token := p.expect(itemPath, context)
     _path := _token.val
-    _regex := "*"
-	if p.peek().typ == itemString {
+    _regex := "."
+	if p.peek().typ == itemRegex {
 		_token := p.next()
 		_r, err := formatString(_token.val)
 		_regex = _r
@@ -921,21 +921,34 @@ func (p *Parser) parseDeleteAttachmentCmd(db string) {
 //     @testdb.counter "counter1" incr 1 ;
 //     @testdb.counter "course.users" reset 0 ;
 //     @testdb.counter "temperature" decr 10 ;
+//     @testdb.counter list ;
 //
 func (p *Parser) parseCounterCmd(db string) {
-	context := "Counter Modifier"
+	context := "Counter Statement"
     _token := p.expectOneOf(itemString, itemIdentifier, context)
     if _token.typ == itemIdentifier {
         if _token.val == "list" {
+        	cmd := NewCommand("counter")
+            cmd.Database = db
+            cmd.Args["action"] = "list"
+            cmd.Args["regex"] = "." //match everything by default
+
+        	if p.peek().typ == itemRegex {
+        		// get pattern
+				_next := p.next()
+				_pattern_text, err := formatString(_next.val)
+				if err != nil {
+					p.errorf("Improperly quoted regex pattern value in %s", context)
+				}
+				cmd.Args["regex"] = _pattern_text
+        	}
             _nxt := p.expectOneOf(itemSemiColon, itemEOF, context)
             if _nxt.typ == itemEOF {
                 p.backup()
-            }
-            cmd := NewCommand("counter")
-            cmd.Database = db
-            cmd.Args["action"] = "list"
-            p.queue.RPush(cmd)
+            }            
+            p.queue.RPush(cmd)            
             return
+
         } else {
             p.errorf("Invalid identifier %s in %s",_token.val, context)
         }        
@@ -957,9 +970,10 @@ func (p *Parser) parseCounterCmd(db string) {
     	default:
     		p.errorf("Invalid indentifier " + _token.val + " in %s", context)
     }
+
     _token = p.expect(itemNumber, context)
-    _val, err2 := strconv.ParseInt(_token.val, 10, 64) // base 10 64bit integer
-    if err2 != nil {
+    _val, err := strconv.ParseInt(_token.val, 10, 64) // base 10 64bit integer
+    if err != nil {
         p.errorf("Invalid numerical value in %s", context)
     }
     

@@ -6,119 +6,119 @@
 Repository = {
     "initserver": {
         "command":"server.init",
-        "category":"admin"
+        "category":"server"
     },
     "listdb": {
         "command":"server.listdb",
-        "category":"user"
+        "category":"server"
     },
     "newdb": {
         "command":"server.newdb",
-        "category":"admin"
+        "category":"server"
     },
     "dropdb": {
         "command":"server.dropdb",
-        "category":"admin"
+        "category":"server"
     },
     "newuser": {
         "command":"server.newuser",
-        "category":"admin"
+        "category":"server"
     },
     "listuser": {
         "command":"server.listuser",
-        "category":"admin"
+        "category":"server"
     },
     "userinfo": {
         "command":"server.userinfo",
-        "category":"admin"
+        "category":"server"
     },
     "dropuser": {
         "command":"server.dropuser",
-        "category":"admin"
+        "category":"server"
     },
     "newpass": {
         "command":"server.newpass",
-        "category":"admin"
+        "category":"server"
     },
     "sysaccess": {
         "command":"server.sysaccess",
-        "category":"admin"
+        "category":"server"
     },
     "userdb": {
         "command":"server.userdb",
-        "category":"admin"
+        "category":"server"
     },
     "newdir": {
         "command":"newdir",
-        "category":"user"
+        "category":"database"
     },
     "newfile": {
         "command":"newfile",
-        "category":"user"
+        "category":"database"
     },
     "listdir": {
         "command":"listdir",
-        "category":"user"
+        "category":"database"
     },
     "rename": {
         "command":"rename",
-        "category":"user"
+        "category":"database"
     },
     "move": {
         "command":"move",
-        "category":"user"
+        "category":"database"
     },
     "copy": {
         "command":"copy",
-        "category":"user"
+        "category":"database"
     },
     "delete": {
         "command":"delete",
-        "category":"user"
+        "category":"database"
     },
     "info": {
         "command":"info",
-        "category":"user"
+        "category":"database"
     },
     "makepublic": {
         "command":"makepublic",
-        "category":"user"
+        "category":"database"
     },
     "makeprivate": {
         "command":"makeprivate",
-        "category":"user"
+        "category":"database"
     },
     "readfile": {
         "command":"readfile",
-        "category":"user"
+        "category":"database"
     },
     "modfile": {
         "command":"modfile",
-        "category":"user"
+        "category":"database"
     },
     "deletebinary": {
         "command":"deletebinary",
-        "category":"user"
+        "category":"database"
     },
     "counter": {
         "command":"counter",
-        "category":"user"
+        "category":"database"
     },
     "select": {
         "command":"select",
-        "category":"user"
+        "category":"database"
     },
     "set": {
         "command":"set",
-        "category":"user"
+        "category":"database"
     },
     "unset": {
         "command":"unset",
-        "category":"user"
+        "category":"database"
     },
     "whoami": {
         "command":"whoami",
-        "category":"user"
+        "category":"database"
     }
 }
 
@@ -515,7 +515,7 @@ def copy():
     @[database].{command} [path] [destination path]
 
     **{command}** copies the file or directory (including its contents) at the
-    given path to the given destination directory. This operation checks for 
+    given path to the given destination path. This operation checks for 
     duplicate names in the destination directory.
 
     **Return Value**::
@@ -525,7 +525,7 @@ def copy():
     **Example**::
 
         @mydb.{command} /var/www/website1/images /tmp/images
-        @mydb.{command} /config.json /etc/bytengine/conf
+        @mydb.{command} /config.json /etc/bytengine/conf/config_copy.json
     """
     pass
 
@@ -713,6 +713,8 @@ def counter():
     **Synopsis**:
     
     @[database].{command} list
+
+    @[database].{command} [counter name] get
 
     @[database].{command} [counter name] incr | decr | reset [value]
 
