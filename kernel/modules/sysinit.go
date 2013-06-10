@@ -16,20 +16,12 @@ type Configuration struct {
 	Redis ConfigRedis
 	General ConfigGeneral
 	Web ConfigWeb
-	Paginate ConfigPaginate
-	Remote ConfigRemote
-	Ext map[string]interface{} `json:"ext"`
 }
 type ConfigGeneral struct {
 	Admin string `json:"sa"`
 	Password string `json:"password"`
 	Version string `json:"version"`
 	LogDirectory string `json:"log"`
-}
-type ConfigPaginate struct {
-	Directory string `json:"dir"`
-	Timeout int `json:"timeout"`
-	PageMemSize int64 `json:"max_page_memory"`
 }
 type ConfigMongodb struct {
 	Host string `json:"host"`
@@ -62,18 +54,6 @@ type ConfigWeb struct {
 	MaxUploadSize int `json:"maxupload_size"`
 	UploadDirectory string `json:"upload_tmp"`
 	StaticDirectory string `json:"static_dir"`
-}
-type ConfigRemote struct {
-	Exec ConfigRemoteExec
-	Pipe ConfigRemotePipe
-}
-type ConfigRemoteExec struct {
-	Url string `json:"url"`
-	Timeout int64 `json:"timeout"`
-}
-type ConfigRemotePipe struct {
-	Url string `json:"url"`
-	Timeout int64 `json:"timeout"`
 }
 
 // ------------ System initializer ------------ //

@@ -42,7 +42,7 @@ const (
 	itemDot						// .
 	itemSemiColon				// ;
 	itemComma					// ,
-	itemPipe					// |
+	itemSaveTo					// |
 	itemLeftBrace 				// {
 	itemRightBrace 				// }
 	itemLeftParenthesis 		// (
@@ -74,7 +74,7 @@ var itemName = map[itemType]string{
 	itemDot:				".",
 	itemSemiColon:			";",
 	itemComma:				",",
-	itemPipe:				">>",
+	itemSaveTo:				">>",
 	itemLeftBrace:			"{",
 	itemRightBrace:			"}",
 	itemLeftParenthesis:	"(",
@@ -268,7 +268,7 @@ func lexInsideScript(l *lexer) stateFn {
 					l.emit(itemGreaterThanEquals)
 					break
 				case nxt == '>':
-					l.emit(itemPipe)
+					l.emit(itemSaveTo)
 					break
 				default:
 					l.backup()
@@ -348,6 +348,7 @@ Loop:
 		switch r := l.next(); {
 		case isAlphaNumeric(r):
 			// absorb.
+			break
 		default:
 			l.backup()
 			word := l.input[l.start:l.pos]

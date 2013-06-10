@@ -148,8 +148,6 @@ func (p *Parser) parse() map[string]interface{} {
 		switch _next := p.peek(); {
 			case _next.typ == itemError:
 				p.errorf("Parsing error: %s",p.peek().val)
-			case _next.typ == itemPipe:
-				p.parsePipeCmd()
 			case _next.typ == itemIdentifier:
 				switch strings.ToLower(_next.val) {
 					case "server":
@@ -186,8 +184,6 @@ func (p *Parser) parse() map[string]interface{} {
 						}
 					case "whoami":
                         p.parseWhoamiCmd()
-                    case "exec":
-                    	p.parseExecuteCmd()
                     default:
 						p.next()
 				}
@@ -321,8 +317,29 @@ func formatString(s string) (string, error) {
 
 // field prefix: this is necessary because a BFS file format is as follows
 // {"__header__":{...}, "__attch__":{...}, "content": {...}}
-// hence queries would require the 'content.' prefix
+// hence mongodb queries would require the 'content.' prefix
 const FIELD_PREFIX string = "content."
+const HEADER_PREFIX string = "__header__."
+const ATTACH_PREFIX string = "__attch__."
+
+func (p *Parser) parseSaveResult() string {
+	if p.peek().typ == itemSaveTo {
+		// absorb symbol
+		p.next()
+		_nxt := p.expect(itemIdentifier, "Result assignment")
+		return _nxt.val
+	}
+	return ""
+}
+
+func (p *Parser) parseEndofCommand(ctx string) string {
+	saveto := p.parseSaveResult()
+	_nxt := p.expectOneOf(itemSemiColon, itemEOF, ctx)
+    if _nxt.typ == itemEOF {
+        p.backup()
+    }
+    return saveto
+}
 
 // example:
 //    whoami ;
@@ -331,11 +348,9 @@ func (p *Parser) parseWhoamiCmd() {
 	context := "Whoami Command"
 	// absorb keyword whoami
     p.next();
-    _nxt := p.expectOneOf(itemSemiColon, itemEOF, context)
-    if _nxt.typ == itemEOF {
-        p.backup()
-    }
+    saveto := p.parseEndofCommand(context)
     cmd := NewCommand("whoami")
+    cmd.Store = saveto
     p.queue.RPush(cmd)
 }
 
@@ -355,12 +370,10 @@ func (p *Parser) parseListDatabasesCmd() {
 	    	p.errorf("Improperly quoted regex in %s", context)
 	    }
 	}
-    _nxt := p.expectOneOf(itemSemiColon, itemEOF, context)
-    if _nxt.typ == itemEOF {
-    	p.backup()
-    }
+    saveto := p.parseEndofCommand(context)
     cmd := NewCommand("listdb")
     cmd.Args["regex"] = _regex
+    cmd.Store = saveto
     p.queue.RPush(cmd)
 }
 
@@ -374,12 +387,10 @@ func (p *Parser) parseNewDatabaseCmd() {
     if err != nil {
     	p.errorf("Improperly quoted database name in %s", context)
     }
-    _nxt := p.expectOneOf(itemSemiColon, itemEOF, context)
-    if _nxt.typ == itemEOF {
-    	p.backup()
-    }
+    saveto := p.parseEndofCommand(context)
     cmd := NewCommand("newdb")
     cmd.Args["db"] = _db
+    cmd.Store = saveto
     p.queue.RPush(cmd)
 }
 
@@ -393,12 +404,10 @@ func (p *Parser) parseDropDatabaseCmd() {
     if err != nil {
     	p.errorf("Improperly quoted database name in %s", context)
     }
-    _nxt := p.expectOneOf(itemSemiColon, itemEOF, context)
-    if _nxt.typ == itemEOF {
-    	p.backup()
-    }
+    saveto := p.parseEndofCommand(context)
     cmd := NewCommand("dropdb")
     cmd.Args["db"] = _db
+    cmd.Store = saveto
     p.queue.RPush(cmd)
 }
 
@@ -417,13 +426,11 @@ func (p *Parser) parseNewUserCmd() {
     if err2 != nil {
     	p.errorf("Improperly quoted password in %s", context)
     }
-    _nxt := p.expectOneOf(itemSemiColon, itemEOF, context)
-    if _nxt.typ == itemEOF {
-    	p.backup()
-    }
+    saveto := p.parseEndofCommand(context)
     cmd := NewCommand("newuser")
     cmd.Args["username"] = _user
     cmd.Args["password"] = _pw
+    cmd.Store = saveto
     p.queue.RPush(cmd)
 }
 
@@ -443,12 +450,10 @@ func (p *Parser) parseListUsersCmd() {
 	    	p.errorf("Improperly quoted regex in %s", context)
 	    }
 	}
-    _nxt := p.expectOneOf(itemSemiColon, itemEOF, context)
-    if _nxt.typ == itemEOF {
-    	p.backup()
-    }
+    saveto := p.parseEndofCommand(context)
     cmd := NewCommand("listuser")
     cmd.Args["regex"] = _regex
+    cmd.Store = saveto
     p.queue.RPush(cmd)
 }
 
@@ -462,12 +467,10 @@ func (p *Parser) parseUserInfoCmd() {
     if err != nil {
     	p.errorf("Improperly quoted username in %s", context)
     }
-    _nxt := p.expectOneOf(itemSemiColon, itemEOF, context)
-    if _nxt.typ == itemEOF {
-    	p.backup()
-    }
+    saveto := p.parseEndofCommand(context)
     cmd := NewCommand("userinfo")
     cmd.Args["username"] = _user
+    cmd.Store = saveto
     p.queue.RPush(cmd)
 }
 
@@ -481,12 +484,10 @@ func (p *Parser) parseDropUserCmd() {
     if err != nil {
     	p.errorf("Improperly quoted username in %s", context)
     }
-    _nxt := p.expectOneOf(itemSemiColon, itemEOF, context)
-    if _nxt.typ == itemEOF {
-    	p.backup()
-    }
+    saveto := p.parseEndofCommand(context)
     cmd := NewCommand("dropuser")
     cmd.Args["username"] = _user
+    cmd.Store = saveto
     p.queue.RPush(cmd)
 }
 
@@ -505,13 +506,11 @@ func (p *Parser) parseNewPasswordCmd() {
     if err2 != nil {
     	p.errorf("Improperly quoted password in %s", context)
     }
-    _nxt := p.expectOneOf(itemSemiColon, itemEOF, context)
-    if _nxt.typ == itemEOF {
-    	p.backup()
-    }
+    saveto := p.parseEndofCommand(context)
     cmd := NewCommand("newpass")
     cmd.Args["username"] = _user
     cmd.Args["password"] = _pw
+    cmd.Store = saveto
     p.queue.RPush(cmd)
 }
 
@@ -537,13 +536,11 @@ func (p *Parser) parseUserSystemAccessCmd() {
     	default:
     		p.errorf("Invalid indentifier " + _token.val + " in %s", context)
     }
-    _nxt := p.expectOneOf(itemSemiColon, itemEOF, context)
-    if _nxt.typ == itemEOF {
-    	p.backup()
-    }
+    saveto := p.parseEndofCommand(context)
     cmd := NewCommand("sysaccess")
     cmd.Args["username"] = _user
     cmd.Args["grant"] = _grant
+    cmd.Store = saveto
     p.queue.RPush(cmd)
 }
 
@@ -574,14 +571,12 @@ func (p *Parser) parseUserDatabaseAccessCmd() {
     	default:
     		p.errorf("Invalid indentifier " + _token.val + " in %s", context)
     }
-    _nxt := p.expectOneOf(itemSemiColon, itemEOF, context)
-    if _nxt.typ == itemEOF {
-    	p.backup()
-    }
+    saveto := p.parseEndofCommand(context)
     cmd := NewCommand("userdb")
     cmd.Args["username"] = _user
     cmd.Args["database"] = _db
     cmd.Args["grant"] = _grant
+    cmd.Store = saveto
     p.queue.RPush(cmd)
 }
 
@@ -590,11 +585,9 @@ func (p *Parser) parseUserDatabaseAccessCmd() {
 //
 func (p *Parser) parseServerInitCmd() {
     context := "Server Init"
-    _nxt := p.expectOneOf(itemSemiColon, itemEOF, context)
-    if _nxt.typ == itemEOF {
-    	p.backup()
-    }
+    saveto := p.parseEndofCommand(context)
     cmd := NewCommand("initserver")
+    cmd.Store = saveto
     p.queue.RPush(cmd)
 }
 
@@ -606,13 +599,11 @@ func (p *Parser) parseNewDirectoryCmd(db string) {
 	context := "Make Directory"
     _token := p.expect(itemPath, context)
     _path := _token.val
-    _nxt := p.expectOneOf(itemSemiColon, itemEOF, context)
-    if _nxt.typ == itemEOF {
-    	p.backup()
-    }
+    saveto := p.parseEndofCommand(context)
     cmd := NewCommand("newdir")
     cmd.Database = db
     cmd.Args["path"] = _path
+    cmd.Store = saveto
     p.queue.RPush(cmd)
 }
 
@@ -632,14 +623,12 @@ func (p *Parser) parseNewFileCmd(db string) {
     } else {
     	p.errorf("Expecting a JSON object in %s", context)
     }
-    _nxt := p.expectOneOf(itemSemiColon, itemEOF, context)
-    if _nxt.typ == itemEOF {
-    	p.backup()
-    }
+    saveto := p.parseEndofCommand(context)
     cmd := NewCommand("newfile")
     cmd.Database = db
     cmd.Args["path"] = _path
     cmd.Args["data"] = _json
+    cmd.Store = saveto
     p.queue.RPush(cmd)
 }
 
@@ -660,14 +649,12 @@ func (p *Parser) parseListDirectoryCmd(db string) {
 	    	p.errorf("Improperly quoted regex in %s", context)
 	    }
 	}
-    _nxt := p.expectOneOf(itemSemiColon, itemEOF, context)
-    if _nxt.typ == itemEOF {
-    	p.backup()
-    }
+    saveto := p.parseEndofCommand(context)
     cmd := NewCommand("listdir")
     cmd.Database = db
     cmd.Args["path"] = _path
     cmd.Args["regex"] = _regex
+    cmd.Store = saveto
     p.queue.RPush(cmd)
 }
 
@@ -683,14 +670,12 @@ func (p *Parser) parseRenameContentCmd(db string) {
     if err != nil {
     	p.errorf("Improperly quoted new name in %s", context)
     }
-    _nxt := p.expectOneOf(itemSemiColon, itemEOF, context)
-    if _nxt.typ == itemEOF {
-    	p.backup()
-    }
+    saveto := p.parseEndofCommand(context)
     cmd := NewCommand("newdir")
     cmd.Database = db
     cmd.Args["path"] = _path
     cmd.Args["name"] = _name
+    cmd.Store = saveto
     p.queue.RPush(cmd)
 }
 
@@ -709,15 +694,13 @@ func (p *Parser) parseMoveContentCmd(db string) {
     	_nxt := p.next()
     	_rename = _nxt.val
     }
-    _nxt := p.expectOneOf(itemSemiColon, itemEOF, context)
-    if _nxt.typ == itemEOF {
-    	p.backup()
-    }
+    saveto := p.parseEndofCommand(context)
     cmd := NewCommand("move")
     cmd.Database = db
     cmd.Args["path"] = _path
     cmd.Args["to"] = _path2
     cmd.Args["rename"] = _rename
+    cmd.Store = saveto
     p.queue.RPush(cmd)
 }
 
@@ -737,15 +720,13 @@ func (p *Parser) parseCopyContentCmd(db string) {
     	_nxt := p.next()
     	_rename = _nxt.val
     }
-    _nxt := p.expectOneOf(itemSemiColon, itemEOF, context)
-    if _nxt.typ == itemEOF {
-    	p.backup()
-    }
+    saveto := p.parseEndofCommand(context)
     cmd := NewCommand("copy")
     cmd.Database = db
     cmd.Args["path"] = _path
     cmd.Args["to"] = _path2
     cmd.Args["rename"] = _rename
+    cmd.Store = saveto
     p.queue.RPush(cmd)
 }
 
@@ -756,13 +737,11 @@ func (p *Parser) parseDeleteContentCmd(db string) {
 	context := "Delete File/Directory"
     _token := p.expect(itemPath, context)
     _path := _token.val
-    _nxt := p.expectOneOf(itemSemiColon, itemEOF, context)
-    if _nxt.typ == itemEOF {
-    	p.backup()
-    }
+    saveto := p.parseEndofCommand(context)
     cmd := NewCommand("delete")
     cmd.Database = db
     cmd.Args["path"] = _path
+    cmd.Store = saveto
     p.queue.RPush(cmd)
 }
 
@@ -774,13 +753,11 @@ func (p *Parser) parseContentInfoCmd(db string) {
 	context := "Info File/Directory"
     _token := p.expect(itemPath, context)
     _path := _token.val
-    _nxt := p.expectOneOf(itemSemiColon, itemEOF, context)
-    if _nxt.typ == itemEOF {
-    	p.backup()
-    }
+    saveto := p.parseEndofCommand(context)
     cmd := NewCommand("info")
     cmd.Database = db
     cmd.Args["path"] = _path
+    cmd.Store = saveto
     p.queue.RPush(cmd)
 }
 
@@ -792,13 +769,11 @@ func (p *Parser) parseMakeContentPublicCmd(db string) {
 	context := "Make Public File/Directory"
     _token := p.expect(itemPath, context)
     _path := _token.val
-    _nxt := p.expectOneOf(itemSemiColon, itemEOF, context)
-    if _nxt.typ == itemEOF {
-    	p.backup()
-    }
+    saveto := p.parseEndofCommand(context)
     cmd := NewCommand("makepublic")
     cmd.Database = db
     cmd.Args["path"] = _path
+    cmd.Store = saveto
     p.queue.RPush(cmd)
 }
 
@@ -810,13 +785,11 @@ func (p *Parser) parseMakeContentPrivateCmd(db string) {
 	context := "Make Private File/Directory"
     _token := p.expect(itemPath, context)
     _path := _token.val
-    _nxt := p.expectOneOf(itemSemiColon, itemEOF, context)
-    if _nxt.typ == itemEOF {
-    	p.backup()
-    }
+    saveto := p.parseEndofCommand(context)
     cmd := NewCommand("makeprivate")
     cmd.Database = db
     cmd.Args["path"] = _path
+    cmd.Store = saveto
     p.queue.RPush(cmd)
 }
 
@@ -863,14 +836,12 @@ func (p *Parser) parseReadFileCmd(db string) {
 		}
     }
 
-    _nxt := p.expectOneOf(itemSemiColon, itemEOF, context)
-    if _nxt.typ == itemEOF {
-    	p.backup()
-    }
+    saveto := p.parseEndofCommand(context)
     cmd := NewCommand("readfile")
     cmd.Database = db
     cmd.Args["path"] = _path
     cmd.Args["fields"] = _list
+    cmd.Store = saveto
     p.queue.RPush(cmd)
 }
 
@@ -889,14 +860,12 @@ func (p *Parser) parseModifyFileCmd(db string) {
     } else {
     	p.errorf("Expecting a JSON object in %s", context)
     }
-    _nxt := p.expectOneOf(itemSemiColon, itemEOF, context)
-    if _nxt.typ == itemEOF {
-    	p.backup()
-    }
+    saveto := p.parseEndofCommand(context)
     cmd := NewCommand("modfile")
     cmd.Database = db
     cmd.Args["path"] = _path
     cmd.Args["data"] = _json
+    cmd.Store = saveto
     p.queue.RPush(cmd)
 }
 
@@ -907,13 +876,11 @@ func (p *Parser) parseDeleteAttachmentCmd(db string) {
 	context := "Delete File Binary Content"
     _token := p.expect(itemPath, context)
     _path := _token.val
-    _nxt := p.expectOneOf(itemSemiColon, itemEOF, context)
-    if _nxt.typ == itemEOF {
-    	p.backup()
-    }
+    saveto := p.parseEndofCommand(context)
     cmd := NewCommand("deletebinary")
     cmd.Database = db
     cmd.Args["path"] = _path
+    cmd.Store = saveto
     p.queue.RPush(cmd)
 }
 
@@ -942,10 +909,8 @@ func (p *Parser) parseCounterCmd(db string) {
 				}
 				cmd.Args["regex"] = _pattern_text
         	}
-            _nxt := p.expectOneOf(itemSemiColon, itemEOF, context)
-            if _nxt.typ == itemEOF {
-                p.backup()
-            }            
+            saveto := p.parseEndofCommand(context)
+            cmd.Store = saveto            
             p.queue.RPush(cmd)            
             return
 
@@ -977,15 +942,13 @@ func (p *Parser) parseCounterCmd(db string) {
         p.errorf("Invalid numerical value in %s", context)
     }
     
-    _nxt := p.expectOneOf(itemSemiColon, itemEOF, context)
-    if _nxt.typ == itemEOF {
-    	p.backup()
-    }
+    saveto := p.parseEndofCommand(context)
     cmd := NewCommand("counter")
     cmd.Database = db
     cmd.Args["name"] = _counter
     cmd.Args["action"] = _action
     cmd.Args["value"] = _val
+    cmd.Store = saveto
     p.queue.RPush(cmd)
 }
 
@@ -1027,6 +990,7 @@ func (p *Parser) parseSelectCmd(db string) {
     cmd.Database = db
     cmd.Args["fields"] = _fields
     cmd.Args["dirs"] = _paths
+    var saveto string
     
     // get optional identifiers
     Loop:
@@ -1050,10 +1014,13 @@ func (p *Parser) parseSelectCmd(db string) {
 				case _token.typ == itemIdentifier && strings.ToLower(_token.val) == "count": 
 					cmd.Args["count"] = true
 					continue
+				case _token.typ == itemSaveTo:
+					p.backup()
+					saveto = p.parseEndofCommand(context)
+					break Loop
     			case _token.typ == itemSemiColon:
     				break Loop
     			case _token.typ == itemEOF:
-    				// do not consume eof
     				p.backup()
     				break Loop
     			default:
@@ -1096,6 +1063,7 @@ func (p *Parser) parseSelectCmd(db string) {
     	}
     }
 
+    cmd.Store = saveto
     p.queue.RPush(cmd)
 }
 
@@ -1139,6 +1107,7 @@ func (p *Parser) parseSetCmd(db string) {
     cmd.Database = db
     cmd.Args["fields"] = _fields
     cmd.Args["dirs"] = _paths
+    var saveto string
     
     // get optional identifiers
     Loop2:
@@ -1148,6 +1117,10 @@ func (p *Parser) parseSetCmd(db string) {
 				_where := p.parseWhereCmd()
 				cmd.Args["where"] = _where
 				continue
+			case _token.typ == itemSaveTo:
+					p.backup()
+					saveto = p.parseEndofCommand(context)
+					break Loop2   			
 			case _token.typ == itemSemiColon:
 				break Loop2
 			case _token.typ == itemEOF:
@@ -1159,6 +1132,7 @@ func (p *Parser) parseSetCmd(db string) {
 		}
 	}
 
+	cmd.Store = saveto
     p.queue.RPush(cmd)
 }
 
@@ -1199,6 +1173,7 @@ func (p *Parser) parseUnsetCmd(db string) {
     cmd.Database = db
     cmd.Args["fields"] = _fields
     cmd.Args["dirs"] = _paths
+    var saveto string
     
     // get optional identifiers
     Loop2:
@@ -1208,6 +1183,10 @@ func (p *Parser) parseUnsetCmd(db string) {
 				_where := p.parseWhereCmd()
 				cmd.Args["where"] = _where
 				continue
+			case _token.typ == itemSaveTo:
+					p.backup()
+					saveto = p.parseEndofCommand(context)
+					break Loop2    			
 			case _token.typ == itemSemiColon:
 				break Loop2
 			case _token.typ == itemEOF:
@@ -1219,6 +1198,7 @@ func (p *Parser) parseUnsetCmd(db string) {
 		}
 	}
 
+	cmd.Store = saveto
     p.queue.RPush(cmd)
 }
 
@@ -1477,18 +1457,41 @@ func (p *Parser) parseValueAssignment() (string, interface{}) {
 	return _field, _val
 }
 
+// convert file metadata tag to field name to enable queries on meta
+// e.g. 'file_name' will be converted to '__header__.name'
+func fileMetaToField(meta string) string {
+	switch meta {
+		case "file_name":
+			return HEADER_PREFIX + "name"
+		case "file_mime":
+			return ATTACH_PREFIX + "mime"
+		case "file_size":
+			return ATTACH_PREFIX + "size"
+		case "file_ispublic":
+			return HEADER_PREFIX + "ispublic"
+		default:
+			return ""
+	}
+}
+
 // example:
 //     @testdb.select "user.name" in /tmp/users
 //     where "user.name" == "luke" "user.surname" = "skywalker" ;
 //
 func (p *Parser) parseSimpleWhereCondition() map[string]interface{} {
 	context := "Where Condition Statement"
-	_next := p.next()
-	_field, err := formatString(_next.val)
-	if err != nil {
-		p.errorf("Improperly quoted field value in %s", context)
+	_next := p.next()	
+	var _field string
+	if _next.typ == itemIdentifier {
+		_field = fileMetaToField(_next.val)
+	} else {
+		v, err := formatString(_next.val)
+		if err != nil {
+			p.errorf("Improperly quoted field value in %s", context)
+		}
+		_field = FIELD_PREFIX + v
 	}
-	_field = FIELD_PREFIX + _field
+	
 	// parse operator
 	switch _next2 := p.next(); _next2.typ {
 		case itemEqualTo, itemNotEqualTo, itemGreaterThan, itemGreaterThanEquals, itemLesserThan, itemLesserThanEquals:
@@ -1653,12 +1656,17 @@ func (p *Parser) parseRegexWhereCondition() map[string]interface{} {
 	// left parenthesis
 	p.expect(itemLeftParenthesis, context)
 	// get field
-	_next := p.expect(itemString, context)
-	_field, err := formatString(_next.val)
-	if err != nil {
-		p.errorf("Improperly quoted field value in %s", context)
+	_next := p.next()
+	var _field string
+	if _next.typ == itemIdentifier {
+		_field = fileMetaToField(_next.val)
+	} else {
+		v, err := formatString(_next.val)
+		if err != nil {
+			p.errorf("Improperly quoted field value in %s", context)
+		}
+		_field = FIELD_PREFIX + v
 	}
-	_field = FIELD_PREFIX + _field
 	// absorb comma
 	p.expect(itemComma, context)
 	// get regex option i.e. 'i' for case insensitive search etc...
@@ -1707,6 +1715,14 @@ func (p *Parser) parseWhereCmd() map[string]interface{} {
 				case itemIdentifier:
 					// check for function based conditions
 					switch strings.ToLower(p.peek().val) {
+						case "file_mime": // attachment mime
+							fallthrough
+						case "file_size": // attachment size
+							fallthrough
+						case "file_ispublic": // file accessibility
+							fallthrough
+						case "file_name": // file name
+							_condition = p.parseSimpleWhereCondition()
 						case "typeof":
 							_condition = p.parseTypeofWhereCondition()
 							break
@@ -1757,59 +1773,4 @@ func (p *Parser) parseWhereCmd() map[string]interface{} {
 	_where["and"] = _and
 	_where["or"] = _or
 	return _where
-}
-
-// Send search results to pagination function using 'redirect' symbol '>>'
-//
-// example:
-//     @testdb.select "user.name" in /tmp/users /tmp/deleted_users
-//     where "user.age" > 60 ; >> pagination
-//
-func (p *Parser) parsePipeCmd() {
-	context := "Pipe Function Statement"
-	// absorb pipe symbol >>
-	p.next()
-	_next := p.expect(itemIdentifier, context)
-	cmd := NewCommand("pipe")
-    cmd.Args["function"] = _next.val
-    
-	// check if has arguments as json object
-    var _json map[string]interface{}
-    if p.peek().typ == itemLeftBrace {
-    	_json = p.parseJSON(context)
-    }
-    cmd.Args["args"] = _json
-
-	// pipe statement should alway be at the end of the script
-	p.expect(itemEOF, context)
-	p.backup()
-	p.queue.RPush(cmd)
-}
-
-// Execute external functions: sort of like stored procedures
-// function arguments are in a json object
-//
-// example:
-//     exec.Paginate {"pagesize":10,"page":2}
-//     exec.Donothing
-//
-func (p *Parser) parseExecuteCmd() {
-	context := "Execute Function Statement"
-	// absorb keyword exec
-	p.next()
-	p.expect(itemDot, context)
-	_next := p.expect(itemIdentifier, context)
-	cmd := NewCommand("exec")
-    cmd.Args["function"] = _next.val    
-	// check if has arguments as json object
-    var _json map[string]interface{}
-    if p.peek().typ == itemLeftBrace {
-    	_json = p.parseJSON(context)
-    }
-    cmd.Args["args"] = _json
-	_nxt := p.expectOneOf(itemSemiColon, itemEOF, context)
-    if _nxt.typ == itemEOF {
-    	p.backup()
-    }
-	p.queue.RPush(cmd)
 }

@@ -43,27 +43,5 @@
         "session_timeout":60,
         "upload_timeout":120,
         "security_collection":"users"
-    },
-
-    "remote":{
-        "exec":{
-            "url":"http://localhost:5000/exec/",
-            "timeout":5
-        },
-        "pipe":{
-            "url":"http://localhost:5000/pipe/",
-            "timeout":5
-        }
-    },
-
-    "ext":{
-        "exec":{},
-        "pipe":{
-            "paginate":{
-                "dir":"/tmp/bytengine_server/cache",
-                "timeout":60,
-                "max_page_memory": 1048576
-            }
-        }
     }
 }

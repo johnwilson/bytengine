@@ -143,14 +143,14 @@ class TestContentManagement(unittest.TestCase):
 
         r = runCommand(ticket, '@test.listdir /var/www')
         self.assertTrue(r["status"] == "ok")
-        self.assertTrue(len(r["data"]) == 2)
+        self.assertTrue(len(r["data"]["files"]) == 2)
 
         r = runCommand(ticket, '@test.copy /var/www /www')      
         self.assertTrue(r["status"] == "ok")
 
         r = runCommand(ticket, '@test.listdir /www')
         self.assertTrue(r["status"] == "ok")
-        self.assertTrue(len(r["data"]) == 2)
+        self.assertTrue(len(r["data"]["files"]) == 2)
 
         r = runCommand(ticket, '@test.readfile /www/index_copy.html ["title","body"]')
         self.assertTrue(r["status"] == "ok")

@@ -37,8 +37,6 @@ def setupDirs():
             subprocess.check_output(["mkdir","-p",config["general"]["log"]])
         if not os.path.exists(config["web"]["upload_tmp"]):
             subprocess.check_output(["mkdir","-p",config["web"]["upload_tmp"]])
-        if not os.path.exists(config["ext"]["pipe"]["paginate"]["dir"]):
-            subprocess.check_output(["mkdir","-p",config["ext"]["pipe"]["paginate"]["dir"]])
         if not os.path.exists(config["bfs"]["attachments_dir"]):
             subprocess.check_output(["mkdir","-p",config["bfs"]["attachments_dir"]])
         subprocess.check_output(["cp","-r","./web/static","./build/release/bytengine-server/core/web"])

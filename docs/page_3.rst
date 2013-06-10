@@ -1,37 +1,49 @@
-*****************
+=================
 LytPages tutorial
-*****************
+=================
 
-We are going to build a sample python web app with Bytengine on the backend.
-This should give you a preview of one of the many ways you it can be used in your
-your application stack.
+In this tutorial, we are going to show you how Bytengine can be used to take care
+of our web application's data storage and management needs.
 
-Please feel free to translate this tutorial to your prefered language or framework
-and share it with us `on twitter <https://twitter.com/bytengine>`_!
+Although emphasis will be placed on Bytengine commands, we will also include some
+javascript and python code snippets to demonstrate how your code would interact 
+with Bytengine.
+
+In order to run the code examples you will need a Bytengine instance which you can get by:
+
+    * `Downloading a binary <https://github.com/johnwilson/bytengine#installation>`_
+    * `Building your binary <https://github.com/johnwilson/bytengine#development>`_
+    * Sending a personal account request to bytengine[at]gmail.com
+    * Using one of the demo server accounts (and hope nobody overwrites your directories!)
+
+We will be using the following client-side frameworks/libraries:
+
+    * `Jquery <http://jquery.com/>`_
+    * `Underscore.js <http://underscorejs.org/>`_
+    * `CodeMirror <http://codemirror.net/>`_
+    * `Jquery form plugin <http://www.malsup.com/jquery/form/>`_
+
+And the following python modules:
+
+    * `Flask <http://jquery.com/>`_ ``easy_install flask``
+    * `Flask-Login <https://github.com/maxcountryman/flask-login/>`_ ``easy_install flask-login``
+    * `Requests <http://docs.python-requests.org/en/latest/>`_ ``easy_install requests``
 
 Synopsis
 ========
 
-Our app is called LytPages and its a mini portal that offers users the opportunity to
-show the world their script-fu! Each user gets a single page on which he/she can build
-pretty much anything with CSS, HTML & Javascript using the built-in editor.
+The web app we are going to build during the course of this tutorial is called **LytPages**.
 
-Building blocks and prerequisits
-================================
+LytPages will be a site where developers can show off their 'script-fu' using html, css
+and javascript! Each user will have a single page on which to build their masterpiece. 
+We will provide them with a CMS where they can edit their code and upload any page
+dependant media.
 
-LytPages will use with the following frameworks:
+Table of Contents
+=================
 
-    * `Flask <http://flask.pocoo.org/>`_ 
-    * `Codemirror <http://codemirror.net/>`_
-    * `Bootstrap fork by Jasny <http://jasny.github.io/bootstrap/index.html>`_
-    * `JQuery <http://jquery.com/download/>`_
+:doc:`page_4`
+
+:doc:`page_5`
     
-If you want to build and run LytPages, you'll need a local or remote Bytengine
-instance which you can get by doing one of the following:
-
-    * `Download a binary <https://github.com/johnwilson/bytengine#installation>`_
-    * `Build your binary <https://github.com/johnwilson/bytengine#development>`_
-    * Send a personal account request to bytengine[at]gmail.com
-    * Use the test accounts (and hope nobody deletes your directories!)
-    
-You can grab the source code this mini tutorial `here <https://github.com/johnwilson/lytpages>`_.
+:doc:`page_6`

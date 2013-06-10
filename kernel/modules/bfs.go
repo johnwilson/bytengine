@@ -281,10 +281,6 @@ func (fs *BFS) MakeDatabase(db string) (err error) {
 	return nil
 }
 
-func (fs *BFS) CopyDatabase(db_old, db_new string) (err error) {
-	return errors.New("Not yet implemented.")
-}
-
 func (fs *BFS) RemoveDatabase(db string) (err error) {
 	// check if db to be deleted is reserved
 	if fs.IsReservedDb(db) {
@@ -472,7 +468,7 @@ type SimpleResultItem struct {
 	Id string `bson:"_id"`
 }
 
-func (fs *BFS) DirectoryListing(p, rgx , db string) ([]interface{}, error) {
+func (fs *BFS) DirectoryListing(p, rgx , db string) (map[string] []interface{}, error) {
 	// check path
 	p = path.Clean(p)
 	// check database access
@@ -500,15 +496,18 @@ func (fs *BFS) DirectoryListing(p, rgx , db string) ([]interface{}, error) {
 	q = fs.findChildrenQuery(p, rgx)
 	i := c.Find(q).Sort("__header__.name").Iter()
 	var ri SimpleResultItem
-	res := []interface{} {}
+	dirs := []interface{} {}
+	files := []interface{} {}
+	afiles := []interface{} {}// files with attachments
+
 	for i.Next(&ri) {
 		if ri.Header.Type == "Directory" {
-			res = append(res, bson.M{"name":ri.Header.Name,"type":"directory"})
+			dirs = append(dirs, ri.Header.Name)
 		} else {
 			if ri.AHeader.Filepointer == "" {
-				res = append(res, bson.M{"name":ri.Header.Name,"type":"file","attachment":false})
+				files = append(files, ri.Header.Name)
 			} else {
-				res = append(res, bson.M{"name":ri.Header.Name,"type":"file","attachment":true})
+				afiles = append(afiles, ri.Header.Name)
 			}
 		}
 	}
@@ -516,6 +515,11 @@ func (fs *BFS) DirectoryListing(p, rgx , db string) ([]interface{}, error) {
 	if err != nil {
 		msg := fmt.Sprintf("error while trying directory listing for: %s\n%s", p, err)
 		return nil, errors.New(msg)
+	}
+	res := map[string] []interface{} {
+		"dirs": dirs,
+		"files": files,
+		"afiles": afiles,
 	}
 
 	return res, nil
@@ -1588,7 +1592,7 @@ func (fs *BFS) BQLSearch(db string, q bson.M) (interface{}, error) {
 			query["$or"] = _or
 		}
 	}
-
+	
 	// get collection	
 	c := fs.mongo.DB(db).C(fs.config.Bfs.ContentCol)
 	

@@ -13,6 +13,7 @@ type Command struct {
 	Name string
 	Database string
 	Args map[string] interface{}
+	Store string // name of resultset
 }
 
 func NewCommand(name string) Command {
@@ -517,43 +518,14 @@ var f29 = &RuntimeFunction {
 	},
 }
 
-// ------------ pipe >> ------------- //
-
-var f30 = &RuntimeFunction {
-	Name: "pipe",
-	Modes: []ReqMode{RootMode,UserMode},
-	Handler: func(cmd *Command, u *SystemUser, m *ReqMode, eng *CommandEngine) (interface{}, error) {
-		fname := cmd.Args["function"].(string)
-		fres := cmd.Args["resultset"]
-		fargs := cmd.Args["args"].(map[string]interface{})
-		r, e := eng.fm.Pipe(fname,fres,fargs)
-		return r, e
-	},
-}
-
-// ------------ exec ------------- //
-
-var f31 = &RuntimeFunction {
-	Name: "exec",
-	Modes: []ReqMode{RootMode,UserMode},
-	Handler: func(cmd *Command, u *SystemUser, m *ReqMode, eng *CommandEngine) (interface{}, error) {
-		fname := cmd.Args["function"].(string)
-		fargs := cmd.Args["args"].(map[string]interface{})
-		r, e := eng.fm.Exec(fname,fargs)
-		return r, e
-	},
-}
-
 // ############## Engine ############## //
 
 type  CommandEngine struct {
 	coreFn map[string] *RuntimeFunction // core functions
-	//pipeFn map[string] *RuntimeFunction // extended functions
 	Auth *AuthManager // authentication module
 	Bfs *BFS // file system module
 	SysInit *System // initialization module
 	rm *RedisManager // contains redis connection clients
-	fm *FunctionManager // remote function module
 }
 
 func NewCommandEngine(config string) *CommandEngine {
@@ -590,8 +562,6 @@ func NewCommandEngine(config string) *CommandEngine {
 	ci.coreFn[f27.Name] = f27
 	ci.coreFn[f28.Name] = f28
 	ci.coreFn[f29.Name] = f29
-	ci.coreFn[f30.Name] = f30
-	ci.coreFn[f31.Name] = f31
 	
 	// initialize system with config file
 	s := &System{}
@@ -619,9 +589,6 @@ func NewCommandEngine(config string) *CommandEngine {
 	// file system module
 	bfs := NewBFS(s.Config, ms, ci.rm)
 	ci.Bfs = bfs
-	
-	// external functions module
-	ci.fm = NewFunctionManager(s.Config.Remote)
 
 	// return
 	return ci
@@ -815,27 +782,33 @@ func requestHandler(ch <- chan Job) {
 			break
 		}
 		// process command list
-		// only the results of the last command are returned
 		var lastresult *interface{}
+		resultset := map[string]interface{} {}
+
 		for cmdlist.Size() > 0 {
 			cmd := cmdlist.LPop().(Command)
-			if cmd.Name == "pipe" {
-				cmd.Args["resultset"] = *lastresult
-			}
 			reply, err := job.Engine.Do(&cmd, &usr, &mode)
 			if err != nil {
 				job.Req.OnFailure(err.Error(), CommandError)
-				lastresult = nil
-				break
+				return
+			}
+			if cmd.Store != "" {
+				resultset[cmd.Store] = reply
 			}
 			lastresult = &reply
 		}
 
 		if lastresult == nil {
 			job.Req.OnFailure("No executable commands found in script.", ScriptError)
-			break
+			return
 		}
-		job.Req.OnSuccess(*lastresult,"application/json") // get the value at the address
+		if len(resultset) > 0 {
+			data := []interface{} {*lastresult, resultset}
+			job.Req.OnSuccess(data,"application/json")
+			return
+		}
+
+		job.Req.OnSuccess(*lastresult,"application/json")
 		break
 	case UploadTCheckRequest:
 		req := job.Req.(UploadTCheckRequest)
