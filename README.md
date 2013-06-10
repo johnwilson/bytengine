@@ -74,6 +74,8 @@ Prerequisites:
 
 ## Some Handy Links
 
+[Documentation](https://bytengine.readthedocs.org/en/latest/) - Documentation
+
 [Demo Server](http://www.bytengine.com/) - Demo server
 
 [Terminal](http://terminal.bytengine.com) - Sample application 1
