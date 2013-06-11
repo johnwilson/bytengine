@@ -1,3 +1,5 @@
+.. _tutorial:
+
 =================
 LytPages tutorial
 =================
@@ -42,8 +44,9 @@ dependant media.
 Table of Contents
 =================
 
-:doc:`page_4`
+.. toctree::
+   :maxdepth: 2
 
-:doc:`page_5`
-    
-:doc:`page_6`
+   page_1
+   page_2
+   page_3

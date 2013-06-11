@@ -1,3 +1,5 @@
+.. _tutorial-page_1:
+
 =========
 The setup
 =========
@@ -7,6 +9,7 @@ This tutorial will make the following assumptions:
     * Database is **lytpages**
     * Username is **lytpages**
     * User Password is **password**
+    * User has been granted access to lytpages database ``server.userdb "lytpages" "lytpages" grant``
     * Bytengine host is **127.0.0.1**
     * Bytengine port is **8500**
 
@@ -14,12 +17,12 @@ We are going to use the **Web Terminal** to write our Bytengine scripts. It shou
 be accessible at http://127.0.0.1:8500/terminal . To login with the above credentials
 we'll type the following command: ``login lytpages lytpages``.
 
-.. image:: static/images/fig4.png
+.. image:: ../static/images/fig4.png
     :scale: 100%
 
 You should get the following reply:
 
-.. image:: static/images/fig5.png
+.. image:: ../static/images/fig5.png
     :scale: 100%
 
 Python helper functions
@@ -153,4 +156,4 @@ code the Bytengine scripts that we can test beforehand in the Web Terminal:
         reply = json.loads(r.text)    
         return reply
 
-Now that the stage is set lets go on to our next topic :doc:`page_5`
+Now that the stage is set lets go on to our next topic :ref:`tutorial-page_2`

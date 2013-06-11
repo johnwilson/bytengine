@@ -14,26 +14,10 @@ Typical usage:
     * Document Management System backend
     * Image storage and delivery server
 
-Topics
-------
-
-:doc:`page_1`
-    A few code examples
-
-:doc:`page_2`
-    Overview of key concepts & features
-    
-:doc:`page_3`
-    Building an app with Bytengine
-
-
 .. toctree::
-    :hidden:
+    :maxdepth: 2
 
     page_1
     page_2
-    page_3
-    page_4
-    page_5
-    page_6
+    tutorial/index
 
