@@ -69,9 +69,9 @@ If you are using the online demo server please modify the urls accordingly.
     /*---- create file with valid JSON data ----*/
 
     @test.newfile /myapp/users/u1 {"name":"justin","age":24} ;
-    @test.newfile /myapp/users/u1 {"name":"lola","age":57} ;
-    @test.newfile /myapp/users/u1 {"name":"jenny","age":33} ;
-    @test.newfile /myapp/users/u1 {"name":"sam","age":16} ;
+    @test.newfile /myapp/users/u2 {"name":"lola","age":57} ;
+    @test.newfile /myapp/users/u3 {"name":"jenny","age":33} ;
+    @test.newfile /myapp/users/u4 {"name":"sam","age":16} ;
 
     /*---- search for users and pipe results to pagination function ----*/
 

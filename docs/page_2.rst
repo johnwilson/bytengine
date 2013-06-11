@@ -45,7 +45,7 @@ So for example if you were creating a blog post, a possible file and directory l
 
     /*------- make asset public so it can be served via HTTP GET ------*/
 
-    @wordpress.makepublic /blog/posts/post1/pics/pic1;
+    @wordpress.makepublic /blog/posts/post1/pics/pic1.jpg;
 
 Save the above script as 'ch2_script.bsl' for example and the do the following:
 

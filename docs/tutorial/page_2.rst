@@ -31,7 +31,7 @@ which would be:
 
 This could easily get unmaintainable for *n* number of users. A solution therefore
 would be bring the ``*.info`` files into ``/users`` directory and rename them
-accordingly as shown bellow:
+accordingly as shown below:
 
 .. image:: ../static/images/fig7.png
     :scale: 100%
