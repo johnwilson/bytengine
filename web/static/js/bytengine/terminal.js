@@ -497,7 +497,7 @@ $(function(){
     var expanded_editor = CodeMirror.fromTextArea(document.getElementById("codemirrorTextarea"), {
         lineNumbers: false,
         matchBrackets: true,
-        mode: {name: "javascript"},
+        mode: "bescript",
         smartIndent: true,
         indentWithTabs: true,
         tabSize: 2
