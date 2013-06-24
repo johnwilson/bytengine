@@ -39,7 +39,7 @@ accordingly as shown below:
 Proposed Layout
 ===============
 
-Right lets start building up our Bytengine directory structure already!
+Right, lets start building up our Bytengine directory structure already!
 
 So we should probably start by creating our **lytpages** application directory to
 contain our data

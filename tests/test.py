@@ -238,6 +238,58 @@ class TestBQL(unittest.TestCase):
         self.assertTrue(r["status"] == "ok")
         self.assertTrue(len(r["data"]) == 5)
 
+    def test_3(self):
+        """test content assignment with increments"""
+        ticket = ""
+        # login admin
+        r = login("admin","admin")
+        self.assertTrue(r["status"] == "ok")
+        ticket = r["data"]
+
+        # increment age
+        q = """
+        @test.set "age" += 1
+        in /users where
+        regex("name","i") == `^j\w*n$`
+        """
+        r = runCommand(ticket, q)        
+        self.assertTrue(r["status"] == "ok")
+        self.assertTrue(r["data"] == 2)
+
+        q = """
+        @test.select "name" "age" in /users
+        where regex("name","i") == `^j\w*n$`
+        """
+        r = runCommand(ticket, q)
+        self.assertTrue(r["status"] == "ok")
+        for item in r["data"]:
+            if item["content"]["name"] == "john":
+                self.assertTrue(item["content"]["age"]==35)
+            if item["content"]["name"] == "jason":
+                self.assertTrue(item["content"]["age"]==19)
+
+        # decrement age
+        q = """
+        @test.set "age" -= 1
+        in /users where
+        regex("name","i") == `^j\w*n$`
+        """
+        r = runCommand(ticket, q)        
+        self.assertTrue(r["status"] == "ok")
+        self.assertTrue(r["data"] == 2)
+
+        q = """
+        @test.select "name" "age" in /users
+        where regex("name","i") == `^j\w*n$`
+        """
+        r = runCommand(ticket, q)
+        self.assertTrue(r["status"] == "ok")
+        for item in r["data"]:
+            if item["content"]["name"] == "john":
+                self.assertTrue(item["content"]["age"]==34)
+            if item["content"]["name"] == "jason":
+                self.assertTrue(item["content"]["age"]==18)
+
 class TestCounter(unittest.TestCase):
     def test_1(self):
         """test counter"""
@@ -308,6 +360,7 @@ if __name__ == '__main__':
     testsuite.addTest(TestContentManagement("test_1"))
     testsuite.addTest(TestBQL("test_1"))
     testsuite.addTest(TestBQL("test_2"))
+    testsuite.addTest(TestBQL("test_3"))
     testsuite.addTest(TestCounter("test_1"))
     testsuite.addTest(TestAttachments("test_1"))
 

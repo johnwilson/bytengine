@@ -81,6 +81,7 @@ func (si *System) MongoConnect() (*mgo.Session, error) {
 	if e != nil {
 		return nil, e
 	}
+	sn.SetSafe(&mgo.Safe{})
 	return sn, nil
 }
 

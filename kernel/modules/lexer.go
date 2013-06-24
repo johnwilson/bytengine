@@ -37,6 +37,8 @@ const (
 	itemBool                    // boolean constant
 	itemEOF
 	itemEqual					// equal for argument value assignment
+	itemPlusEqual				// += for value increment
+	itemMinusEqual				// -= for value decrement
 	itemColon					// :
 	itemRegex 					// regular expression
 	itemDot						// .
@@ -70,6 +72,8 @@ var itemName = map[itemType]string{
 	itemBool:         		"bool",
 	itemDatabase:			"database",
 	itemEqual:		  		"=",
+	itemPlusEqual:		  	"+=",
+	itemMinusEqual:		  	"-=",
 	itemColon:		  		":",
 	itemDot:				".",
 	itemSemiColon:			";",
@@ -326,7 +330,22 @@ func lexInsideScript(l *lexer) stateFn {
 			return lexRegex
 		case r == '\'':
 			return lexSingleQuote
-		case r == '+' || r == '-' || ('0' <= r && r <= '9'):
+		case r == '+' || r == '-':
+			if l.peek() == '=' {
+				// absorb equal
+				l.next()
+				if r == '+' {
+					l.emit(itemPlusEqual)
+					return lexInsideScript
+				}
+
+				l.emit(itemMinusEqual)
+				return lexInsideScript
+			}
+
+			l.backup()
+			return lexNumber
+		case ('0' <= r && r <= '9'):
 			l.backup()
 			return lexNumber
 		case isAlphaNumeric(r):

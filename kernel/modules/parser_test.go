@@ -7,8 +7,7 @@ import (
 
 func TestParser(t *testing.T) {
 	s := `
-	@db.select "name" in /tmp/users
-	where "name" == "john" file_name=="index.html"`
+	@db.set "name"="john" "age" += 1 "cars" -= 2 in /tmp/users`
 
 	p := NewParser()
 	l, err := p.Parse(s)

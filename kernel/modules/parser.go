@@ -3,6 +3,7 @@ package modules
 import (
 	//"os"
 	"fmt"
+	"math"
 	"runtime"
 	"strconv"
 	"strings"
@@ -1068,7 +1069,7 @@ func (p *Parser) parseSelectCmd(db string) {
 }
 
 // example:
-//     @testdb.set "user.age" = 50
+//     @testdb.set "user.age" = 50 "user.likes" += 1
 //     "user.colors" = ["blue","white"]
 //     in /tmp/users
 //     where regex("user.name","i") == `^j` ;
@@ -1076,19 +1077,36 @@ func (p *Parser) parseSelectCmd(db string) {
 func (p *Parser) parseSetCmd(db string) {
     const context = "Set Statement"
     _fields := map[string]interface{} {}
+    _incr := map[string]interface{} {}
+
     // get field assignment list
     Loop:
 	for {
-		switch p.peek().typ {
+		switch i := p.next(); i.typ {
 			case itemString:
-				f, v := p.parseValueAssignment()
-				_fields[f] = v
-				continue
+				switch p.peek().typ {
+					case itemEqual:
+						p.backup2(i)
+						f, v := p.parseValueAssignment()
+						_fields[f] = v
+						continue
+					case itemPlusEqual:
+						fallthrough
+					case itemMinusEqual:
+						p.backup2(i)
+						f, v := p.parseIncrDecrValue()
+						_incr[f] = v
+						continue
+					default:
+						p.errorf("Invalid assingment operator in %s", context)
+				}
+				
 			default:
+				p.backup()
 				break Loop
 		}
 	}
-	if len(_fields) < 1 {
+	if len(_fields) < 1 && len(_incr) < 1 {
 		p.errorf("Invalid %s: no field assignments found", context)
 	}
 
@@ -1106,6 +1124,9 @@ func (p *Parser) parseSetCmd(db string) {
     cmd := NewCommand("set")
     cmd.Database = db
     cmd.Args["fields"] = _fields
+    if len(_incr) > 0 {
+    	cmd.Args["incr"] = _incr
+    }   
     cmd.Args["dirs"] = _paths
     var saveto string
     
@@ -1428,7 +1449,7 @@ func (p *Parser) parseJSON(context string) map[string]interface{} {
 func (p *Parser) parseValueAssignment() (string, interface{}) {
 	context := "Assignment Statement"
 	// get field
-	_next := p.expect(itemString, context)
+	_next := p.next()
 	_field, err := formatString(_next.val)
 	if err != nil {
 		p.errorf("Improperly quoted field name in %s", context)
@@ -1455,6 +1476,36 @@ func (p *Parser) parseValueAssignment() (string, interface{}) {
 			p.errorf("Invalid field value for %s", context)
 	}
 	return _field, _val
+}
+
+// example:
+//     @testdb.set "user.age" += 1 "user.cars" -= 2
+//     in /tmp/users ... ;
+//
+func (p *Parser) parseIncrDecrValue() (string, interface{}) {
+	context := "Increment/Decrement Statement"
+	// get field
+	_next := p.expect(itemString, context)
+	_field, err := formatString(_next.val)
+	if err != nil {
+		p.errorf("Improperly quoted field name in %s", context)
+	}
+	_field = FIELD_PREFIX + _field
+	// get operator
+	_next = p.expectOneOf(itemPlusEqual, itemMinusEqual, context)
+	var _incr bool
+	if _next.typ == itemPlusEqual {
+		_incr = true
+	}
+	// get value only number
+	if p.peek().typ != itemNumber {
+		p.errorf("Invalid field value for %s", context)
+	}
+	_val := math.Abs(p.parseNumber())
+	if !_incr {
+		_val *= -1
+	}
+	return _field, _val 
 }
 
 // convert file metadata tag to field name to enable queries on meta

@@ -1651,6 +1651,7 @@ func (fs *BFS) BQLSet(db string, q bson.M) (interface{}, error) {
 	}
 	// check fields and paths
 	fields, hasfields := q["fields"].(map[string]interface{})
+	incr_fields, hasincr := q["incr"].(map[string]interface{})
 	paths, haspaths := q["dirs"].([]string)
 	where, haswhere := q["where"].(map[string]interface{})
 	
@@ -1672,6 +1673,9 @@ func (fs *BFS) BQLSet(db string, q bson.M) (interface{}, error) {
 	}
 	// build update query
 	uquery := bson.M{"$set":fields}
+	if hasincr {
+		uquery["$inc"] = incr_fields
+	}
 	
 	// get collection	
 	c := fs.mongo.DB(db).C(fs.config.Bfs.ContentCol)
@@ -1681,7 +1685,7 @@ func (fs *BFS) BQLSet(db string, q bson.M) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	
 	return info.Updated, nil
 }
 
