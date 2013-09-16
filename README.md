@@ -62,7 +62,7 @@ Prerequisites:
 ```
 	cd ./build/release/bytengine-server/
 
-	./bin/bytengine --config ./bin/conf/config.json
+	./bin/bytengine --config ./conf/config.json
 ```
 
 7. Running Python test script
@@ -79,8 +79,6 @@ Prerequisites:
 [Demo Server](http://www.bytengine.com/) - Demo server
 
 [Terminal](http://terminal.bytengine.com) - Sample application 1
-
-[Blog](http://bytengine.blogspot.com/) - Blog
 
 [Twitter](https://twitter.com/bytengine) - Twitter
 
