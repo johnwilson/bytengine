@@ -81,5 +81,3 @@ Prerequisites:
 [Terminal](http://terminal.bytengine.com) - Sample application 1
 
 [Twitter](https://twitter.com/bytengine) - Twitter
-
-[Bytengine Google Group](http://groups.google.com/group/bytengine) - Q & A
