@@ -1,35 +1,35 @@
 package modules
 
 import (
-	"fmt"
-	"os"
-	"errors"
-	"strings"
-	"regexp"
-	"path"
-	"time"
-	"math"
-	"os/exec"
 	"bytes"
+	"errors"
+	"fmt"
+	"math"
 	"net/http"
+	"os"
+	"os/exec"
+	"path"
+	"regexp"
+	"strings"
+	"time"
 	//"log"
-	
+
+	"github.com/vmihailenco/redis"
 	"labix.org/v2/mgo"
 	"labix.org/v2/mgo/bson"
-	"github.com/vmihailenco/redis"
 )
 
 // Bytengine Filesystem
 type BFS struct {
-	config *Configuration
-	mongo *mgo.Session
+	config   *Configuration
+	mongo    *mgo.Session
 	redisMan *RedisManager
 }
 
 func NewBFS(c *Configuration, m *mgo.Session, r *RedisManager) *BFS {
 	b := &BFS{
-		config: c,
-		mongo: m,
+		config:   c,
+		mongo:    m,
 		redisMan: r,
 	}
 	return b
@@ -37,24 +37,24 @@ func NewBFS(c *Configuration, m *mgo.Session, r *RedisManager) *BFS {
 
 // BFS Node Header
 type NodeHeader struct {
-	Name string
-	Type string
+	Name     string
+	Type     string
 	IsPublic bool `json:"ispublic"`
-	Created string
-	Parent string
+	Created  string
+	Parent   string
 }
 
 // BFS Attachment Header
 type AttachmentHeader struct {
 	Filepointer string `json:"filepointer"`
-	Size int64 `json:"size"`
-	Mime string `json:"mime"`
+	Size        int64  `json:"size"`
+	Mime        string `json:"mime"`
 }
 
 // BFS Directory
 type Directory struct {
 	Header NodeHeader `bson:"__header__"`
-	Id string `bson:"_id"`
+	Id     string     `bson:"_id"`
 }
 
 func formatDatetime(t *time.Time) (d string) {
@@ -79,9 +79,9 @@ func makeUUID() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	uuid := strings.Replace(out.String(),"-","",-1) // remove dashes
-	uuid = strings.Trim(uuid, "\n ") // remove newline and spaces from output
-    return uuid, nil
+	uuid := strings.Replace(out.String(), "-", "", -1) // remove dashes
+	uuid = strings.Trim(uuid, "\n ")                   // remove newline and spaces from output
+	return uuid, nil
 }
 
 func makeRootDir() (*Directory, error) {
@@ -100,9 +100,9 @@ func makeRootDir() (*Directory, error) {
 
 // BFS File
 type File struct {
-	Header NodeHeader `bson:"__header__"`
+	Header  NodeHeader       `bson:"__header__"`
 	AHeader AttachmentHeader `bson:"__attch__"`
-	Id string `bson:"_id"`
+	Id      string           `bson:"_id"`
 	Content map[string]interface{}
 }
 
@@ -122,7 +122,7 @@ func (fs *BFS) clearMongodb() (err error) {
 	if err != nil {
 		return err
 	}
-	for _, item := range dbs {		
+	for _, item := range dbs {
 		// skip reserved dbs
 		if !fs.IsReservedDb(item) {
 			err := fs.mongo.DB(item).DropDatabase()
@@ -131,7 +131,7 @@ func (fs *BFS) clearMongodb() (err error) {
 			}
 		}
 	}
-	
+
 	// clear users
 	db := fs.mongo.DB(fs.config.Bfs.SystemDb)
 	col_list, err := db.CollectionNames()
@@ -173,7 +173,7 @@ func (fs *BFS) clearDirectories() (err error) {
 			return err
 		}
 	}
-	
+
 	// create
 	for _, item := range _dirs {
 		err = os.MkdirAll(item, 0775)
@@ -208,7 +208,7 @@ func (fs *BFS) ListDatabases(rgx string) (d []interface{}, err error) {
 		return nil, err
 	}
 
-	_list := []interface{} {}
+	_list := []interface{}{}
 	r, err := regexp.Compile(rgx)
 	if err != nil {
 		return nil, err
@@ -219,7 +219,7 @@ func (fs *BFS) ListDatabases(rgx string) (d []interface{}, err error) {
 			// regex match
 			if r.MatchString(item) {
 				_list = append(_list, item)
-			}			
+			}
 		}
 	}
 	return _list, nil
@@ -269,11 +269,11 @@ func (fs *BFS) MakeDatabase(db string) (err error) {
 		return errors.New(msg)
 	}
 	// create counter container
-	cnter := bson.M{"counters":bson.M{}}
+	cnter := bson.M{"counters": bson.M{}}
 	// create mongodb database and collection and insert record
 	col := fs.mongo.DB(db).C(fs.config.Bfs.ContentCol)
-	
-	err = col.Insert(&rn, &cnter) 
+
+	err = col.Insert(&rn, &cnter)
 	if err != nil {
 		msg := fmt.Sprintf("database '%s' couldn't be created:\n%s", db, err)
 		return errors.New(msg)
@@ -312,7 +312,7 @@ func (fs *BFS) RemoveDatabase(db string) (err error) {
 	// delete database from system users database list
 	col := fs.mongo.DB(fs.config.Bfs.SystemDb).C(fs.config.Bfs.SecurityCol)
 	q := map[string]interface{}{}
-	uq := bson.M{"$pull":bson.M{"databases":db}}
+	uq := bson.M{"$pull": bson.M{"databases": db}}
 	_, e := col.UpdateAll(q, uq)
 	if e != nil {
 		msg := fmt.Sprintf("database '%s' couldn't be deleted from users database list.\n%s", db, e)
@@ -350,8 +350,8 @@ func (fs *BFS) MakeDir(p, db string) error {
 	}
 	// check if parent directory exists
 	q := fs.findPathQuery(_parent)
-	
-	// get collection	
+
+	// get collection
 	c := fs.mongo.DB(db).C(fs.config.Bfs.ContentCol)
 	var _parentdir Directory
 	// find record
@@ -388,7 +388,7 @@ func (fs *BFS) MakeDir(p, db string) error {
 	id := fmt.Sprintf("%s:%s", uuid, dt)
 	_dir := Directory{h, id}
 	// insert node into mongodb
-	err = c.Insert(&_dir) 
+	err = c.Insert(&_dir)
 	if err != nil {
 		msg := fmt.Sprintf("directory '%s' couldn't be created.\n%s", p, err)
 		return errors.New(msg)
@@ -414,8 +414,8 @@ func (fs *BFS) MakeFile(p, db string, j map[string]interface{}) error {
 	}
 	// check if parent directory exists
 	q := fs.findPathQuery(_parent)
-	
-	// get collection	
+
+	// get collection
 	c := fs.mongo.DB(db).C(fs.config.Bfs.ContentCol)
 	var _parentdir Directory
 	// find record
@@ -449,11 +449,11 @@ func (fs *BFS) MakeFile(p, db string, j map[string]interface{}) error {
 	nw := time.Now()
 	dt := formatDatetime(&nw)
 	h := NodeHeader{_name, "File", false, dt, _parent}
-	a := AttachmentHeader{"",0,""}
+	a := AttachmentHeader{"", 0, ""}
 	id := fmt.Sprintf("%s:%s", uuid, dt)
 	_file := File{h, a, id, j}
 	// insert node into mongodb
-	err = c.Insert(&_file) 
+	err = c.Insert(&_file)
 	if err != nil {
 		msg := fmt.Sprintf("file '%s' couldn't be created.\n%s", p, err)
 		return errors.New(msg)
@@ -463,12 +463,12 @@ func (fs *BFS) MakeFile(p, db string, j map[string]interface{}) error {
 }
 
 type SimpleResultItem struct {
-	Header NodeHeader `bson:"__header__"`
+	Header  NodeHeader       `bson:"__header__"`
 	AHeader AttachmentHeader `bson:"__attch__"`
-	Id string `bson:"_id"`
+	Id      string           `bson:"_id"`
 }
 
-func (fs *BFS) DirectoryListing(p, rgx , db string) (map[string] []interface{}, error) {
+func (fs *BFS) DirectoryListing(p, rgx, db string) (map[string][]interface{}, error) {
 	// check path
 	p = path.Clean(p)
 	// check database access
@@ -477,9 +477,9 @@ func (fs *BFS) DirectoryListing(p, rgx , db string) (map[string] []interface{}, 
 		return nil, err
 	}
 
-	// get collection	
+	// get collection
 	c := fs.mongo.DB(db).C(fs.config.Bfs.ContentCol)
-	
+
 	// find path
 	q := fs.findPathQuery(p)
 	n, err := c.Find(q).Count()
@@ -496,9 +496,9 @@ func (fs *BFS) DirectoryListing(p, rgx , db string) (map[string] []interface{}, 
 	q = fs.findChildrenQuery(p, rgx)
 	i := c.Find(q).Sort("__header__.name").Iter()
 	var ri SimpleResultItem
-	dirs := []interface{} {}
-	files := []interface{} {}
-	afiles := []interface{} {}// files with attachments
+	dirs := []interface{}{}
+	files := []interface{}{}
+	afiles := []interface{}{} // files with attachments
 
 	for i.Next(&ri) {
 		if ri.Header.Type == "Directory" {
@@ -516,9 +516,9 @@ func (fs *BFS) DirectoryListing(p, rgx , db string) (map[string] []interface{}, 
 		msg := fmt.Sprintf("error while trying directory listing for: %s\n%s", p, err)
 		return nil, errors.New(msg)
 	}
-	res := map[string] []interface{} {
-		"dirs": dirs,
-		"files": files,
+	res := map[string][]interface{}{
+		"dirs":   dirs,
+		"files":  files,
 		"afiles": afiles,
 	}
 
@@ -534,10 +534,10 @@ func (fs *BFS) GetFileContent(p, db string, fields []string) (bson.M, error) {
 
 	// check path
 	p = path.Clean(p)
-	
-	// get collection	
+
+	// get collection
 	c := fs.mongo.DB(db).C(fs.config.Bfs.ContentCol)
-	
+
 	// get file if it exists
 	q := fs.findPathQuery(p)
 	q["__header__.type"] = "File"
@@ -550,9 +550,9 @@ func (fs *BFS) GetFileContent(p, db string, fields []string) (bson.M, error) {
 			return nil, errors.New(msg)
 		}
 	} else {
-		_flds := bson.M{"__header__":1}
+		_flds := bson.M{"__header__": 1}
 		for _, item := range fields {
-			_flds["content." + item] = 1
+			_flds["content."+item] = 1
 		}
 		e := c.Find(q).Select(_flds).One(&r)
 		if e != nil {
@@ -560,7 +560,7 @@ func (fs *BFS) GetFileContent(p, db string, fields []string) (bson.M, error) {
 			return nil, errors.New(msg)
 		}
 	}
-	
+
 	return r["content"].(bson.M), nil
 }
 
@@ -576,10 +576,10 @@ func (fs *BFS) Delete(p, db string) error {
 	if p == "/" {
 		return errors.New("root directory cannot be deleted.")
 	}
-	
-	// get collection	
+
+	// get collection
 	c := fs.mongo.DB(db).C(fs.config.Bfs.ContentCol)
-	
+
 	// get file or directory if it exists
 	q := fs.findPathQuery(p)
 	var ri SimpleResultItem
@@ -593,7 +593,7 @@ func (fs *BFS) Delete(p, db string) error {
 		q = fs.findAllChildrenQuery(p)
 		i := c.Find(q).Iter()
 		var ri2 SimpleResultItem
-		_attchs := []string {} // list of all attachments paths
+		_attchs := []string{} // list of all attachments paths
 		for i.Next(&ri2) {
 			if ri2.Header.Type == "File" && ri2.AHeader.Filepointer != "" {
 				_attchs = append(_attchs, ri2.AHeader.Filepointer)
@@ -629,7 +629,7 @@ func (fs *BFS) Delete(p, db string) error {
 		if ri.AHeader.Filepointer != "" {
 			// delete attachment
 			err = os.Remove(ri.AHeader.Filepointer)
-			if err != nil && os.IsExist(err){
+			if err != nil && os.IsExist(err) {
 				msg := fmt.Sprintf("path '%s' couldn't be deleted.\n%s", p, err)
 				return errors.New(msg)
 			}
@@ -657,10 +657,10 @@ func (fs *BFS) Rename(p, n, db string) error {
 	if p == "/" {
 		return errors.New("root directory cannot be renamed.")
 	}
-	
-	// get collection	
+
+	// get collection
 	c := fs.mongo.DB(db).C(fs.config.Bfs.ContentCol)
-	
+
 	// get file or directory if it exists
 	q := fs.findPathQuery(p)
 	var ri SimpleResultItem
@@ -698,8 +698,8 @@ func (fs *BFS) Rename(p, n, db string) error {
 		}
 		for _, item := range _dirs {
 			newparent := strings.Replace(item, p, np, 1)
-			q = bson.M{"__header__.parent":item}
-			uq := bson.M{"$set":bson.M{"__header__.parent":newparent}}
+			q = bson.M{"__header__.parent": item}
+			uq := bson.M{"$set": bson.M{"__header__.parent": newparent}}
 			_, e := c.UpdateAll(q, uq)
 			if e != nil {
 				msg := fmt.Sprintf("directory '%s' couldn't be renamed.\n%s", p, e)
@@ -707,7 +707,7 @@ func (fs *BFS) Rename(p, n, db string) error {
 			}
 		}
 		// rename directory by updating field
-		q = bson.M{"$set":bson.M{"__header__.name":n}}
+		q = bson.M{"$set": bson.M{"__header__.name": n}}
 		err = c.UpdateId(ri.Id, q)
 		if err != nil {
 			msg := fmt.Sprintf("directory '%s' couldn't be renamed.\n%s", p, err)
@@ -733,7 +733,7 @@ func (fs *BFS) Rename(p, n, db string) error {
 			return errors.New(msg)
 		}
 		// rename file by updating field
-		q = bson.M{"$set":bson.M{"__header__.name":n}}
+		q = bson.M{"$set": bson.M{"__header__.name": n}}
 		err = c.UpdateId(ri.Id, q)
 		if err != nil {
 			msg := fmt.Sprintf("file '%s' couldn't be renamed.\n%s", p, err)
@@ -761,8 +761,8 @@ func (fs *BFS) Move(p, d, db string) error {
 	if strings.HasPrefix(d, p) {
 		return errors.New("illegal move operation.")
 	}
-	
-	// get collection	
+
+	// get collection
 	c := fs.mongo.DB(db).C(fs.config.Bfs.ContentCol)
 
 	// check if destination dir exists
@@ -773,7 +773,7 @@ func (fs *BFS) Move(p, d, db string) error {
 	if _doc_dest.Header.Type != "Directory" {
 		return errors.New("Destination must be a directory")
 	}
-	
+
 	// get file or directory if it exists
 	q := fs.findPathQuery(p)
 	var ri SimpleResultItem
@@ -806,8 +806,8 @@ func (fs *BFS) Move(p, d, db string) error {
 		}
 		for _, item := range _dirs {
 			newparent := strings.Replace(item, p, np, 1)
-			q = bson.M{"__header__.parent":item}
-			uq := bson.M{"$set":bson.M{"__header__.parent":newparent}}
+			q = bson.M{"__header__.parent": item}
+			uq := bson.M{"$set": bson.M{"__header__.parent": newparent}}
 			_, e := c.UpdateAll(q, uq)
 			if e != nil {
 				msg := fmt.Sprintf("directory '%s' couldn't be moved.\n%s", p, e)
@@ -815,7 +815,7 @@ func (fs *BFS) Move(p, d, db string) error {
 			}
 		}
 		// move directory by updating parent field
-		q = bson.M{"$set":bson.M{"__header__.parent":d}}
+		q = bson.M{"$set": bson.M{"__header__.parent": d}}
 		err = c.UpdateId(ri.Id, q)
 		if err != nil {
 			msg := fmt.Sprintf("directory '%s' couldn't be moved.\n%s", p, err)
@@ -836,7 +836,7 @@ func (fs *BFS) Move(p, d, db string) error {
 			return errors.New(msg)
 		}
 		// rename file by updating field
-		q = bson.M{"$set":bson.M{"__header__.parent":d}}
+		q = bson.M{"$set": bson.M{"__header__.parent": d}}
 		err = c.UpdateId(ri.Id, q)
 		if err != nil {
 			msg := fmt.Sprintf("file '%s' couldn't be moved.\n%s", p, err)
@@ -862,10 +862,12 @@ func (fs *BFS) copyDirectoryDocument(d *Directory, newprefix, oldprefix, newname
 	// update parent path prefix with new prefix
 	_parent_path := d.Header.Parent
 	_parent_path = strings.Replace(_parent_path, oldprefix, newprefix, 1)
-	
+
 	// update header info
 	uuid, err := makeUUID()
-	if err != nil { return err }
+	if err != nil {
+		return err
+	}
 
 	nw := time.Now()
 	dt := formatDatetime(&nw)
@@ -873,14 +875,18 @@ func (fs *BFS) copyDirectoryDocument(d *Directory, newprefix, oldprefix, newname
 	d.Header.Parent = _parent_path
 	if newname != "" {
 		err = fs.validateDirName(newname)
-		if err != nil { return err }
+		if err != nil {
+			return err
+		}
 		d.Header.Name = newname
 	}
 	d.Header.Created = dt
 	d.Id = id
 	// save to mongodb
-	err = c.Insert(&d) 
-	if err != nil { return err }
+	err = c.Insert(&d)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -889,11 +895,13 @@ func (fs *BFS) copyFileDocument(f *File, newprefix, oldprefix, newname string, c
 	// update parent path prefix with new prefix
 	_parent_path := f.Header.Parent
 	_parent_path = strings.Replace(_parent_path, oldprefix, newprefix, 1)
-	
+
 	// update header info
 	uuid, err := makeUUID()
-	if err != nil { return err }
-	
+	if err != nil {
+		return err
+	}
+
 	nw := time.Now()
 	dt := formatDatetime(&nw)
 	id := fmt.Sprintf("%s:%s", uuid, dt)
@@ -901,7 +909,9 @@ func (fs *BFS) copyFileDocument(f *File, newprefix, oldprefix, newname string, c
 	f.Header.Created = dt
 	if newname != "" {
 		err = fs.validateFileName(newname)
-		if err != nil { return err }
+		if err != nil {
+			return err
+		}
 		f.Header.Name = newname
 	}
 	f.Id = id
@@ -911,15 +921,19 @@ func (fs *BFS) copyFileDocument(f *File, newprefix, oldprefix, newname string, c
 	if _attch_path != "" {
 		_attch_dir := path.Dir(_attch_path)
 		_new_attch_path := path.Join(_attch_dir, id)
-		_, err = exec.Command("cp",_attch_path, _new_attch_path).Output()
-		if err != nil { return err }
+		_, err = exec.Command("cp", _attch_path, _new_attch_path).Output()
+		if err != nil {
+			return err
+		}
 		// set new attachment filepointer
 		f.AHeader.Filepointer = _new_attch_path
 	}
 
 	// save to mongodb
-	err = c.Insert(&f) 
-	if err != nil { return err }
+	err = c.Insert(&f)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -927,7 +941,9 @@ func (fs *BFS) copyFileDocument(f *File, newprefix, oldprefix, newname string, c
 func (fs *BFS) Copy(p, d, db string) error {
 	// check database access
 	e := fs.checkDbAccess(db)
-	if e != nil { return e }
+	if e != nil {
+		return e
+	}
 
 	// setup paths
 	_from_doc_path := path.Clean(p)
@@ -944,9 +960,9 @@ func (fs *BFS) Copy(p, d, db string) error {
 		return errors.New("illegal copy operation.")
 	}
 
-	// get collection	
+	// get collection
 	c := fs.mongo.DB(db).C(fs.config.Bfs.ContentCol)
-	
+
 	// check if destination dir exists
 	_doc_dest, _exists_dest := fs.existsDocument(_to_doc_parent_path, c)
 	if !_exists_dest {
@@ -1043,10 +1059,10 @@ func (fs *BFS) Info(p, db string) (interface{}, error) {
 
 	// check path
 	p = path.Clean(p)
-	
-	// get collection	
+
+	// get collection
 	c := fs.mongo.DB(db).C(fs.config.Bfs.ContentCol)
-	
+
 	// get file or directory if it exists
 	q := fs.findPathQuery(p)
 	var ri SimpleResultItem
@@ -1064,10 +1080,10 @@ func (fs *BFS) Info(p, db string) (interface{}, error) {
 	_public := ri.Header.IsPublic
 
 	_info = bson.M{
-		"name": _name,
+		"name":    _name,
 		"created": _created,
-		"public": _public,
-		"parent": _parent,
+		"public":  _public,
+		"parent":  _parent,
 	}
 
 	if ri.Header.Type == "Directory" {
@@ -1091,7 +1107,7 @@ func (fs *BFS) Info(p, db string) (interface{}, error) {
 				"size": ri.AHeader.Size,
 			}
 			_info["attachment"] = _attch
-		}		
+		}
 	}
 
 	return _info, nil
@@ -1106,10 +1122,10 @@ func (fs *BFS) ChangeAccess(p, db string, protect bool) error {
 
 	// check path
 	p = path.Clean(p)
-	
-	// get collection	
+
+	// get collection
 	c := fs.mongo.DB(db).C(fs.config.Bfs.ContentCol)
-	
+
 	// get file or directory if it exists
 	q := fs.findPathQuery(p)
 	var ri SimpleResultItem
@@ -1121,7 +1137,7 @@ func (fs *BFS) ChangeAccess(p, db string, protect bool) error {
 
 	if ri.Header.Type == "Directory" {
 		// update directory access by updating field
-		q = bson.M{"$set":bson.M{"__header__.ispublic":!protect}}
+		q = bson.M{"$set": bson.M{"__header__.ispublic": !protect}}
 		err = c.UpdateId(ri.Id, q)
 		if err != nil {
 			msg := fmt.Sprintf("directory '%s' access couldn't be updated.\n%s", p, err)
@@ -1129,7 +1145,7 @@ func (fs *BFS) ChangeAccess(p, db string, protect bool) error {
 		}
 		// automatically cascade to sub nodes
 		q = fs.findAllChildrenQuery(p)
-		uq := bson.M{"$set":bson.M{"__header__.ispublic":!protect}}
+		uq := bson.M{"$set": bson.M{"__header__.ispublic": !protect}}
 		_, e := c.UpdateAll(q, uq)
 		if e != nil {
 			msg := fmt.Sprintf("directory '%s' access couldn't be updated.\n%s", p, e)
@@ -1138,12 +1154,12 @@ func (fs *BFS) ChangeAccess(p, db string, protect bool) error {
 
 	} else {
 		// update file access by updating field
-		q = bson.M{"$set":bson.M{"__header__.ispublic":!protect}}
+		q = bson.M{"$set": bson.M{"__header__.ispublic": !protect}}
 		err = c.UpdateId(ri.Id, q)
 		if err != nil {
 			msg := fmt.Sprintf("file '%s' access couldn't be updated.\n%s", p, err)
 			return errors.New(msg)
-		}		
+		}
 	}
 
 	return nil
@@ -1152,7 +1168,7 @@ func (fs *BFS) ChangeAccess(p, db string, protect bool) error {
 func (fs *BFS) Counter(c, a string, v int64, db string) (interface{}, error) {
 	// update value 'v'
 	nv := math.Abs(float64(v))
-	v = int64(nv)	
+	v = int64(nv)
 
 	// check database access
 	err := fs.checkDbAccess(db)
@@ -1160,11 +1176,11 @@ func (fs *BFS) Counter(c, a string, v int64, db string) (interface{}, error) {
 		return nil, err
 	}
 
-	// get collection	
+	// get collection
 	col := fs.mongo.DB(db).C(fs.config.Bfs.CounterCol)
 
 	// check if counter exists
-	q := bson.M{"name":c}
+	q := bson.M{"name": c}
 	num, err := col.Find(q).Count()
 	if err != nil {
 		return nil, err
@@ -1176,7 +1192,7 @@ func (fs *BFS) Counter(c, a string, v int64, db string) (interface{}, error) {
 			return nil, err
 		}
 
-		doc := bson.M{"name":c,"value":v}
+		doc := bson.M{"name": c, "value": v}
 		err = col.Insert(doc)
 		if err != nil {
 			return nil, err
@@ -1184,42 +1200,42 @@ func (fs *BFS) Counter(c, a string, v int64, db string) (interface{}, error) {
 
 		return v, nil
 	}
-	
+
 	var cq mgo.Change
 	switch a {
-		case "incr":
-			cq = mgo.Change{
-				Update: bson.M{"$inc":bson.M{"value":v}},
-				ReturnNew: true,
-			}
-			break
-		case "decr":
-			cq = mgo.Change{
-				Update: bson.M{"$inc":bson.M{"value":-v}},
-				ReturnNew: true,
-			}
-			break
-		case "reset":
-			cq = mgo.Change{
-				Update: bson.M{"$set":bson.M{"value":v}},
-				ReturnNew: true,
-			}
-			break
-		default: // shouldn't reach here
-			return nil, errors.New("Invalid counter action.")
+	case "incr":
+		cq = mgo.Change{
+			Update:    bson.M{"$inc": bson.M{"value": v}},
+			ReturnNew: true,
+		}
+		break
+	case "decr":
+		cq = mgo.Change{
+			Update:    bson.M{"$inc": bson.M{"value": -v}},
+			ReturnNew: true,
+		}
+		break
+	case "reset":
+		cq = mgo.Change{
+			Update:    bson.M{"$set": bson.M{"value": v}},
+			ReturnNew: true,
+		}
+		break
+	default: // shouldn't reach here
+		return nil, errors.New("Invalid counter action.")
 	}
-	
+
 	var r interface{}
 	_, err = col.Find(q).Apply(cq, &r)
 	if err != nil {
 		return nil, err
 	}
 
-	return r.(bson.M)["value"], nil	
+	return r.(bson.M)["value"], nil
 }
 
 type counterItem struct {
-	Name string `json:"name"`
+	Name  string  `json:"name"`
 	Value float64 `json:"value"`
 }
 
@@ -1229,13 +1245,13 @@ func (fs *BFS) CounterList(rgx, db string) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	
-	// get collection	
+
+	// get collection
 	col := fs.mongo.DB(db).C(fs.config.Bfs.CounterCol)
-	
+
 	list := []counterItem{}
-	qre := bson.RegEx {Pattern:rgx, Options:"i"} // case insensitive regex
-	q := bson.M{"name":bson.M{"$regex":qre}}
+	qre := bson.RegEx{Pattern: rgx, Options: "i"} // case insensitive regex
+	q := bson.M{"name": bson.M{"$regex": qre}}
 	iter := col.Find(q).Iter()
 	var ci counterItem
 	for iter.Next(&ci) {
@@ -1246,7 +1262,7 @@ func (fs *BFS) CounterList(rgx, db string) (interface{}, error) {
 		return nil, err
 	}
 
-	return list, nil	
+	return list, nil
 }
 
 func (fs *BFS) AddAttachment(fp, ap, fn, db string) error {
@@ -1262,10 +1278,10 @@ func (fs *BFS) AddAttachment(fp, ap, fn, db string) error {
 	if err != nil {
 		return errors.New("Attachment not found.")
 	}
-	
-	// get collection	
+
+	// get collection
 	c := fs.mongo.DB(db).C(fs.config.Bfs.ContentCol)
-	
+
 	// get file or directory if it exists
 	q := fs.findPathQuery(fp)
 	var ri SimpleResultItem
@@ -1281,31 +1297,37 @@ func (fs *BFS) AddAttachment(fp, ap, fn, db string) error {
 	} else {
 		// create attachment path
 		nap := path.Join(fs.config.Bfs.AttachmentsRoot, db, ri.Id)
-		_, err = exec.Command("mv",ap, nap).Output()
-		if err != nil { return err }
+		_, err = exec.Command("mv", ap, nap).Output()
+		if err != nil {
+			return err
+		}
 
 		// try and get uploaded file mime type
 		tmpfile, err := os.Open(nap)
-		if err != nil { return err }
+		if err != nil {
+			return err
+		}
 		defer tmpfile.Close()
 
 		// read 1024 bytes to enable mime type retrieval
 		mimebuffer := make([]byte, 1024)
 		_, err = tmpfile.Read(mimebuffer)
-		if err != nil { return err }
+		if err != nil {
+			return err
+		}
 		mime := http.DetectContentType(mimebuffer)
-		
+
 		// if mime is 'text/plain' try and get exact mime from file extension
 		mimelist := map[string]string{
-			".js":"text/javascript",
-			".css":"text/css",			
+			".js":  "text/javascript",
+			".css": "text/css",
 		}
 		prefix := "text/plain;"
 		if strings.HasPrefix(mime, prefix) {
 			ext := path.Ext(fn)
 			mval, exists := mimelist[ext]
 			if exists {
-				mime = strings.Replace(mime, prefix, mval,1)
+				mime = strings.Replace(mime, prefix, mval, 1)
 			}
 		}
 
@@ -1315,16 +1337,16 @@ func (fs *BFS) AddAttachment(fp, ap, fn, db string) error {
 
 		// update file access by updating field
 		q = bson.M{
-			"$set":bson.M{
-				"__attch__.filepointer":nap,
-				"__attch__.mime":mime,
-				"__attch__.size":size,
+			"$set": bson.M{
+				"__attch__.filepointer": nap,
+				"__attch__.mime":        mime,
+				"__attch__.size":        size,
 			}}
 		err = c.UpdateId(ri.Id, q)
 		if err != nil {
 			msg := fmt.Sprintf("attachment for file '%s' couldn't be added.\n%s", fp, err)
 			return errors.New(msg)
-		}		
+		}
 	}
 
 	return nil
@@ -1340,10 +1362,10 @@ func (fs *BFS) GetAttachment(fp, db string) (AttachmentHeader, error) {
 
 	// check path
 	fp = path.Clean(fp)
-	
-	// get collection	
+
+	// get collection
 	c := fs.mongo.DB(db).C(fs.config.Bfs.ContentCol)
-	
+
 	// get file or directory if it exists
 	q := fs.findPathQuery(fp)
 	var ri File
@@ -1370,10 +1392,10 @@ func (fs *BFS) NewUploadRequestTicket(p, db string) (string, error) {
 
 	// check path
 	p = path.Clean(p)
-	
-	// get collection	
+
+	// get collection
 	c := fs.mongo.DB(db).C(fs.config.Bfs.ContentCol)
-	
+
 	// get file or directory if it exists
 	q := fs.findPathQuery(p)
 	var ri SimpleResultItem
@@ -1394,22 +1416,22 @@ func (fs *BFS) NewUploadRequestTicket(p, db string) (string, error) {
 		msg := fmt.Sprintf("upload ticket couldn't be created.\n%s", err)
 		return "", errors.New(msg)
 	}
-	
+
 	_timeout := fs.config.Bfs.UploadTimeout
 	rclient := fs.redisMan.DbConnect["upload"]
-	
+
 	// create entry and set timeout
 	// upload temp file path creation
-	up_f := path.Join(fs.config.Web.UploadDirectory,db + "_" + _uploadkey)
+	up_f := path.Join(fs.config.Web.UploadDirectory, db+"_"+_uploadkey)
 
 	// [0] database; [1] content path; [2] tmp file path
-	_, e := rclient.Pipelined(func(c *redis.PipelineClient){
+	_, e := rclient.Pipelined(func(c *redis.PipelineClient) {
 		c.RPush(_uploadkey, db)
-        c.RPush(_uploadkey, p)
-        c.RPush(_uploadkey, up_f)
+		c.RPush(_uploadkey, p)
+		c.RPush(_uploadkey, up_f)
 		c.Expire(_uploadkey, int64(_timeout))
 	})
-    if e != nil {
+	if e != nil {
 		msg := fmt.Sprintf("upload ticket couldn't be created.\n%s", e)
 		return "", errors.New(msg)
 	}
@@ -1420,7 +1442,7 @@ func (fs *BFS) NewUploadRequestTicket(p, db string) (string, error) {
 func (fs *BFS) UploadRequestTicketInfo(t string) ([]string, error) {
 	// redis connection
 	rclient := fs.redisMan.DbConnect["upload"]
-	
+
 	// get info
 	// [0] database; [1] content path; [2] tmp file path
 	_data := rclient.LRange(t, 0, 2)
@@ -1433,7 +1455,7 @@ func (fs *BFS) UploadRequestTicketInfo(t string) ([]string, error) {
 		msg := fmt.Sprintf("upload ticket couldn't be retrieved.", e)
 		return []string{}, errors.New(msg)
 	}
-	
+
 	return _data.Val(), nil
 }
 
@@ -1446,10 +1468,10 @@ func (fs *BFS) RemoveAttachment(p, db string) error {
 
 	// check path
 	p = path.Clean(p)
-	
-	// get collection	
+
+	// get collection
 	c := fs.mongo.DB(db).C(fs.config.Bfs.ContentCol)
-	
+
 	// get file or directory if it exists
 	q := fs.findPathQuery(p)
 	var ri SimpleResultItem
@@ -1467,18 +1489,18 @@ func (fs *BFS) RemoveAttachment(p, db string) error {
 		if ri.AHeader.Filepointer != "" {
 			// delete attachment
 			err = os.Remove(ri.AHeader.Filepointer)
-			if err != nil && os.IsExist(err){
+			if err != nil && os.IsExist(err) {
 				msg := fmt.Sprintf("attachment for file '%s' couldn't be deleted.\n%s", p, err)
 				return errors.New(msg)
 			}
 		}
 		// update file access by updating field
-		q = bson.M{"$set":bson.M{"__attch__.filepointer":"","__attch__.mime":"","__attch__.size":0}}
+		q = bson.M{"$set": bson.M{"__attch__.filepointer": "", "__attch__.mime": "", "__attch__.size": 0}}
 		err = c.UpdateId(ri.Id, q)
 		if err != nil {
 			msg := fmt.Sprintf("attachment for file '%s' couldn't be deleted.\n%s", p, err)
 			return errors.New(msg)
-		}		
+		}
 	}
 
 	return nil
@@ -1493,21 +1515,21 @@ func (fs *BFS) OverwriteFileContent(p, db string, j map[string]interface{}) erro
 
 	// check path
 	p = path.Clean(p)
-	
-	// get collection	
+
+	// get collection
 	c := fs.mongo.DB(db).C(fs.config.Bfs.ContentCol)
-	
+
 	// get file if it exists
 	q := fs.findPathQuery(p)
 	q["__header__.type"] = "File"
-	uq := bson.M{"$set":bson.M{"content":j}}
+	uq := bson.M{"$set": bson.M{"content": j}}
 	// update file
-	err = c.Update(q,uq)
+	err = c.Update(q, uq)
 	if err != nil {
 		msg := fmt.Sprintf("file '%s' content couldn't be updated.\n%s", p, err)
 		return errors.New(msg)
 	}
-	
+
 	return nil
 }
 
@@ -1520,10 +1542,10 @@ func (fs *BFS) DirectAccess(p, t, db string) (interface{}, error) {
 
 	// check path
 	p = path.Clean(p)
-	
-	// get collection	
+
+	// get collection
 	c := fs.mongo.DB(db).C(fs.config.Bfs.ContentCol)
-	
+
 	// get file or directory if it exists
 	q := fs.findPathQuery(p)
 	var ri File
@@ -1544,18 +1566,18 @@ func (fs *BFS) DirectAccess(p, t, db string) (interface{}, error) {
 
 	// determine which part of the file to serve: data or binary
 	switch t {
-		case "fd":
-			var content interface{}
-			err = c.FindId(ri.Id).Select(bson.M{"content":1}).One(&content)
-			if err != nil {
-				msg := fmt.Sprintf("couldn't retrieve content at '%s'.\n%s", p, err)
-				return nil, errors.New(msg)
-			}
-			return content.(bson.M)["content"], nil
-		case "fa":
-			return ri.AHeader, nil
-		default:
-			break			
+	case "fd":
+		var content interface{}
+		err = c.FindId(ri.Id).Select(bson.M{"content": 1}).One(&content)
+		if err != nil {
+			msg := fmt.Sprintf("couldn't retrieve content at '%s'.\n%s", p, err)
+			return nil, errors.New(msg)
+		}
+		return content.(bson.M)["content"], nil
+	case "fa":
+		return ri.AHeader, nil
+	default:
+		break
 	}
 
 	return nil, errors.New("invlid data request type: " + t)
@@ -1575,27 +1597,29 @@ func (fs *BFS) BQLSearch(db string, q bson.M) (interface{}, error) {
 	sort, hassort := q["sort"].([]string)
 	_, hascount := q["count"]
 	distinct, hasdistinct := q["distinct"].(string)
-	
+
 	if !hasfields && !haspaths {
 		return nil, errors.New("Invalid select query: No fields or document paths.")
 	}
 
 	// build query
-	query := bson.M{"__header__.parent":bson.M{"$in":paths}}
+	query := bson.M{
+		"__header__.parent": bson.M{"$in": paths},
+		"__header__.type":   "File"} // make sure return item is file
 	if haswhere {
 		_and := where["and"].([]map[string]interface{})
-		if len(_and) > 0 { 
+		if len(_and) > 0 {
 			query["$and"] = _and
 		}
 		_or := where["or"].([]map[string]interface{})
-		if len(_or) > 0 { 
+		if len(_or) > 0 {
 			query["$or"] = _or
 		}
 	}
-	
-	// get collection	
+
+	// get collection
 	c := fs.mongo.DB(db).C(fs.config.Bfs.ContentCol)
-	
+
 	// run query
 	tmp := c.Find(query)
 	// check count
@@ -1616,28 +1640,32 @@ func (fs *BFS) BQLSearch(db string, q bson.M) (interface{}, error) {
 		return distinctlist, nil
 	}
 	// check limit
-	if haslimit { tmp = tmp.Limit(int(limit)) }
+	if haslimit {
+		tmp = tmp.Limit(int(limit))
+	}
 	// check sort
-	if hassort { tmp = tmp.Sort(sort...) }
+	if hassort {
+		tmp = tmp.Sort(sort...)
+	}
 	// filter fields
 	if hasfields && len(fields) > 0 {
-		_flds := bson.M{"__header__":1}
+		_flds := bson.M{"__header__": 1}
 		for _, item := range fields {
 			_flds[item] = 1
 		}
-		tmp = tmp.Select(_flds) 
+		tmp = tmp.Select(_flds)
 	}
 
 	// get results
 	var item bson.M
-	itemlist := []interface{} {}
+	itemlist := []interface{}{}
 	i := tmp.Iter()
 	for i.Next(&item) {
 		_parent := item["__header__"].(bson.M)["parent"].(string)
 		_name := item["__header__"].(bson.M)["name"].(string)
 		_path := path.Join(_parent, _name)
 		_data := item["content"].(bson.M)
-		itemlist = append(itemlist, bson.M{"path":_path,"content":_data})
+		itemlist = append(itemlist, bson.M{"path": _path, "content": _data})
 	}
 
 	return itemlist, nil
@@ -1654,38 +1682,38 @@ func (fs *BFS) BQLSet(db string, q bson.M) (interface{}, error) {
 	incr_fields, hasincr := q["incr"].(map[string]interface{})
 	paths, haspaths := q["dirs"].([]string)
 	where, haswhere := q["where"].(map[string]interface{})
-	
+
 	if !hasfields && !haspaths {
 		return nil, errors.New("Invalid set command: No fields or document paths.")
 	}
 
 	// build query
-	query := bson.M{"__header__.parent":bson.M{"$in":paths}}
+	query := bson.M{"__header__.parent": bson.M{"$in": paths}}
 	if haswhere {
 		_and := where["and"].([]map[string]interface{})
-		if len(_and) > 0 { 
+		if len(_and) > 0 {
 			query["$and"] = _and
 		}
 		_or := where["or"].([]map[string]interface{})
-		if len(_or) > 0 { 
+		if len(_or) > 0 {
 			query["$or"] = _or
 		}
 	}
 	// build update query
-	uquery := bson.M{"$set":fields}
+	uquery := bson.M{"$set": fields}
 	if hasincr {
 		uquery["$inc"] = incr_fields
 	}
-	
-	// get collection	
+
+	// get collection
 	c := fs.mongo.DB(db).C(fs.config.Bfs.ContentCol)
-	
+
 	// run query
 	info, err := c.UpdateAll(query, uquery)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return info.Updated, nil
 }
 
@@ -1699,29 +1727,29 @@ func (fs *BFS) BQLUnset(db string, q bson.M) (interface{}, error) {
 	fields, hasfields := q["fields"].(map[string]interface{})
 	paths, haspaths := q["dirs"].([]string)
 	where, haswhere := q["where"].(map[string]interface{})
-	
+
 	if !hasfields && !haspaths {
 		return nil, errors.New("Invalid unset command: No fields or document paths.")
 	}
 
 	// build query
-	query := bson.M{"__header__.parent":bson.M{"$in":paths}}
+	query := bson.M{"__header__.parent": bson.M{"$in": paths}}
 	if haswhere {
 		_and := where["and"].([]map[string]interface{})
-		if len(_and) > 0 { 
+		if len(_and) > 0 {
 			query["$and"] = _and
 		}
 		_or := where["or"].([]map[string]interface{})
-		if len(_or) > 0 { 
+		if len(_or) > 0 {
 			query["$or"] = _or
 		}
 	}
 	// build update query
-	uquery := bson.M{"$unset":fields}
-	
-	// get collection	
+	uquery := bson.M{"$unset": fields}
+
+	// get collection
 	c := fs.mongo.DB(db).C(fs.config.Bfs.ContentCol)
-	
+
 	// run query
 	info, err := c.UpdateAll(query, uquery)
 	if err != nil {
@@ -1735,18 +1763,18 @@ func (fs *BFS) findPathQuery(p string) bson.M {
 	// build query
 	var q bson.M
 	if p == "/" {
-		q = bson.M{"__header__.parent":"","__header__.name":"/"}
+		q = bson.M{"__header__.parent": "", "__header__.name": "/"}
 	} else {
-		q = bson.M{"__header__.parent":path.Dir(p),"__header__.name":path.Base(p)}
+		q = bson.M{"__header__.parent": path.Dir(p), "__header__.name": path.Base(p)}
 	}
 	return q
 }
 
 func (fs *BFS) findChildrenQuery(p, rgx string) bson.M {
-	qre := bson.RegEx {Pattern:rgx, Options:"i"} // case insensitive regex
+	qre := bson.RegEx{Pattern: rgx, Options: "i"} // case insensitive regex
 	q := bson.M{
-		"__header__.parent":p,
-		 "__header__.name":bson.M{"$regex":qre},
+		"__header__.parent": p,
+		"__header__.name":   bson.M{"$regex": qre},
 	}
 	return q
 }
@@ -1759,7 +1787,7 @@ func (fs *BFS) findAllChildrenQuery(p string) bson.M {
 	} else {
 		r = fmt.Sprintf("^%s($|/)", p)
 	}
-	q := bson.M{"__header__.parent":bson.RegEx{r, "i"}}
+	q := bson.M{"__header__.parent": bson.RegEx{r, "i"}}
 	return q
 }
 
@@ -1796,7 +1824,7 @@ func (fs *BFS) validateDirName(d string) error {
 	}
 	if r.MatchString(d) {
 		return nil
-	}	
+	}
 	return errors.New(msg)
 }
 
@@ -1810,7 +1838,7 @@ func (fs *BFS) validateCounterName(c string) error {
 	if match != c {
 		return errors.New(msg)
 	}
-	return nil	
+	return nil
 }
 
 func (fs *BFS) validateFileName(f string) error {
@@ -1821,6 +1849,6 @@ func (fs *BFS) validateFileName(f string) error {
 	}
 	if r.MatchString(f) {
 		return nil
-	}	
+	}
 	return errors.New(msg)
 }

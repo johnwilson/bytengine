@@ -13,3 +13,6 @@ build/release/
 
 # sphinx documentation
 docs/_build/
+
+# python virtual env dir
+build/env/
