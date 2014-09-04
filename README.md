@@ -24,8 +24,8 @@ Prerequisites:
 
 You can download Bytengine binaries for:
 
-* **[Linux amd64](http://www.bytengine.com/static/dl/linux_amd64.tar.gz "Linux amd64")**
-* **[Mac OS X 10.6/10.7 amd64](http://www.bytengine.com/static/dl/osx_amd64.tar.gz "Mac OS X 10.6/10.7 amd64")**
+* **[Linux amd64](http://dl.bintray.com/johnwilson/Bytengine/bytengine-server-linux64-0.1.zip "Linux amd64")**
+* **[Mac OS X 10.6/10.7 amd64](http://dl.bintray.com/johnwilson/Bytengine/bytengine-server-osx64-0.1.zip "Mac OS X 10.6/10.7 amd64")**
 
 **Extract downloaded file, 'cd' into directory and run**:
 
@@ -75,9 +75,5 @@ Prerequisites:
 ## Some Handy Links
 
 [Documentation](https://bytengine.readthedocs.org/en/latest/) - Documentation
-
-[Demo Server](http://www.bytengine.com/) - Demo server
-
-[Terminal](http://terminal.bytengine.com) - Sample application 1
 
 [Twitter](https://twitter.com/bytengine) - Twitter
