@@ -7,13 +7,13 @@ import (
 	"math"
 	"net/http"
 	"os"
-	"os/exec"
 	"path"
 	"regexp"
 	"strings"
 	"time"
 	//"log"
 
+	"github.com/nu7hatch/gouuid"
 	"github.com/vmihailenco/redis"
 	"labix.org/v2/mgo"
 	"labix.org/v2/mgo/bson"
@@ -71,17 +71,12 @@ func formatDatetime(t *time.Time) (d string) {
 }
 
 func makeUUID() (string, error) {
-	// create uuid using unix/linux 'uuidgen'
-	cmd := exec.Command("uuidgen")
-	var out bytes.Buffer
-	cmd.Stdout = &out
-	err := cmd.Run()
+	tmp, err := uuid.NewV4()
 	if err != nil {
 		return "", err
 	}
-	uuid := strings.Replace(out.String(), "-", "", -1) // remove dashes
-	uuid = strings.Trim(uuid, "\n ")                   // remove newline and spaces from output
-	return uuid, nil
+	id := strings.Replace(tmp.String(), "-", "", -1) // remove dashes
+	return id, nil
 }
 
 func makeRootDir() (*Directory, error) {
