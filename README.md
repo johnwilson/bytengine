@@ -46,7 +46,7 @@ Prerequisites:
 
 * Python (>= 2.6)
 
-* Make sure you have 'uuidgen' (no longer required)
+* ~~Make sure you have 'uuidgen'~~
 
 1. Get Bytengine `go get -d github.com/johnwilson/bytengine`
 
