@@ -1,9 +1,5 @@
-# komodo files & folders
-*.komodoproject
-.komodotools/
-
-# release directory
-build/release/
+# executables
+hemiv6/hemiv6
 
 # python pyc files
 *.pyc
@@ -13,6 +9,3 @@ build/release/
 
 # sphinx documentation
 docs/_build/
-
-# python virtual env dir
-build/env/
