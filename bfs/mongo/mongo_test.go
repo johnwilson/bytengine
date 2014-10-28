@@ -3,7 +3,7 @@ package mongo
 import (
 	"github.com/johnwilson/bytengine/bfs"
 	"github.com/johnwilson/bytengine/bst"
-	_ "github.com/johnwilson/bytengine/bst/mongo"
+	_ "github.com/johnwilson/bytengine/bst/diskv"
 	"github.com/johnwilson/bytengine/dsl"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/mgo.v2/bson"
@@ -23,17 +23,14 @@ const (
     }`
 	BSTORE_CONFIG = `
     {
-        "addresses":["dbserver.local:27017"],
-        "authdb":"",
-        "username":"",
-        "password":"",
-        "timeout":60
+        "rootdir":"/tmp/diskv_data",
+        "cachesize": 1
     }`
 )
 
 func TestDatabaseManagement(t *testing.T) {
 	// get bst plugin
-	bstore, err := bst.NewPlugin("mongodb", BSTORE_CONFIG)
+	bstore, err := bst.NewPlugin("diskv", BSTORE_CONFIG)
 	assert.Nil(t, err, "bst not created")
 	// get bfs plugin
 	mfs, err := bfs.NewPlugin("mongodb", BFS_CONFIG, &bstore)
@@ -99,7 +96,7 @@ func TestDatabaseManagement(t *testing.T) {
 
 func TestContentManagement(t *testing.T) {
 	// get bst plugin
-	bstore, err := bst.NewPlugin("mongodb", BSTORE_CONFIG)
+	bstore, err := bst.NewPlugin("diskv", BSTORE_CONFIG)
 	assert.Nil(t, err, "bst not created")
 	// get bfs plugin
 	mfs, err := bfs.NewPlugin("mongodb", BFS_CONFIG, &bstore)
@@ -169,7 +166,7 @@ func TestContentManagement(t *testing.T) {
 
 func TestCounters(t *testing.T) {
 	// get bst plugin
-	bstore, err := bst.NewPlugin("mongodb", BSTORE_CONFIG)
+	bstore, err := bst.NewPlugin("diskv", BSTORE_CONFIG)
 	assert.Nil(t, err, "bst not created")
 	// get bfs plugin
 	mfs, err := bfs.NewPlugin("mongodb", BFS_CONFIG, &bstore)
@@ -216,7 +213,7 @@ func TestCounters(t *testing.T) {
 
 func TestSearch(t *testing.T) {
 	// get bst plugin
-	bstore, err := bst.NewPlugin("mongodb", BSTORE_CONFIG)
+	bstore, err := bst.NewPlugin("diskv", BSTORE_CONFIG)
 	assert.Nil(t, err, "bst not created")
 	// get bfs plugin
 	mfs, err := bfs.NewPlugin("mongodb", BFS_CONFIG, &bstore)
@@ -293,7 +290,7 @@ func TestSearch(t *testing.T) {
 
 func TestSetUnset(t *testing.T) {
 	// get bst plugin
-	bstore, err := bst.NewPlugin("mongodb", BSTORE_CONFIG)
+	bstore, err := bst.NewPlugin("diskv", BSTORE_CONFIG)
 	assert.Nil(t, err, "bst not created")
 	// get bfs plugin
 	mfs, err := bfs.NewPlugin("mongodb", BFS_CONFIG, &bstore)
@@ -349,7 +346,7 @@ func TestSetUnset(t *testing.T) {
 
 func TestAttachmentManagement(t *testing.T) {
 	// get bst plugin
-	bstore, err := bst.NewPlugin("mongodb", BSTORE_CONFIG)
+	bstore, err := bst.NewPlugin("diskv", BSTORE_CONFIG)
 	assert.Nil(t, err, "bst not created")
 	// get bfs plugin
 	mfs, err := bfs.NewPlugin("mongodb", BFS_CONFIG, &bstore)
