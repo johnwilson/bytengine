@@ -9,7 +9,7 @@ import (
 	"github.com/johnwilson/bytengine/bfs"
 	_ "github.com/johnwilson/bytengine/bfs/mongo"
 	"github.com/johnwilson/bytengine/bst"
-	_ "github.com/johnwilson/bytengine/bst/mongo"
+	_ "github.com/johnwilson/bytengine/bst/diskv"
 	"github.com/johnwilson/bytengine/core"
 	"github.com/johnwilson/bytengine/ext"
 	_ "github.com/johnwilson/bytengine/fltcore"
@@ -40,7 +40,7 @@ func CreateBSTManager(config *simplejson.Json) bst.ByteStore {
 	if err != nil {
 		panic(err)
 	}
-	bstM, err := bst.NewPlugin("mongodb", string(b))
+	bstM, err := bst.NewPlugin("diskv", string(b))
 	if err != nil {
 		panic(err)
 	}

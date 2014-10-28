@@ -18,11 +18,8 @@
             "conn": "dbserver.local:6379"
         },
         "bst": {
-            "addresses":["dbserver.local:27017"],
-            "authdb":"",
-            "username":"",
-            "password":"",
-            "timeout":60
+            "rootdir":"/tmp/bytengine_bst",
+            "cachesize":1
         }
     },
     "workers": 2,
