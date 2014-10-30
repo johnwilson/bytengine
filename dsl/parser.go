@@ -292,6 +292,28 @@ func (p *Parser) parseFilterResult() string {
 	return ""
 }
 
+func (p *Parser) parseCommandOption(ctx string) (name, val string) {
+	// absorb option symbol
+	p.next()
+	_token := p.expect(itemIdentifier, ctx)
+	name = _token.val
+	if p.peek().typ == itemEqual {
+		// absorb equal
+		p.next()
+		optval := p.expectOneOf(itemString, itemNumber, ctx)
+		if optval.typ == itemNumber {
+			val = optval.val
+		} else {
+			var err error
+			val, err = formatString(optval.val)
+			if err != nil {
+				p.errorf("Improperly quoted string value in %s", ctx)
+			}
+		}
+	}
+	return
+}
+
 func (p *Parser) parseEndofCommand(ctx string) string {
 	filter := p.parseFilterResult()
 	_nxt := p.expectOneOf(itemSemiColon, itemEOF, ctx)
@@ -321,19 +343,16 @@ func (p *Parser) parseLoginCmd(ctx string) {
 }
 
 func (p *Parser) parseListDatabasesCmd(ctx string) {
-	// check if regex filter has been added
-	_regex := "."
-	if p.peek().typ == itemRegex {
-		_token := p.next()
-		_r, err := formatString(_token.val)
-		_regex = _r
-		if err != nil {
-			p.errorf("Improperly quoted regex in %s", ctx)
+	cmd := NewCommand(ctx, true)
+	// check if regex option has been added
+	if p.peek().typ == itemArgument {
+		name, val := p.parseCommandOption(ctx)
+		if name != "regex" || len(val) == 0 {
+			p.errorf("Invalid option %s in %s", name, ctx)
 		}
+		cmd.Options[name] = val
 	}
 	_filter := p.parseEndofCommand(ctx)
-	cmd := NewCommand(ctx, true)
-	cmd.Args["regex"] = _regex
 	cmd.Filter = _filter
 	p.commands = append(p.commands, cmd)
 }
@@ -391,19 +410,16 @@ func (p *Parser) parseNewUserCmd(ctx string) {
 }
 
 func (p *Parser) parseListUsersCmd(ctx string) {
-	// check if regex filter has been added
-	_regex := "."
-	if p.peek().typ == itemRegex {
-		_token := p.next()
-		_r, err := formatString(_token.val)
-		_regex = _r
-		if err != nil {
-			p.errorf("Improperly quoted regex in %s", ctx)
+	cmd := NewCommand(ctx, true)
+	// check if regex option has been added
+	if p.peek().typ == itemArgument {
+		name, val := p.parseCommandOption(ctx)
+		if name != "regex" || len(val) == 0 {
+			p.errorf("Invalid option %s in %s", name, ctx)
 		}
+		cmd.Options[name] = val
 	}
 	_filter := p.parseEndofCommand(ctx)
-	cmd := NewCommand(ctx, true)
-	cmd.Args["regex"] = _regex
 	cmd.Filter = _filter
 	p.commands = append(p.commands, cmd)
 }
@@ -550,20 +566,19 @@ func (p *Parser) parseNewFileCmd(db, ctx string) {
 func (p *Parser) parseListDirectoryCmd(db, ctx string) {
 	_token := p.expect(itemPath, ctx)
 	_path := _token.val
-	_regex := "."
-	if p.peek().typ == itemRegex {
-		_token := p.next()
-		_r, err := formatString(_token.val)
-		_regex = _r
-		if err != nil {
-			p.errorf("Improperly quoted regex in %s", ctx)
-		}
-	}
-	_filter := p.parseEndofCommand(ctx)
 	cmd := NewCommand(ctx, false)
 	cmd.Database = db
 	cmd.Args["path"] = _path
-	cmd.Args["regex"] = _regex
+
+	// check if regex option has been added
+	if p.peek().typ == itemArgument {
+		name, val := p.parseCommandOption(ctx)
+		if name != "regex" || len(val) == 0 {
+			p.errorf("Invalid option %s in %s", name, ctx)
+		}
+		cmd.Options[name] = val
+	}
+	_filter := p.parseEndofCommand(ctx)
 	cmd.Filter = _filter
 	p.commands = append(p.commands, cmd)
 }
@@ -754,16 +769,14 @@ func (p *Parser) parseCounterCmd(db, ctx string) {
 			cmd := NewCommand("counter", false)
 			cmd.Database = db
 			cmd.Args["action"] = "list"
-			cmd.Args["regex"] = "." //match everything by default
 
-			if p.peek().typ == itemRegex {
-				// get pattern
-				_next := p.next()
-				_pattern_text, err := formatString(_next.val)
-				if err != nil {
-					p.errorf("Improperly quoted regex pattern value in %s", ctx)
+			// check if regex option has been added
+			if p.peek().typ == itemArgument {
+				name, val := p.parseCommandOption(ctx)
+				if name != "regex" || len(val) == 0 {
+					p.errorf("Invalid option %s in %s", name, ctx)
 				}
-				cmd.Args["regex"] = _pattern_text
+				cmd.Options[name] = val
 			}
 			_filter := p.parseEndofCommand(ctx)
 			cmd.Filter = _filter
@@ -1511,7 +1524,7 @@ func (p *Parser) parseRegexWhereCondition() map[string]interface{} {
 	// absorb operator ==
 	p.expect(itemEqualTo, context)
 	// get pattern
-	_next = p.expect(itemRegex, context)
+	_next = p.expect(itemString, context)
 	_pattern_text, err := formatString(_next.val)
 	if err != nil {
 		p.errorf("Improperly quoted regex pattern value in %s", context)

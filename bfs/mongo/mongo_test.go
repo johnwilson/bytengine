@@ -267,7 +267,7 @@ func TestSearch(t *testing.T) {
 
 	script = `
     @test.select "name" "age" in /users
-    where regex("name","i") == ` + "`^j\\w*n$`"
+    where regex("name","i") == "^j\\w*n$"`
 	cmd, err = dsl.NewParser().Parse(script)
 	assert.Nil(t, err, "couldn't parse script")
 	rep = mfs.BQLSearch(db, cmd[0].Args)

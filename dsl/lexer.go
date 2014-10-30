@@ -40,7 +40,6 @@ const (
 	itemPlusEqual         // += for value increment
 	itemMinusEqual        // -= for value decrement
 	itemColon             // :
-	itemRegex             // regular expression
 	itemDot               // .
 	itemSemiColon         // ;
 	itemComma             // ,
@@ -61,6 +60,7 @@ const (
 	itemNumber            // simple number
 	itemString            // quoted string (includes quotes)
 	itemPath              // unix type file path
+	itemArgument          // --argument
 	// Keywords appear after all the rest.
 	itemKeyword // used only to delimit the keywords
 	itemNull
@@ -96,7 +96,7 @@ var itemName = map[itemType]string{
 	itemNumber:            "number",
 	itemString:            "string",
 	itemPath:              "path",
-	itemRegex:             "regex",
+	itemArgument:          "--",
 	itemNull:              "null",
 }
 
@@ -326,20 +326,29 @@ func lexInsideScript(l *lexer) stateFn {
 		return lexInsideScript
 	case r == '"':
 		return lexDoubleQuote
-	case r == '`':
-		return lexRegex
 	case r == '\'':
 		return lexSingleQuote
-	case r == '+' || r == '-':
+	case r == '+':
 		if l.peek() == '=' {
 			// absorb equal
 			l.next()
-			if r == '+' {
-				l.emit(itemPlusEqual)
-				return lexInsideScript
-			}
+			l.emit(itemPlusEqual)
+			return lexInsideScript
+		}
 
+		l.backup()
+		return lexNumber
+	case r == '-':
+		pk := l.peek()
+		if pk == '=' {
+			// absorb equal
+			l.next()
 			l.emit(itemMinusEqual)
+			return lexInsideScript
+		} else if pk == '-' {
+			// absorbe minus
+			l.next()
+			l.emit(itemArgument)
 			return lexInsideScript
 		}
 
@@ -402,20 +411,6 @@ Loop:
 		}
 	}
 	l.emit(itemString)
-	return lexInsideScript
-}
-
-func lexRegex(l *lexer) stateFn {
-Loop:
-	for {
-		switch l.next() {
-		case eof, '\n':
-			return l.errorf("unterminated quoted regex")
-		case '`':
-			break Loop
-		}
-	}
-	l.emit(itemRegex)
 	return lexInsideScript
 }
 

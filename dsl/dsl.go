@@ -8,6 +8,7 @@ type Command struct {
 	Name     string
 	Database string
 	Args     map[string]interface{}
+	Options  map[string]interface{}
 	Filter   string // name of filter to apply to result
 	isAdmin  bool   // admin command
 }
@@ -36,6 +37,7 @@ func NewCommand(name string, isadmin bool) Command {
 		Name:    name,
 		isAdmin: isadmin,
 		Args:    map[string]interface{}{},
+		Options: map[string]interface{}{},
 	}
 	return cmd
 }

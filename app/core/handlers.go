@@ -26,7 +26,11 @@ func handler1(cmd dsl.Command, user *auth.User, e *core.Engine) bfs.BFSResponse 
 
 // handler for: user.all
 func handler2(cmd dsl.Command, user *auth.User, e *core.Engine) bfs.BFSResponse {
-	rgx := cmd.Args["regex"].(string)
+	rgx := "."
+	val, ok := cmd.Options["regex"]
+	if ok {
+		rgx = val.(string)
+	}
 	users, err := e.AuthManager.ListUser(rgx)
 	if err != nil {
 		return bfs.ErrorResponse(err)
@@ -100,7 +104,11 @@ func handler8(cmd dsl.Command, user *auth.User, e *core.Engine) bfs.BFSResponse 
 
 // handler for: server.listdb
 func handler9(cmd dsl.Command, user *auth.User, e *core.Engine) bfs.BFSResponse {
-	filter := cmd.Args["regex"].(string)
+	filter := "."
+	val, ok := cmd.Options["regex"]
+	if ok {
+		filter = val.(string)
+	}
 	return e.BFSManager.ListDatabase(filter)
 }
 
@@ -139,7 +147,11 @@ func handler14(cmd dsl.Command, user *auth.User, e *core.Engine) bfs.BFSResponse
 // handler for: database.listdir
 func handler15(cmd dsl.Command, user *auth.User, e *core.Engine) bfs.BFSResponse {
 	path := cmd.Args["path"].(string)
-	filter := cmd.Args["regex"].(string)
+	filter := "."
+	val, ok := cmd.Options["regex"]
+	if ok {
+		filter = val.(string)
+	}
 	db := cmd.Database
 	return e.BFSManager.ListDir(path, filter, db)
 }
@@ -228,7 +240,11 @@ func handler26(cmd dsl.Command, user *auth.User, e *core.Engine) bfs.BFSResponse
 		val := cmd.Args["value"].(int64)
 		return e.BFSManager.SetCounter(name, act, val, db)
 	}
-	filter := cmd.Args["regex"].(string)
+	filter := "."
+	val, ok := cmd.Options["regex"]
+	if ok {
+		filter = val.(string)
+	}
 	return e.BFSManager.ListCounter(filter, db)
 }
 
