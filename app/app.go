@@ -53,7 +53,7 @@ func getTokenHandler(ctx *gin.Context) {
 	cmd.Args["username"] = form.Username
 	cmd.Args["password"] = form.Password
 
-	duration, err := Configuration.Get("tokentimeout").Int64() // in minutes
+	duration, err := Configuration.Get("timeout").Get("authtoken").Int64() // in minutes
 	if err != nil {
 		data := bfs.ErrorResponse(fmt.Errorf("Token creation error.")).JSON()
 		ctx.Data(500, "application/json", data)
@@ -83,6 +83,15 @@ func getUploadTicketHandler(ctx *gin.Context) {
 	cmd := dsl.NewCommand("uploadticket", false)
 	cmd.Database = form.Database
 	cmd.Args["path"] = form.Path
+
+	duration, err := Configuration.Get("timeout").Get("uploadticket").Int64() // in minutes
+	if err != nil {
+		data := bfs.ErrorResponse(fmt.Errorf("Token creation error.")).JSON()
+		ctx.Data(500, "application/json", data)
+		return
+	}
+	cmd.Args["duration"] = duration
+
 	c := &core.CommandRequest{cmd, form.Token, make(chan bfs.BFSResponse)}
 	CommandsChan <- c
 	data := <-c.ResultChannel

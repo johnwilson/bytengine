@@ -25,5 +25,8 @@
     "workers": 2,
     "port": 8080,
     "address": "localhost",
-    "tokentimeout": 2
+    "timeout": {
+        "authtoken": 60,
+        "uploadticket": 60
+    }
 }

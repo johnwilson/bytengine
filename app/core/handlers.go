@@ -300,6 +300,7 @@ func uploadTicketHandler(cmd dsl.Command, user *auth.User, e *core.Engine) bfs.B
 
 	db := cmd.Database
 	path := cmd.Args["path"].(string)
+	duration := cmd.Args["duration"].(int64)
 	// check if path exists
 	r := e.BFSManager.Info(path, db)
 	if !r.Success() {
@@ -320,7 +321,7 @@ func uploadTicketHandler(cmd dsl.Command, user *auth.User, e *core.Engine) bfs.B
 	if err != nil {
 		return bfs.ErrorResponse(fmt.Errorf("Ticket creation failed"))
 	}
-	err = e.CacheManager.Put(ticket, string(b), 300)
+	err = e.CacheManager.Put(ticket, string(b), 60*duration)
 	if err != nil {
 		return bfs.ErrorResponse(fmt.Errorf("Ticket creation failed"))
 	}
