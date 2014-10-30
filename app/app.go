@@ -16,6 +16,7 @@ import (
 
 var ScriptsChan chan *core.ScriptRequest
 var CommandsChan chan *core.CommandRequest
+var Configuration *simplejson.Json
 
 func runScriptHandler(ctx *gin.Context) {
 	var form struct {
@@ -51,6 +52,15 @@ func getTokenHandler(ctx *gin.Context) {
 	cmd := dsl.NewCommand("login", false)
 	cmd.Args["username"] = form.Username
 	cmd.Args["password"] = form.Password
+
+	duration, err := Configuration.Get("tokentimeout").Int64() // in minutes
+	if err != nil {
+		data := bfs.ErrorResponse(fmt.Errorf("Token creation error.")).JSON()
+		ctx.Data(500, "application/json", data)
+		return
+	}
+	cmd.Args["duration"] = duration
+
 	c := &core.CommandRequest{cmd, "", make(chan bfs.BFSResponse)}
 	CommandsChan <- c
 	data := <-c.ResultChannel
@@ -194,9 +204,9 @@ func main() {
 				fmt.Println("Error: ", err)
 				os.Exit(1)
 			}
-			config, err := simplejson.NewFromReader(rdr)
+			Configuration, err = simplejson.NewFromReader(rdr)
 
-			err = engine.CreateAdminUser(usr, pw, config.Get("bytengine"))
+			err = engine.CreateAdminUser(usr, pw, Configuration.Get("bytengine"))
 			if err != nil {
 				fmt.Println("Error: ", err)
 				os.Exit(1)
@@ -217,13 +227,13 @@ func main() {
 				fmt.Println("Error: ", err)
 				os.Exit(1)
 			}
-			config, err := simplejson.NewFromReader(rdr)
-			wcount := config.Get("workers").MustInt()
-			addr := config.Get("address").MustString()
-			port := config.Get("port").MustInt()
+			Configuration, err = simplejson.NewFromReader(rdr)
+			wcount := Configuration.Get("workers").MustInt()
+			addr := Configuration.Get("address").MustString()
+			port := Configuration.Get("port").MustInt()
 
 			// setup channels
-			ScriptsChan, CommandsChan = engine.WorkerPool(wcount, config.Get("bytengine"))
+			ScriptsChan, CommandsChan = engine.WorkerPool(wcount, Configuration.Get("bytengine"))
 
 			// setup routes
 			router := gin.Default()

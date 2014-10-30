@@ -270,6 +270,7 @@ func handler29(cmd dsl.Command, user *auth.User, e *core.Engine) bfs.BFSResponse
 func loginHandler(cmd dsl.Command, user *auth.User, e *core.Engine) bfs.BFSResponse {
 	usr := cmd.Args["username"].(string)
 	pw := cmd.Args["password"].(string)
+	duration := cmd.Args["duration"].(int64)
 
 	ok := e.AuthManager.Authenticate(usr, pw)
 	if !ok {
@@ -282,7 +283,7 @@ func loginHandler(cmd dsl.Command, user *auth.User, e *core.Engine) bfs.BFSRespo
 	}
 
 	token := fmt.Sprintf("%x", key)
-	err := e.CacheManager.Put(token, usr, 60)
+	err := e.CacheManager.Put(token, usr, 60*duration)
 	if err != nil {
 		return bfs.ErrorResponse(fmt.Errorf("Token creation failed"))
 	}
