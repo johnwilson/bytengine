@@ -5,7 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 
-	simplejson "github.com/bitly/go-simplejson"
+	"github.com/bitly/go-simplejson"
 	"github.com/codegangsta/cli"
 	"github.com/gin-gonic/gin"
 	"github.com/johnwilson/bytengine/app/core"

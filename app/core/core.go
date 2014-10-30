@@ -3,7 +3,7 @@ package engine
 import (
 	"github.com/astaxie/beego/cache"
 	_ "github.com/astaxie/beego/cache/redis"
-	simplejson "github.com/bitly/go-simplejson"
+	"github.com/bitly/go-simplejson"
 	"github.com/johnwilson/bytengine/auth"
 	_ "github.com/johnwilson/bytengine/auth/mongo"
 	"github.com/johnwilson/bytengine/bfs"
