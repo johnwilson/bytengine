@@ -33,7 +33,7 @@ type Authentication interface {
 	NewUser(usr, pw string, root bool) error
 	ChangeUserPassword(usr, pw string) error
 	ChangeUserStatus(usr string, isactive bool) error
-	ListUser(rgx string) ([]User, error)
+	ListUser(rgx string) ([]string, error)
 	ChangeUserDbAccess(usr, db string, grant bool) error
 	HasDbAccess(usr, db string) bool
 	RemoveUser(usr string) error

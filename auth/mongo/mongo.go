@@ -222,7 +222,7 @@ func (m *MongodbAuth) ChangeUserStatus(usr string, isactive bool) error {
 	return nil
 }
 
-func (m *MongodbAuth) ListUser(rgx string) ([]auth.User, error) {
+func (m *MongodbAuth) ListUser(rgx string) ([]string, error) {
 	// get collection
 	col := m.getCollection()
 
@@ -231,10 +231,10 @@ func (m *MongodbAuth) ListUser(rgx string) ([]auth.User, error) {
 	q := bson.M{"username": bson.M{"$regex": qre}}
 
 	i := col.Find(q).Iter()
-	res := []auth.User{}
+	res := []string{}
 	var usr auth.User
 	for i.Next(&usr) {
-		res = append(res, usr)
+		res = append(res, usr.Username)
 	}
 	err := i.Err()
 	if err != nil {
