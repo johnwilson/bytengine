@@ -18,6 +18,24 @@ var ScriptsChan chan *core.ScriptRequest
 var CommandsChan chan *core.CommandRequest
 var Configuration *simplejson.Json
 
+const (
+	VERSION = "0.2.0"
+)
+
+func welcomeHandler(ctx *gin.Context) {
+	msg := simplejson.New()
+	msg.Set("bytengine", "Welcome")
+	msg.Set("version", VERSION)
+	b, err := msg.MarshalJSON()
+	if err != nil {
+		fmt.Println(err)
+		data := bfs.ErrorResponse(fmt.Errorf("Error creating welcome message")).JSON()
+		ctx.Data(500, "application/json", data)
+		return
+	}
+	ctx.Data(200, "application/json", b)
+}
+
 func runScriptHandler(ctx *gin.Context) {
 	var form struct {
 		Token string `form:"token" binding:"required"`
@@ -246,6 +264,7 @@ func main() {
 
 			// setup routes
 			router := gin.Default()
+			router.GET("/", welcomeHandler)
 			router.POST("/bfs/query", runScriptHandler)
 			router.POST("/bfs/token", getTokenHandler)
 			router.POST("/bfs/uploadticket", getUploadTicketHandler)
