@@ -1,79 +1,67 @@
 ## Bytengine
 
-[![Bytengine](http://www.bytengine.com/static/img/logo.jpg)](http://www.bytengine.com)
+[![Bytengine](http://www.bytengine.io/static/img/logo.jpg)](http://www.bytengine.io)
 
-**[Bytengine](http://www.bytengine.com/ "Bytengine")** is a scalable content repository built with
-Mongodb, Redis, Go and Python.
-Its API is accessible from any Http client library so you can start coding in your favorite language!
+**[Bytengine](http://www.bytengine.io/ "Bytengine")** is a scalable content 
+repository built with Go. Its API is accessible from any Http client library so 
+you can start coding in your favorite language!
 
-**[Bytengine](http://www.bytengine.com/ "Bytengine")** stores your content in a pseudo hierarchical 
-file system which you query using it's inbuilt SQL like language.
+**[Bytengine](http://www.bytengine.io/ "Bytengine")** stores your JSON data and 
+digital assets in a pseudo hierarchical file system which you query using it's 
+inbuilt SQL like language.
+
 Some of the server's features are:
 
-* Content storage and retrival
+* JSON data management
+* Digital assets management
 * HTTP based API
-* Inbuilt Query language
-* Documentation
+* Bytengine Query language (BQL)
+* Pluggable data storage backends (currently supports Mongodb, Diskv, Redis)
+* Documentation **[readthedocs](https://bytengine.readthedocs.org/en/latest/) - readthedocs**
+* Command line interface **[bshell](http://github.com/johnwilson/bshell/ "bshell")**
 
 ## Installation
 
-Prerequisites:
+Current Build Prerequisites:
 
 * **[Mongodb](http://docs.mongodb.org/manual/installation/ "Mongodb")**
 * **[Redis](http://redis.io/download "Redis")**
 
 You can download Bytengine binaries for:
 
-* **[Linux amd64](http://dl.bintray.com/johnwilson/Bytengine/bytengine-server-linux64-0.1.zip "Linux amd64")**
-* **[Mac OS X 10.6/10.7 amd64](http://dl.bintray.com/johnwilson/Bytengine/bytengine-server-osx64-0.1.zip "Mac OS X 10.6/10.7 amd64")**
+* **[Linux amd64](http://dl.bintray.com/johnwilson/Bytengine/bytengine-server-linux64-0.2.zip "Linux amd64")**
+* **[Mac OS X 10.6/10.7 amd64](http://dl.bintray.com/johnwilson/Bytengine/bytengine-server-osx64-0.2.zip "Mac OS X 10.6/10.7 amd64")**
 
 **Extract downloaded file, 'cd' into directory and run**:
 
-`./bin/bytengine --config ./conf/config.json`
+```
+    ./bytengine createadmin -u="admin" -p"yourpassword"
+    ./bytengine run
+```
 
 ## Development
 
-Bytengine is developed on Ubuntu 12.04 so you should adapt the following instructions
-to your Os/Distro (Windows is currently not supported)
+Bytengine is developed on OS X so you should adapt the following instructions
+to your Os/Distro (Only tested on OS X and Ubuntu Linux)
 
-Prerequisites:
+Current Build Prerequisites:
 
 * [Mongodb](http://docs.mongodb.org/manual/installation/ "Mongodb")
-
 * [Redis](http://redis.io/download "Redis")
-
 * [Go](http://golang.org/doc/install "Go")
 
-* Python (>= 2.6)
+1. Get Bytengine `go get -d github.com/johnwilson/bytengine/app`
 
-* ~~Make sure you have 'uuidgen'~~
+2. `cd $GOPATH/src/github.com/johnwilson/bytengine/app`
 
-1. Get Bytengine `go get -d github.com/johnwilson/bytengine`
+3. Build Bytengine `go build`
 
-2. Install Python sphinx documentation tool `easy_install sphinx`
-
-3. Install Python [requests](http://docs.python-requests.org/en/latest/ "requests") `easy_install requests`
-
-4. `cd $GOPATH/src/github.com/johnwilson/bytengine`
-
-5. Build Bytengine `python ./build/run.py`
-
-6. Running Bytengine
+4. Running Bytengine
 ```
-	cd ./build/release/bytengine-server/
-
-	./bin/bytengine --config ./conf/config.json
-```
-
-7. Running Python test script
-```
-	cd $GOPATH/src/github.com/johnwilson/bytengine
-
-	python ./tests/test.py
+	./app createadmin -u="admin" -p"yourpassword"
+	./app run
 ```
 
 ## Some Handy Links
-
-[Documentation](https://bytengine.readthedocs.org/en/latest/) - Documentation
 
 [Twitter](https://twitter.com/bytengine) - Twitter
