@@ -1,11 +1,5 @@
 # executables
 app/app
 
-# python pyc files
-*.pyc
-
 # Mac OS X files
 .DS_Store
-
-# sphinx documentation
-docs/_build/
