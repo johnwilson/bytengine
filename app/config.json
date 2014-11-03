@@ -23,7 +23,7 @@
         }
     },
     "workers": 2,
-    "port": 8080,
+    "port": 8500,
     "address": "localhost",
     "timeout": {
         "authtoken": 60,
