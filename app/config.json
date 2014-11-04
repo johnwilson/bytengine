@@ -1,21 +1,21 @@
 {
     "bytengine": {
         "auth": {
-            "addresses":["dbserver.local:27017"],
+            "addresses":["localhost:27017"],
             "authdb":"",
             "username":"",
             "password":"",
             "timeout":60
         },
         "bfs": {
-            "addresses":["dbserver.local:27017"],
+            "addresses":["localhost:27017"],
             "authdb":"",
             "username":"",
             "password":"",
             "timeout":60
         },
         "cache": {
-            "conn": "dbserver.local:6379"
+            "conn": "localhost:6379"
         },
         "bst": {
             "rootdir":"/tmp/bytengine_bst",
