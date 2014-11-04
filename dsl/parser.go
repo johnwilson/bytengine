@@ -282,6 +282,7 @@ const FIELD_PREFIX string = "content."
 const HEADER_PREFIX string = "__header__."
 const BYTES_PREFIX string = "__bytes__."
 
+// send to filter function parser
 func (p *Parser) parseFilterResult() string {
 	if p.peek().typ == itemSendTo {
 		// absorb symbol
@@ -292,6 +293,7 @@ func (p *Parser) parseFilterResult() string {
 	return ""
 }
 
+// command option parser
 func (p *Parser) parseCommandOption(ctx string) (name, val string) {
 	// absorb option symbol
 	p.next()
@@ -314,6 +316,7 @@ func (p *Parser) parseCommandOption(ctx string) (name, val string) {
 	return
 }
 
+// end of command statement parser
 func (p *Parser) parseEndofCommand(ctx string) string {
 	filter := p.parseFilterResult()
 	_nxt := p.expectOneOf(itemSemiColon, itemEOF, ctx)
@@ -323,6 +326,7 @@ func (p *Parser) parseEndofCommand(ctx string) string {
 	return filter
 }
 
+// login parser
 func (p *Parser) parseLoginCmd(ctx string) {
 	_token := p.expect(itemString, ctx)
 	_usr, err := formatString(_token.val)
@@ -342,6 +346,7 @@ func (p *Parser) parseLoginCmd(ctx string) {
 	p.commands = append(p.commands, cmd)
 }
 
+// list databases parser
 func (p *Parser) parseListDatabasesCmd(ctx string) {
 	cmd := NewCommand(ctx, true)
 	// check if regex option has been added
@@ -357,6 +362,7 @@ func (p *Parser) parseListDatabasesCmd(ctx string) {
 	p.commands = append(p.commands, cmd)
 }
 
+// create new database parser
 func (p *Parser) parseNewDatabaseCmd(ctx string) {
 	_token := p.expect(itemString, ctx)
 	_db, err := formatString(_token.val)
@@ -370,6 +376,7 @@ func (p *Parser) parseNewDatabaseCmd(ctx string) {
 	p.commands = append(p.commands, cmd)
 }
 
+// delete database parser
 func (p *Parser) parseDropDatabaseCmd(ctx string) {
 	_token := p.expect(itemString, ctx)
 	_db, err := formatString(_token.val)
@@ -383,6 +390,7 @@ func (p *Parser) parseDropDatabaseCmd(ctx string) {
 	p.commands = append(p.commands, cmd)
 }
 
+// current user info parser
 func (p *Parser) parseWhoamiCmd(ctx string) {
 	_filter := p.parseEndofCommand(ctx)
 	cmd := NewCommand(ctx, false)
@@ -390,6 +398,7 @@ func (p *Parser) parseWhoamiCmd(ctx string) {
 	p.commands = append(p.commands, cmd)
 }
 
+// create new user parser
 func (p *Parser) parseNewUserCmd(ctx string) {
 	_token := p.expect(itemString, ctx)
 	_user, err := formatString(_token.val)
@@ -409,6 +418,7 @@ func (p *Parser) parseNewUserCmd(ctx string) {
 	p.commands = append(p.commands, cmd)
 }
 
+// list users parser
 func (p *Parser) parseListUsersCmd(ctx string) {
 	cmd := NewCommand(ctx, true)
 	// check if regex option has been added
@@ -424,6 +434,7 @@ func (p *Parser) parseListUsersCmd(ctx string) {
 	p.commands = append(p.commands, cmd)
 }
 
+// user info parser
 func (p *Parser) parseUserInfoCmd(ctx string) {
 	_token := p.expect(itemString, ctx)
 	_user, err := formatString(_token.val)
@@ -437,6 +448,7 @@ func (p *Parser) parseUserInfoCmd(ctx string) {
 	p.commands = append(p.commands, cmd)
 }
 
+// delete user parser
 func (p *Parser) parseDropUserCmd(ctx string) {
 	_token := p.expect(itemString, ctx)
 	_user, err := formatString(_token.val)
@@ -450,6 +462,7 @@ func (p *Parser) parseDropUserCmd(ctx string) {
 	p.commands = append(p.commands, cmd)
 }
 
+// new user password parser
 func (p *Parser) parseNewPasswordCmd(ctx string) {
 	_token := p.expect(itemString, ctx)
 	_user, err := formatString(_token.val)
@@ -469,6 +482,7 @@ func (p *Parser) parseNewPasswordCmd(ctx string) {
 	p.commands = append(p.commands, cmd)
 }
 
+// activate/deactivate user account parser
 func (p *Parser) parseUserSystemAccessCmd(ctx string) {
 	_token := p.expect(itemString, ctx)
 	_user, err := formatString(_token.val)
@@ -494,6 +508,7 @@ func (p *Parser) parseUserSystemAccessCmd(ctx string) {
 	p.commands = append(p.commands, cmd)
 }
 
+// grant/deny user database access parser
 func (p *Parser) parseUserDatabaseAccessCmd(ctx string) {
 	_token := p.expect(itemString, ctx)
 	_user, err := formatString(_token.val)
@@ -525,6 +540,7 @@ func (p *Parser) parseUserDatabaseAccessCmd(ctx string) {
 	p.commands = append(p.commands, cmd)
 }
 
+// initialize bytengine parser
 func (p *Parser) parseServerInitCmd(ctx string) {
 	_filter := p.parseEndofCommand(ctx)
 	cmd := NewCommand(ctx, true)
@@ -532,6 +548,7 @@ func (p *Parser) parseServerInitCmd(ctx string) {
 	p.commands = append(p.commands, cmd)
 }
 
+// create new directory parser
 func (p *Parser) parseNewDirectoryCmd(db, ctx string) {
 	_token := p.expect(itemPath, ctx)
 	_path := _token.val
@@ -543,6 +560,7 @@ func (p *Parser) parseNewDirectoryCmd(db, ctx string) {
 	p.commands = append(p.commands, cmd)
 }
 
+// create new file parser
 func (p *Parser) parseNewFileCmd(db, ctx string) {
 	_token := p.expect(itemPath, ctx)
 	_path := _token.val
@@ -563,6 +581,7 @@ func (p *Parser) parseNewFileCmd(db, ctx string) {
 	p.commands = append(p.commands, cmd)
 }
 
+// list directory contents parser
 func (p *Parser) parseListDirectoryCmd(db, ctx string) {
 	_token := p.expect(itemPath, ctx)
 	_path := _token.val
@@ -583,6 +602,7 @@ func (p *Parser) parseListDirectoryCmd(db, ctx string) {
 	p.commands = append(p.commands, cmd)
 }
 
+// rename file/directory parser
 func (p *Parser) parseRenameContentCmd(db, ctx string) {
 	_token := p.expect(itemPath, ctx)
 	_path := _token.val
@@ -600,6 +620,7 @@ func (p *Parser) parseRenameContentCmd(db, ctx string) {
 	p.commands = append(p.commands, cmd)
 }
 
+// move file/directory parser
 func (p *Parser) parseMoveContentCmd(db, ctx string) {
 	_token := p.expect(itemPath, ctx)
 	_path := _token.val
@@ -620,6 +641,7 @@ func (p *Parser) parseMoveContentCmd(db, ctx string) {
 	p.commands = append(p.commands, cmd)
 }
 
+// copy file/directory parser
 func (p *Parser) parseCopyContentCmd(db, ctx string) {
 	_token := p.expect(itemPath, ctx)
 	_path := _token.val
@@ -640,6 +662,7 @@ func (p *Parser) parseCopyContentCmd(db, ctx string) {
 	p.commands = append(p.commands, cmd)
 }
 
+// delete file/directory parser
 func (p *Parser) parseDeleteContentCmd(db, ctx string) {
 	_token := p.expect(itemPath, ctx)
 	_path := _token.val
@@ -651,6 +674,7 @@ func (p *Parser) parseDeleteContentCmd(db, ctx string) {
 	p.commands = append(p.commands, cmd)
 }
 
+// file/directory info parser
 func (p *Parser) parseContentInfoCmd(db, ctx string) {
 	_token := p.expect(itemPath, ctx)
 	_path := _token.val
@@ -662,6 +686,7 @@ func (p *Parser) parseContentInfoCmd(db, ctx string) {
 	p.commands = append(p.commands, cmd)
 }
 
+// make file public parser
 func (p *Parser) parseMakeContentPublicCmd(db, ctx string) {
 	_token := p.expect(itemPath, ctx)
 	_path := _token.val
@@ -673,6 +698,7 @@ func (p *Parser) parseMakeContentPublicCmd(db, ctx string) {
 	p.commands = append(p.commands, cmd)
 }
 
+// make file private parser
 func (p *Parser) parseMakeContentPrivateCmd(db, ctx string) {
 	_token := p.expect(itemPath, ctx)
 	_path := _token.val
@@ -684,6 +710,7 @@ func (p *Parser) parseMakeContentPrivateCmd(db, ctx string) {
 	p.commands = append(p.commands, cmd)
 }
 
+// read file JSON content parser
 func (p *Parser) parseReadFileCmd(db, ctx string) {
 	_token := p.expect(itemPath, ctx)
 	_path := _token.val
@@ -731,6 +758,7 @@ func (p *Parser) parseReadFileCmd(db, ctx string) {
 	p.commands = append(p.commands, cmd)
 }
 
+// overwrite file JSON parser
 func (p *Parser) parseModifyFileCmd(db, ctx string) {
 	_token := p.expect(itemPath, ctx)
 	_path := _token.val
@@ -751,6 +779,7 @@ func (p *Parser) parseModifyFileCmd(db, ctx string) {
 	p.commands = append(p.commands, cmd)
 }
 
+// delete file bytes parser
 func (p *Parser) parseDeleteAttachmentCmd(db, ctx string) {
 	_token := p.expect(itemPath, ctx)
 	_path := _token.val
@@ -762,6 +791,7 @@ func (p *Parser) parseDeleteAttachmentCmd(db, ctx string) {
 	p.commands = append(p.commands, cmd)
 }
 
+// increment/decrement/list counter parser
 func (p *Parser) parseCounterCmd(db, ctx string) {
 	_token := p.expectOneOf(itemString, itemIdentifier, ctx)
 	if _token.typ == itemIdentifier {
@@ -821,6 +851,7 @@ func (p *Parser) parseCounterCmd(db, ctx string) {
 	p.commands = append(p.commands, cmd)
 }
 
+// select query statement parser
 func (p *Parser) parseSelectCmd(db, ctx string) {
 	_fields := []string{}
 	// get fields
@@ -925,6 +956,7 @@ Loop:
 	p.commands = append(p.commands, cmd)
 }
 
+// set query statement parser
 func (p *Parser) parseSetCmd(db, ctx string) {
 	_fields := map[string]interface{}{}
 	_incr := map[string]interface{}{}
@@ -1007,6 +1039,7 @@ Loop2:
 	p.commands = append(p.commands, cmd)
 }
 
+// unset query statement parser
 func (p *Parser) parseUnsetCmd(db, ctx string) {
 	_fields := map[string]interface{}{}
 	// get fields
@@ -1068,6 +1101,7 @@ Loop2:
 	p.commands = append(p.commands, cmd)
 }
 
+// sort query statement parser
 func (p *Parser) parseSortCmd() []string {
 	context := "Select Sort Statement"
 	_order := p.expect(itemIdentifier, context)
@@ -1094,6 +1128,7 @@ func (p *Parser) parseSortCmd() []string {
 	return _sort
 }
 
+// limit query statement parser
 func (p *Parser) parseLimitCmd() int64 {
 	context := "Select Limit Statement"
 	_next := p.expect(itemNumber, context)
@@ -1105,6 +1140,7 @@ func (p *Parser) parseLimitCmd() int64 {
 	return _number
 }
 
+// distinct query statement parser
 func (p *Parser) parseDistinctCmd() string {
 	context := "Select Distinct Statement"
 	_next := p.expect(itemString, context)
@@ -1116,6 +1152,7 @@ func (p *Parser) parseDistinctCmd() string {
 	return field
 }
 
+// array value parser
 func (p *Parser) parseArray() []interface{} {
 	context := "Select Statement Array Definition"
 	// absorb left bracket
@@ -1181,6 +1218,7 @@ Loop:
 	return _list
 }
 
+// string value parser
 func (p *Parser) parseString() string {
 	context := "String Definition"
 	_next := p.next()
@@ -1191,6 +1229,7 @@ func (p *Parser) parseString() string {
 	return _val
 }
 
+// numeric value parser (only float)
 func (p *Parser) parseNumber() float64 {
 	context := "Number Definition"
 	_next := p.next()
@@ -1201,6 +1240,7 @@ func (p *Parser) parseNumber() float64 {
 	return _val
 }
 
+// boolean value parser
 func (p *Parser) parseBoolean() bool {
 	_next := p.next()
 	if _next.val == "false" {
@@ -1209,6 +1249,7 @@ func (p *Parser) parseBoolean() bool {
 	return true
 }
 
+// json value parser
 func (p *Parser) parseJSON(context string) map[string]interface{} {
 	// check if next item is a json object
 	_objlevel := 0
@@ -1257,6 +1298,7 @@ Loop:
 	return _i
 }
 
+// value assignment parser
 func (p *Parser) parseValueAssignment() (string, interface{}) {
 	context := "Assignment Statement"
 	// get field
@@ -1289,6 +1331,7 @@ func (p *Parser) parseValueAssignment() (string, interface{}) {
 	return _field, _val
 }
 
+// increment/decrement value parser
 func (p *Parser) parseIncrDecrValue() (string, interface{}) {
 	context := "Increment/Decrement Statement"
 	// get field
@@ -1332,6 +1375,7 @@ func fileMetaToField(meta string) string {
 	}
 }
 
+// simple where statement parser
 func (p *Parser) parseSimpleWhereCondition() map[string]interface{} {
 	context := "Where Condition Statement"
 	_next := p.next()
@@ -1406,6 +1450,7 @@ func (p *Parser) parseSimpleWhereCondition() map[string]interface{} {
 	return nil
 }
 
+// value type where statement parser
 func (p *Parser) parseTypeofWhereCondition() map[string]interface{} {
 	context := "Where Typeof Condition Statement"
 	// absorb typeof
@@ -1436,9 +1481,9 @@ func (p *Parser) parseTypeofWhereCondition() map[string]interface{} {
 	_typenum := -1
 	switch _typetext {
 	case "string":
-		_typenum = 2
+		_typenum = 2 // mongodb specific
 	case "int":
-		_typenum = 16
+		_typenum = 16 // mongodb specific
 	}
 
 	if _isequal {
@@ -1448,6 +1493,7 @@ func (p *Parser) parseTypeofWhereCondition() map[string]interface{} {
 	return map[string]interface{}{_field: map[string]interface{}{"$not": map[string]interface{}{"$type": _typenum}}}
 }
 
+// exists where statement parser
 func (p *Parser) parseExistsWhereCondition() map[string]interface{} {
 	context := "Where Exists Condition Statement"
 	// absorb exists
@@ -1541,6 +1587,7 @@ const (
 	ConditionalAnd
 )
 
+// where statement parser
 func (p *Parser) parseWhereCmd() map[string]interface{} {
 	context := "Where Statement"
 	_where := map[string]interface{}{}
