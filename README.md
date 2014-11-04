@@ -1,6 +1,6 @@
-## Bytengine
+# Bytengine
 
-[![Bytengine](http://www.bytengine.io/static/img/logo.jpg)](http://www.bytengine.io)
+[![BQL](https://github.com/johnwilson/bytengine/raw/master/bql.png)](#bql.snippet)
 
 **[Bytengine](http://www.bytengine.io/ "Bytengine")** is a scalable content 
 repository built with Go. Its API is accessible from any Http client library so 
@@ -62,6 +62,54 @@ Current Build Prerequisites:
 	./app run
 ```
 
-## Some Handy Links
+## Quick Tutorial
+
+#### Using Python + [Requests](http://docs.python-requests.org/en/latest/ "Requests")
+
+```python
+
+    >>> import requests
+    >>> url = "http://localhost:8500/bfs/token"
+    >>> data = {"username":"user","password":"password"}
+    >>> r = requests.post(url, data=data)
+    >>> j = r.json()
+    >>> print j["status"]
+    ok
+    >>> token = j["data"]
+    >>> cmd = 'server.newdb "test"; server.listdb;'  # issue two commands
+    >>> url = "http://localhost:8500/bfs/query"
+    >>> data = {"token":token,"query":cmd}
+    >>> r = requests.post(url, data=data)
+    >>> j = r.json()
+    >>> print j["status"]
+    ok
+    >>> print j["data"][-1]  # get last result
+    [u'test']
+```
+
+#### Using Bytengine Shell **[bshell](http://github.com/johnwilson/bshell/ "bshell")**
+
+Login:
+
+```
+    ./bshell run -u=user -p=password
+```
+
+Enter commands:
+
+```
+    bql> server.newdb "test"; server.listdb;
+    {
+      "data": [
+        true,
+        [
+          "test"
+        ]
+      ],
+      "status": "ok"
+    }
+```
+
+## Follow on twitter
 
 [Twitter](https://twitter.com/bytengine) - Twitter
