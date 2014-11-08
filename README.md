@@ -52,16 +52,16 @@ Current Build Prerequisites:
 * [Redis](http://redis.io/download "Redis")
 * [Go](http://golang.org/doc/install "Go")
 
-1. Get Bytengine `go get -d github.com/johnwilson/bytengine/app`
+1. Get Bytengine `go get -d github.com/johnwilson/bytengine/bytengine`
 
-2. `cd $GOPATH/src/github.com/johnwilson/bytengine/app`
+2. `cd $GOPATH/src/github.com/johnwilson/bytengine/bytengine`
 
 3. Build Bytengine `go build`
 
 4. Running Bytengine
 ```
-	./app createadmin -u="admin" -p"yourpassword"
-	./app run
+	./bytengine createadmin -u="admin" -p"yourpassword"
+	./bytengine run
 ```
 
 ## Quick Tutorial

@@ -8,8 +8,8 @@ import (
 	"github.com/bitly/go-simplejson"
 	"github.com/codegangsta/cli"
 	"github.com/gin-gonic/gin"
-	"github.com/johnwilson/bytengine/app/core"
 	"github.com/johnwilson/bytengine/bfs"
+	"github.com/johnwilson/bytengine/bytengine/core"
 	"github.com/johnwilson/bytengine/core"
 	"github.com/johnwilson/bytengine/dsl"
 )
