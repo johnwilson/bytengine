@@ -97,7 +97,7 @@ func handler8(cmd dsl.Command, user *auth.User, e *core.Engine) bfs.BFSResponse 
 	val := map[string]interface{}{
 		"username":  user.Username,
 		"databases": user.Databases,
-		"isroot":    user.Root,
+		"root":      user.Root,
 	}
 	return bfs.OKResponse(val)
 }
