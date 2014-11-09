@@ -7,7 +7,7 @@ func (p *Parser) initRegistry() {
 			"newdb":  p.parseNewDatabaseCmd,
 			"init":   p.parseServerInitCmd,
 			"dropdb": p.parseDropDatabaseCmd,
-			"login":  p.parseLoginCmd,
+			//"login":  p.parseLoginCmd,
 		},
 		"user": {
 			"new":    p.parseNewUserCmd,
