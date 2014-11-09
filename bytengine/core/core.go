@@ -15,8 +15,16 @@ import (
 	_ "github.com/johnwilson/bytengine/fltcore"
 )
 
+const (
+	DATA_FILTER_PLUGIN = "core" // data filter function plugin
+	AUTH_PLUGIN        = "mongodb"
+	BST_PLUGIN         = "diskv"   // byte store plugin
+	BFS_PLUGIN         = "mongodb" // bytengine file system plugin
+	CACHE_PLUGIN       = "redis"
+)
+
 func CreateDataFilter(config *simplejson.Json) ext.DataFilter {
-	df, err := ext.NewPlugin("core", "")
+	df, err := ext.NewPlugin(DATA_FILTER_PLUGIN, "")
 	if err != nil {
 		panic(err)
 	}
@@ -28,7 +36,7 @@ func CreateAuthManager(config *simplejson.Json) auth.Authentication {
 	if err != nil {
 		panic(err)
 	}
-	authM, err := auth.NewPlugin("mongodb", string(b))
+	authM, err := auth.NewPlugin(AUTH_PLUGIN, string(b))
 	if err != nil {
 		panic(err)
 	}
@@ -40,7 +48,7 @@ func CreateBSTManager(config *simplejson.Json) bst.ByteStore {
 	if err != nil {
 		panic(err)
 	}
-	bstM, err := bst.NewPlugin("diskv", string(b))
+	bstM, err := bst.NewPlugin(BST_PLUGIN, string(b))
 	if err != nil {
 		panic(err)
 	}
@@ -52,7 +60,7 @@ func CreateBFSManager(bstore *bst.ByteStore, config *simplejson.Json) bfs.BFS {
 	if err != nil {
 		panic(err)
 	}
-	bfsM, err := bfs.NewPlugin("mongodb", string(b), bstore)
+	bfsM, err := bfs.NewPlugin(BFS_PLUGIN, string(b), bstore)
 	if err != nil {
 		panic(err)
 	}
@@ -64,7 +72,7 @@ func CreateCacheManager(config *simplejson.Json) cache.Cache {
 	if err != nil {
 		panic(err)
 	}
-	cacheM, err := cache.NewCache("redis", string(b))
+	cacheM, err := cache.NewCache(CACHE_PLUGIN, string(b))
 	if err != nil {
 		panic(err)
 	}
