@@ -19,7 +19,6 @@ Some of the server's features are:
 * HTTP based API
 * Bytengine Query language (BQL)
 * Pluggable data storage backends (currently supports Mongodb, Diskv, Redis)
-* Documentation **[readthedocs](https://bytengine.readthedocs.org/en/latest/) - readthedocs**
 * Command line interface **[bshell](http://github.com/johnwilson/bshell/ "bshell")**
 
 ## Installation
@@ -49,8 +48,8 @@ to your Os/Distro (Only tested on OS X and Ubuntu Linux)
 Current Build Prerequisites:
 
 * [Mongodb](http://docs.mongodb.org/manual/installation/ "Mongodb")
-* [Redis](http://redis.io/download "Redis")
-* [Go](http://golang.org/doc/install "Go")
+* [Redis](http://redis.io/download/ "Redis")
+* [Go](http://golang.org/doc/install/ "Go")
 
 1. Get Bytengine `go get -d github.com/johnwilson/bytengine/bytengine`
 
@@ -94,7 +93,7 @@ Current Build Prerequisites:
 Login:
 
 ```
-    ./bshell run -u=user -p=password
+    bshell run -u=user -p=password
 ```
 
 Enter commands:
@@ -110,8 +109,11 @@ Enter commands:
       ],
       "status": "ok"
     }
+    bql> \s lastresult().status
+    ok
 ```
 
-## Follow on twitter
+## Some handy links
 
-[Twitter](https://twitter.com/bytengine) - Twitter
+[Documentation](https://bytengine.readthedocs.org/en/latest/) - Bytengine Docs
+[Twitter](https://twitter.com/bytengine) - Follow Bytengine
