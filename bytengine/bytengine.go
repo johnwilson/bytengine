@@ -207,7 +207,7 @@ func downloadFileHandler(ctx *gin.Context) {
 	CommandsChan <- c
 	data := <-c.ResultChannel
 	if !data.Success() {
-		ctx.Data(500, "application/json", data.JSON())
+		ctx.String(500, data.String())
 		return
 	}
 }
