@@ -796,7 +796,7 @@ func (p *Parser) parseCounterCmd(db, ctx string) {
 	_token := p.expectOneOf(itemString, itemIdentifier, ctx)
 	if _token.typ == itemIdentifier {
 		if _token.val == "list" {
-			cmd := NewCommand("counter", false)
+			cmd := NewCommand(ctx, false)
 			cmd.Database = db
 			cmd.Args["action"] = "list"
 
