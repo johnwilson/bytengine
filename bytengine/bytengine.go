@@ -9,7 +9,7 @@ import (
 	"github.com/codegangsta/cli"
 	"github.com/gin-gonic/gin"
 	"github.com/johnwilson/bytengine/bfs"
-	"github.com/johnwilson/bytengine/bytengine/core"
+	"github.com/johnwilson/bytengine/bytengine/engine"
 	"github.com/johnwilson/bytengine/core"
 	"github.com/johnwilson/bytengine/dsl"
 )
