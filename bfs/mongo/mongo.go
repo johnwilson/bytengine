@@ -1356,7 +1356,7 @@ func (m *MongodbBFS) BQLSet(db string, query map[string]interface{}) bfs.BFSResp
 	}
 
 	// build query
-	q := bson.M{"__header__.parent": bson.M{"$in": paths}}
+	q := bson.M{"__header__.parent": bson.M{"$in": paths}, "__header__.type": "File"}
 	if haswhere {
 		_and := where["and"].([]map[string]interface{})
 		if len(_and) > 0 {
@@ -1396,7 +1396,7 @@ func (m *MongodbBFS) BQLUnset(db string, query map[string]interface{}) bfs.BFSRe
 	}
 
 	// build query
-	q := bson.M{"__header__.parent": bson.M{"$in": paths}}
+	q := bson.M{"__header__.parent": bson.M{"$in": paths}, "__header__.type": "File"}
 	if haswhere {
 		_and := where["and"].([]map[string]interface{})
 		if len(_and) > 0 {
