@@ -77,8 +77,8 @@ type SimpleResultItem struct {
 }
 
 type CounterItem struct {
-	Name  string  `bson:"name"`
-	Value float64 `bson:"value"`
+	Name  string  `json:"name"`
+	Value float64 `json:"value"`
 }
 
 /*
