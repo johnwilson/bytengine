@@ -2,25 +2,12 @@ package engine
 
 import (
 	"github.com/astaxie/beego/cache"
-	_ "github.com/astaxie/beego/cache/redis"
 	"github.com/bitly/go-simplejson"
 	"github.com/johnwilson/bytengine/auth"
-	_ "github.com/johnwilson/bytengine/auth/mongo"
 	"github.com/johnwilson/bytengine/bfs"
-	_ "github.com/johnwilson/bytengine/bfs/mongo"
 	"github.com/johnwilson/bytengine/bst"
-	_ "github.com/johnwilson/bytengine/bst/diskv"
 	"github.com/johnwilson/bytengine/core"
 	"github.com/johnwilson/bytengine/ext"
-	_ "github.com/johnwilson/bytengine/fltcore"
-)
-
-const (
-	DATA_FILTER_PLUGIN = "core" // data filter function plugin
-	AUTH_PLUGIN        = "mongodb"
-	BST_PLUGIN         = "diskv"   // byte store plugin
-	BFS_PLUGIN         = "mongodb" // bytengine file system plugin
-	CACHE_PLUGIN       = "redis"
 )
 
 func CreateDataFilter(config *simplejson.Json) ext.DataFilter {
