@@ -19,32 +19,32 @@ import (
 
 // BFS Node Header
 type NodeHeader struct {
-	Name     string `bson:"name"`
-	Type     string `bson:"type"`
-	IsPublic bool   `bson:"ispublic"`
-	Created  string `bson:"created"`
-	Parent   string `bson:"parent"`
+	Name     string `json:"name"`
+	Type     string `json:"type"`
+	IsPublic bool   `json:"ispublic"`
+	Created  string `json:"created"`
+	Parent   string `json:"parent"`
 }
 
 // BFS Bytes Header
 type BytesHeader struct {
-	Filepointer string `bson:"filepointer"`
-	Mime        string `bson:"mime"`
-	Size        int64  `bson:"size"`
+	Filepointer string `json:"filepointer"`
+	Mime        string `json:"mime"`
+	Size        int64  `json:"size"`
 }
 
 // BFS Directory
 type Directory struct {
-	Header NodeHeader `bson:"__header__"`
-	Id     string     `bson:"_id"`
+	Header NodeHeader `json:"__header__"`
+	Id     string     `json:"_id"`
 }
 
 // BFS File
 type File struct {
-	Header  NodeHeader             `bson:"__header__"`
-	AHeader BytesHeader            `bson:"__bytes__"`
-	Id      string                 `bson:"_id"`
-	Content map[string]interface{} `bson:"content"`
+	Header  NodeHeader             `json:"__header__"`
+	AHeader BytesHeader            `json:"__bytes__"`
+	Id      string                 `json:"_id"`
+	Content map[string]interface{} `json:"content"`
 }
 
 type Config struct {
@@ -71,9 +71,9 @@ type MongodbBFS struct {
 }
 
 type SimpleResultItem struct {
-	Header  NodeHeader  `bson:"__header__"`
-	AHeader BytesHeader `bson:"__bytes__"`
-	Id      string      `bson:"_id"`
+	Header  NodeHeader  `json:"__header__"`
+	AHeader BytesHeader `json:"__bytes__"`
+	Id      string      `json:"_id"`
 }
 
 type CounterItem struct {
