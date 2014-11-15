@@ -9,7 +9,7 @@ import (
 const (
 	CONFIG = `
     {
-        "addresses":["dbserver.local:27017"],
+        "addresses":["localhost:27017"],
         "authdb":"",
         "username":"",
         "password":"",
