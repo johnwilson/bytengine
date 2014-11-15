@@ -19,32 +19,32 @@ import (
 
 // BFS Node Header
 type NodeHeader struct {
-	Name     string `json:"name"`
-	Type     string `json:"type"`
-	IsPublic bool   `json:"ispublic"`
-	Created  string `json:"created"`
-	Parent   string `json:"parent"`
+	Name     string `bson:"name"`
+	Type     string `bson:"type"`
+	IsPublic bool   `bson:"ispublic"`
+	Created  string `bson:"created"`
+	Parent   string `bson:"parent"`
 }
 
 // BFS Bytes Header
 type BytesHeader struct {
-	Filepointer string `json:"filepointer"`
-	Mime        string `json:"mime"`
-	Size        int64  `json:"size"`
+	Filepointer string `bson:"filepointer"`
+	Mime        string `bson:"mime"`
+	Size        int64  `bson:"size"`
 }
 
 // BFS Directory
 type Directory struct {
-	Header NodeHeader `json:"__header__"`
-	Id     string     `json:"_id"`
+	Header NodeHeader `bson:"__header__"`
+	Id     string     `bson:"_id"`
 }
 
 // BFS File
 type File struct {
-	Header  NodeHeader             `json:"__header__"`
-	AHeader BytesHeader            `json:"__bytes__"`
-	Id      string                 `json:"_id"`
-	Content map[string]interface{} `json:"content"`
+	Header  NodeHeader             `bson:"__header__"`
+	AHeader BytesHeader            `bson:"__bytes__"`
+	Id      string                 `bson:"_id"`
+	Content map[string]interface{} `bson:"content"`
 }
 
 type Config struct {
@@ -71,9 +71,9 @@ type MongodbBFS struct {
 }
 
 type SimpleResultItem struct {
-	Header  NodeHeader  `json:"__header__"`
-	AHeader BytesHeader `json:"__bytes__"`
-	Id      string      `json:"_id"`
+	Header  NodeHeader  `bson:"__header__"`
+	AHeader BytesHeader `bson:"__bytes__"`
+	Id      string      `bson:"_id"`
 }
 
 type CounterItem struct {
@@ -370,6 +370,7 @@ func (m *MongodbBFS) NewDir(p, db string) bfs.BFSResponse {
 	// find record
 	err = c.Find(q).One(&_parentdir)
 	if err != nil {
+		fmt.Println("here")
 		return bfs.ErrorResponse(err)
 	}
 	if _parentdir.Header.Type != "Directory" {
