@@ -45,4 +45,5 @@ func initialize(r *core.CommandRouter) {
 	r.AddCommandHandler("uploadticket", uploadTicketHandler)
 	r.AddCommandHandler("writebytes", writebytesHandler)
 	r.AddCommandHandler("readbytes", readbytesHandler)
+	r.AddCommandHandler("directaccess", direcaccessHandler)
 }

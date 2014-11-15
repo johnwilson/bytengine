@@ -381,3 +381,32 @@ func readbytesHandler(cmd dsl.Command, user *auth.User, e *core.Engine) bfs.BFSR
 
 	return bfs.OKResponse(true)
 }
+
+// handler for: direct access
+func direcaccessHandler(cmd dsl.Command, user *auth.User, e *core.Engine) bfs.BFSResponse {
+	db := cmd.Args["database"].(string)
+	w := cmd.Args["writer"].(io.Writer)
+	path := cmd.Args["path"].(string)
+	layer := cmd.Args["layer"].(string)
+	r := e.BFSManager.DirectAccess(path, db, layer)
+	if !r.Success() {
+		return r
+	}
+
+	switch layer {
+	case "json":
+		// write json
+		_, err := w.Write(r.JSON())
+		if err != nil {
+			return bfs.ErrorResponse(err)
+		}
+	case "bytes":
+		// get file pointer
+		bstoreid := r.Data().(string)
+		err := e.BStoreManager.Read(db, bstoreid, w)
+		if err != nil {
+			return bfs.ErrorResponse(err)
+		}
+	}
+	return bfs.OKResponse(true)
+}

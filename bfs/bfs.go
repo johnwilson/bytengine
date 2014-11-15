@@ -70,6 +70,7 @@ type BFS interface {
 	ListCounter(filter, db string) BFSResponse
 	WriteBytes(p, ap, db string) BFSResponse
 	ReadBytes(fp, db string) BFSResponse
+	DirectAccess(fp, db, layer string) BFSResponse
 	DeleteBytes(p, db string) BFSResponse
 	UpdateJson(p, db string, j map[string]interface{}) BFSResponse
 	BQLSearch(db string, query map[string]interface{}) BFSResponse

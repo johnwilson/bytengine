@@ -212,6 +212,30 @@ func downloadFileHandler(ctx *gin.Context) {
 	}
 }
 
+func directaccessHandler(ctx *gin.Context) {
+	db := ctx.Params.ByName("database")
+	path := ctx.Params.ByName("path")
+	layer := ctx.Params.ByName("layer")
+
+	cmd := dsl.NewCommand("directaccess", false)
+	cmd.Args["database"] = db
+	cmd.Args["path"] = path
+	cmd.Args["layer"] = layer
+	cmd.Args["writer"] = ctx.Writer
+	c := &core.CommandRequest{cmd, "", make(chan bfs.BFSResponse)}
+	if layer == "json" {
+		ctx.Writer.Header().Set("Content-Type", "application/json")
+	} else {
+		ctx.Writer.Header().Set("Content-Type", "application/octet-stream")
+	}
+	CommandsChan <- c
+	data := <-c.ResultChannel
+	if !data.Success() {
+		ctx.String(404, data.String())
+		return
+	}
+}
+
 func main() {
 	app := cli.NewApp()
 	createadminCmd := cli.Command{
@@ -270,6 +294,7 @@ func main() {
 			router.POST("/bfs/uploadticket", getUploadTicketHandler)
 			router.POST("/bfs/writebytes/:ticket", uploadFileHandler)
 			router.POST("/bfs/readbytes", downloadFileHandler)
+			router.GET("/bfs/direct/:layer/:database/*path", directaccessHandler)
 
 			router.Run(fmt.Sprintf("%s:%d", addr, port))
 		},

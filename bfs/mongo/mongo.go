@@ -1192,12 +1192,49 @@ func (m *MongodbBFS) ReadBytes(fp, db string) bfs.BFSResponse {
 
 	}
 	id := ri.AHeader.Filepointer
-	/*err = m.bstore.Read(db, id, file)
+	if len(id) == 0 {
+		return bfs.ErrorResponse(errors.New("byte layer is empty"))
+	}
+	return bfs.OKResponse(id)
+}
+
+func (m *MongodbBFS) DirectAccess(fp, db, layer string) bfs.BFSResponse {
+	// check path
+	fp = path.Clean(fp)
+
+	// get collection
+	c := m.getBFSCollection(db)
+
+	// get file or directory if it exists
+	q := m.findPathQuery(fp)
+	var ri File
+	err := c.Find(q).One(&ri)
 	if err != nil {
 		msg := fmt.Sprintf("couldn't retrieve info for '%s'.\n%s", fp, err)
 		return bfs.ErrorResponse(errors.New(msg))
-	}*/
-	return bfs.OKResponse(id)
+	}
+
+	if ri.Header.Type == "Directory" {
+		return bfs.ErrorResponse(errors.New("command only valid for files."))
+
+	}
+
+	if !ri.Header.IsPublic {
+		return bfs.ErrorResponse(errors.New("file isn't public"))
+	}
+
+	switch layer {
+	case "json":
+		return bfs.OKResponse(ri.Content)
+	case "bytes":
+		id := ri.AHeader.Filepointer
+		if len(id) == 0 {
+			return bfs.ErrorResponse(errors.New("byte layer is empty"))
+		}
+		return bfs.OKResponse(id)
+	default:
+		return bfs.ErrorResponse(errors.New("data not found"))
+	}
 }
 
 func (m *MongodbBFS) DeleteBytes(p, db string) bfs.BFSResponse {
