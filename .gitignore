@@ -1,5 +1,5 @@
 # executables
-bytengine/bytengine
+cmd/bytengine/bytengine
 
 # Mac OS X files
 .DS_Store

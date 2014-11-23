@@ -3,28 +3,32 @@ package core
 import (
 	"errors"
 	"fmt"
+
 	"github.com/astaxie/beego/cache"
+	"github.com/bitly/go-simplejson"
 	"github.com/johnwilson/bytengine/auth"
-	"github.com/johnwilson/bytengine/bfs"
-	"github.com/johnwilson/bytengine/bst"
+	bst "github.com/johnwilson/bytengine/bytestore"
+	"github.com/johnwilson/bytengine/datafilter"
 	"github.com/johnwilson/bytengine/dsl"
-	"github.com/johnwilson/bytengine/ext"
+	bfs "github.com/johnwilson/bytengine/filesystem"
+	"github.com/johnwilson/bytengine/plugin"
 )
 
-type RequestHandler func(cmd dsl.Command, user *auth.User, e *Engine) bfs.BFSResponse
+type RequestHandler func(cmd dsl.Command, user *auth.User, e *Engine) bfs.Response
 
-type FilterMethod func(r *bfs.BFSResponse) bfs.BFSResponse
+type FilterMethod func(r *bfs.Response) bfs.Response
 
-type CommandRouter struct {
+// Routes commands to handlers
+type Router struct {
 	cmdRegistry map[string]RequestHandler
-	filters     []ext.DataFilter
+	filters     []datafilter.DataFilter
 }
 
-func (cr *CommandRouter) AddCommandHandler(name string, fn RequestHandler) {
+func (cr *Router) Add(name string, fn RequestHandler) {
 	cr.cmdRegistry[name] = fn
 }
 
-func (cr *CommandRouter) Exec(cmd dsl.Command, user *auth.User, e *Engine) bfs.BFSResponse {
+func (cr *Router) Exec(cmd dsl.Command, user *auth.User, e *Engine) bfs.Response {
 	// check if command in cmdRegistry
 	fn, ok := cr.cmdRegistry[cmd.Name]
 	if !ok {
@@ -65,14 +69,14 @@ func (cr *CommandRouter) Exec(cmd dsl.Command, user *auth.User, e *Engine) bfs.B
 	return val
 }
 
-func (cr *CommandRouter) AddFilters(f ext.DataFilter) {
+func (cr *Router) AddFilters(f datafilter.DataFilter) {
 	cr.filters = append(cr.filters, f)
 }
 
-func NewCommandRouter() *CommandRouter {
-	cr := CommandRouter{}
+func NewRouter() *Router {
+	cr := Router{}
 	cr.cmdRegistry = map[string]RequestHandler{}
-	cr.filters = []ext.DataFilter{}
+	cr.filters = []datafilter.DataFilter{}
 	return &cr
 }
 
@@ -85,11 +89,11 @@ type ScriptRequest struct {
 type CommandRequest struct {
 	Command       dsl.Command
 	Token         string
-	ResultChannel chan bfs.BFSResponse
+	ResultChannel chan bfs.Response
 }
 
 type Engine struct {
-	Router        *CommandRouter
+	Router        *Router
 	AuthManager   auth.Authentication
 	BFSManager    bfs.BFS
 	BStoreManager bst.ByteStore
@@ -162,12 +166,12 @@ func (e Engine) Start(scripts chan *ScriptRequest, commands chan *CommandRequest
 			execerr := false
 			for _, cmd := range cmdlist {
 				r := e.Router.Exec(cmd, user, &e)
-				if !r.Success() {
+				if r.Status != bfs.OK {
 					srq.ResultChannel <- r.JSON()
 					execerr = true
 					break
 				}
-				resultset = append(resultset, r.Data())
+				resultset = append(resultset, r.Data)
 			}
 
 			if !execerr {
@@ -188,4 +192,87 @@ func (e Engine) Start(scripts chan *ScriptRequest, commands chan *CommandRequest
 			crq.ResultChannel <- r
 		}
 	}
+}
+
+func CreateDataFilter(config *simplejson.Json) datafilter.DataFilter {
+	df, err := plugin.NewDataFilter(DATA_FILTER_PLUGIN, "")
+	if err != nil {
+		panic(err)
+	}
+	return df
+}
+
+func CreateAuthManager(config *simplejson.Json) auth.Authentication {
+	b, err := config.Get("auth").MarshalJSON()
+	if err != nil {
+		panic(err)
+	}
+	authM, err := plugin.NewAuthentication(AUTH_PLUGIN, string(b))
+	if err != nil {
+		panic(err)
+	}
+	return authM
+}
+
+func CreateBSTManager(config *simplejson.Json) bst.ByteStore {
+	b, err := config.Get("bst").MarshalJSON()
+	if err != nil {
+		panic(err)
+	}
+	bstM, err := plugin.NewByteStore(BST_PLUGIN, string(b))
+	if err != nil {
+		panic(err)
+	}
+	return bstM
+}
+
+func CreateBFSManager(bstore *bst.ByteStore, config *simplejson.Json) bfs.BFS {
+	b, err := config.Get("bfs").MarshalJSON()
+	if err != nil {
+		panic(err)
+	}
+	bfsM, err := plugin.NewFileSystem(BFS_PLUGIN, string(b), bstore)
+	if err != nil {
+		panic(err)
+	}
+	return bfsM
+}
+
+func CreateCacheManager(config *simplejson.Json) cache.Cache {
+	b, err := config.Get("cache").MarshalJSON()
+	if err != nil {
+		panic(err)
+	}
+	cacheM, err := cache.NewCache(CACHE_PLUGIN, string(b))
+	if err != nil {
+		panic(err)
+	}
+	return cacheM
+}
+
+func WorkerPool(n int, config *simplejson.Json) (chan *ScriptRequest, chan *CommandRequest) {
+	queries := make(chan *ScriptRequest)
+	commands := make(chan *CommandRequest)
+
+	for i := 0; i < n; i++ {
+		authM := CreateAuthManager(config)
+		bstM := CreateBSTManager(config)
+		bfsM := CreateBFSManager(&bstM, config)
+		cacheM := CreateCacheManager(config)
+		df := CreateDataFilter(config)
+		router := NewRouter()
+		router.AddFilters(df)
+		initialize(router)
+		eng := Engine{router, authM, bfsM, bstM, cacheM}
+
+		go eng.Start(queries, commands)
+	}
+
+	return queries, commands
+}
+
+func CreateAdminUser(usr, pw string, config *simplejson.Json) error {
+	authM := CreateAuthManager(config)
+	err := authM.NewUser(usr, pw, true)
+	return err
 }

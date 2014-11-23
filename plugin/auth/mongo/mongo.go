@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/johnwilson/bytengine/auth"
+	"github.com/johnwilson/bytengine/plugin"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 	"strings"
@@ -316,5 +317,5 @@ func (m *MongodbAuth) UserInfo(u string) (*auth.User, error) {
 }
 
 func init() {
-	auth.Register("mongodb", NewMongodbAuth())
+	plugin.Register("mongodb", NewMongodbAuth())
 }

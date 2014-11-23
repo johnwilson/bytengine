@@ -7,7 +7,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/johnwilson/bytengine/bst"
+	bst "github.com/johnwilson/bytengine/bytestore"
+	"github.com/johnwilson/bytengine/plugin"
 	"github.com/nu7hatch/gouuid"
 	"github.com/peterbourgon/diskv"
 )
@@ -151,5 +152,5 @@ func NewDiskVBST() *DiskVBST {
 }
 
 func init() {
-	bst.Register("diskv", NewDiskVBST())
+	plugin.Register("diskv", NewDiskVBST())
 }

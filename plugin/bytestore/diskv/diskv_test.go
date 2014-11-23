@@ -1,7 +1,7 @@
 package diskv
 
 import (
-	"github.com/johnwilson/bytengine/bst"
+	"github.com/johnwilson/bytengine/plugin"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -17,7 +17,7 @@ func TestDiskVBST(t *testing.T) {
 	}
 
 	// create bst client
-	b, err := bst.NewPlugin(
+	b, err := plugin.NewByteStore(
 		"diskv",
 		`{
             "rootdir":"/tmp/diskv_data",

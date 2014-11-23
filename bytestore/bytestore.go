@@ -1,7 +1,6 @@
 package bst
 
 import (
-	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -23,31 +22,6 @@ type ByteStore interface {
 	Delete(db, id string) error
 	Read(db, filename string, file io.Writer) error
 	DropDatabase(db string) error
-}
-
-var plugins = make(map[string]ByteStore)
-
-func Register(name string, plugin ByteStore) {
-	if plugin == nil {
-		panic("ByteStore Plugin Registration: plugin is nil")
-	}
-	if _, exists := plugins[name]; exists {
-		panic("ByteStore Plugin Registration: plugin '" + name + "' already registered")
-	}
-	plugins[name] = plugin
-}
-
-func NewPlugin(pluginName, config string) (plugin ByteStore, err error) {
-	plugin, ok := plugins[pluginName]
-	if !ok {
-		err = fmt.Errorf("ByteStore Plugin Creation: unknown plugin name %q (forgot to import?)", pluginName)
-		return
-	}
-	err = plugin.Start(config)
-	if err != nil {
-		plugin = nil
-	}
-	return
 }
 
 func GetFileInfo(fpath string) (map[string]interface{}, error) {

@@ -1,7 +1,7 @@
 package mongo
 
 import (
-	"github.com/johnwilson/bytengine/bst"
+	"github.com/johnwilson/bytengine/plugin"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -17,7 +17,7 @@ func TestMongoBST(t *testing.T) {
 	}
 
 	// create bst client
-	b, err := bst.NewPlugin(
+	b, err := plugin.NewByteStore(
 		"mongodb",
 		`{
             "addresses":["localhost:27017"],

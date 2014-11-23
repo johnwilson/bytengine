@@ -2,7 +2,8 @@ package mongo
 
 import (
 	"encoding/json"
-	"github.com/johnwilson/bytengine/bst"
+	bst "github.com/johnwilson/bytengine/bytestore"
+	"github.com/johnwilson/bytengine/plugin"
 	"github.com/nu7hatch/gouuid"
 	"gopkg.in/mgo.v2"
 	"io"
@@ -162,5 +163,5 @@ func NewMongoBST() *MongoBST {
 }
 
 func init() {
-	bst.Register("mongodb", NewMongoBST())
+	plugin.Register("mongodb", NewMongoBST())
 }

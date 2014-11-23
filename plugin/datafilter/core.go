@@ -1,13 +1,14 @@
-package fltcore
+package datafilter
 
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/johnwilson/bytengine/bfs"
-	"github.com/johnwilson/bytengine/ext"
+
+	bfs "github.com/johnwilson/bytengine/filesystem"
+	"github.com/johnwilson/bytengine/plugin"
 )
 
-type FilterFunction func(r *bfs.BFSResponse) bfs.BFSResponse
+type FilterFunction func(r *bfs.Response) bfs.Response
 
 type RegistryItem struct {
 	fn          FilterFunction
@@ -25,11 +26,11 @@ func NewCoreFilters() *CoreFilters {
 func (cf *CoreFilters) Start(config string) error {
 	cf.registry = map[string]RegistryItem{}
 	// add filters to registry
-	fn := func(r *bfs.BFSResponse) bfs.BFSResponse {
-		if !r.Success() {
+	fn := func(r *bfs.Response) bfs.Response {
+		if r.Status != bfs.OK {
 			return *r
 		}
-		b, err := json.MarshalIndent(r.Data(), "", "  ")
+		b, err := json.MarshalIndent(r.Map(), "", "  ")
 		if err != nil {
 			return bfs.ErrorResponse(fmt.Errorf("Pretty print error"))
 		}
@@ -43,7 +44,7 @@ func (cf *CoreFilters) Start(config string) error {
 	return nil
 }
 
-func (cf CoreFilters) Apply(filter string, r *bfs.BFSResponse) bfs.BFSResponse {
+func (cf CoreFilters) Apply(filter string, r *bfs.Response) bfs.Response {
 	regitem, ok := cf.registry[filter]
 	if !ok {
 		return bfs.ErrorResponse(fmt.Errorf("Filter '%s' not found", filter))
@@ -65,5 +66,5 @@ func (cf CoreFilters) Check(filter string) bool {
 }
 
 func init() {
-	ext.Register("core", NewCoreFilters())
+	plugin.Register("core", NewCoreFilters())
 }

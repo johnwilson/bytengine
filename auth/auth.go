@@ -4,7 +4,6 @@ import (
 	"code.google.com/p/go.crypto/bcrypt"
 	"crypto/rand"
 	"errors"
-	"fmt"
 	"io"
 	"regexp"
 )
@@ -89,31 +88,6 @@ func PasswordEncrypt(pw string) ([]byte, error) {
 		return nil, err
 	}
 	return pw_encrypt, nil
-}
-
-var plugins = make(map[string]Authentication)
-
-func Register(name string, plugin Authentication) {
-	if plugin == nil {
-		panic("Authentication Plugin Registration: plugin is nil")
-	}
-	if _, exists := plugins[name]; exists {
-		panic("Authentication Plugin Registration: plugin '" + name + "' already registered")
-	}
-	plugins[name] = plugin
-}
-
-func NewPlugin(pluginName, config string) (plugin Authentication, err error) {
-	plugin, ok := plugins[pluginName]
-	if !ok {
-		err = fmt.Errorf("Authentication Plugin Creation: unknown plugin name %q (forgot to import?)", pluginName)
-		return
-	}
-	err = plugin.Start(config)
-	if err != nil {
-		plugin = nil
-	}
-	return
 }
 
 // Taken from 'gorilla toolkit secure cookie'

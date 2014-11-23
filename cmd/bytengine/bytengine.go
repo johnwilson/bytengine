@@ -8,10 +8,9 @@ import (
 	"github.com/bitly/go-simplejson"
 	"github.com/codegangsta/cli"
 	"github.com/gin-gonic/gin"
-	"github.com/johnwilson/bytengine/bfs"
-	"github.com/johnwilson/bytengine/bytengine/engine"
 	"github.com/johnwilson/bytengine/core"
 	"github.com/johnwilson/bytengine/dsl"
+	bfs "github.com/johnwilson/bytengine/filesystem"
 )
 
 var ScriptsChan chan *core.ScriptRequest
@@ -79,7 +78,7 @@ func getTokenHandler(ctx *gin.Context) {
 	}
 	cmd.Args["duration"] = duration
 
-	c := &core.CommandRequest{cmd, "", make(chan bfs.BFSResponse)}
+	c := &core.CommandRequest{cmd, "", make(chan bfs.Response)}
 	CommandsChan <- c
 	data := <-c.ResultChannel
 	ctx.Data(200, "application/json", data.JSON())
@@ -110,7 +109,7 @@ func getUploadTicketHandler(ctx *gin.Context) {
 	}
 	cmd.Args["duration"] = duration
 
-	c := &core.CommandRequest{cmd, form.Token, make(chan bfs.BFSResponse)}
+	c := &core.CommandRequest{cmd, form.Token, make(chan bfs.Response)}
 	CommandsChan <- c
 	data := <-c.ResultChannel
 	ctx.Data(200, "application/json", data.JSON())
@@ -179,7 +178,7 @@ func uploadFileHandler(ctx *gin.Context) {
 	cmd := dsl.NewCommand("writebytes", false)
 	cmd.Args["ticket"] = ticket
 	cmd.Args["tmpfile"] = filename
-	c := &core.CommandRequest{cmd, "", make(chan bfs.BFSResponse)}
+	c := &core.CommandRequest{cmd, "", make(chan bfs.Response)}
 	CommandsChan <- c
 	data := <-c.ResultChannel
 	ctx.Data(200, "application/json", data.JSON())
@@ -202,11 +201,11 @@ func downloadFileHandler(ctx *gin.Context) {
 	cmd.Database = form.Database
 	cmd.Args["path"] = form.Path
 	cmd.Args["writer"] = ctx.Writer
-	c := &core.CommandRequest{cmd, form.Token, make(chan bfs.BFSResponse)}
+	c := &core.CommandRequest{cmd, form.Token, make(chan bfs.Response)}
 	ctx.Writer.Header().Set("Content-Type", "application/octet-stream")
 	CommandsChan <- c
 	data := <-c.ResultChannel
-	if !data.Success() {
+	if data.Status != bfs.OK {
 		ctx.String(500, data.String())
 		return
 	}
@@ -222,7 +221,7 @@ func directaccessHandler(ctx *gin.Context) {
 	cmd.Args["path"] = path
 	cmd.Args["layer"] = layer
 	cmd.Args["writer"] = ctx.Writer
-	c := &core.CommandRequest{cmd, "", make(chan bfs.BFSResponse)}
+	c := &core.CommandRequest{cmd, "", make(chan bfs.Response)}
 	if layer == "json" {
 		ctx.Writer.Header().Set("Content-Type", "application/json")
 	} else {
@@ -230,7 +229,7 @@ func directaccessHandler(ctx *gin.Context) {
 	}
 	CommandsChan <- c
 	data := <-c.ResultChannel
-	if !data.Success() {
+	if data.Status != bfs.OK {
 		ctx.String(404, data.String())
 		return
 	}
@@ -257,7 +256,7 @@ func main() {
 			}
 			Configuration, err = simplejson.NewFromReader(rdr)
 
-			err = engine.CreateAdminUser(usr, pw, Configuration.Get("bytengine"))
+			err = core.CreateAdminUser(usr, pw, Configuration.Get("bytengine"))
 			if err != nil {
 				fmt.Println("Error: ", err)
 				os.Exit(1)
@@ -284,7 +283,7 @@ func main() {
 			port := Configuration.Get("port").MustInt()
 
 			// setup channels
-			ScriptsChan, CommandsChan = engine.WorkerPool(wcount, Configuration.Get("bytengine"))
+			ScriptsChan, CommandsChan = core.WorkerPool(wcount, Configuration.Get("bytengine"))
 
 			// setup routes
 			router := gin.Default()

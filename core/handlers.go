@@ -1,4 +1,4 @@
-package engine
+package core
 
 import (
 	"encoding/json"
@@ -8,13 +8,12 @@ import (
 
 	"github.com/astaxie/beego/cache"
 	"github.com/johnwilson/bytengine/auth"
-	"github.com/johnwilson/bytengine/bfs"
-	"github.com/johnwilson/bytengine/core"
 	"github.com/johnwilson/bytengine/dsl"
+	bfs "github.com/johnwilson/bytengine/filesystem"
 )
 
 // handler for: user.new
-func handler1(cmd dsl.Command, user *auth.User, e *core.Engine) bfs.BFSResponse {
+func userNew(cmd dsl.Command, user *auth.User, e *Engine) bfs.Response {
 	usr := cmd.Args["username"].(string)
 	pw := cmd.Args["password"].(string)
 	err := e.AuthManager.NewUser(usr, pw, false)
@@ -25,7 +24,7 @@ func handler1(cmd dsl.Command, user *auth.User, e *core.Engine) bfs.BFSResponse 
 }
 
 // handler for: user.all
-func handler2(cmd dsl.Command, user *auth.User, e *core.Engine) bfs.BFSResponse {
+func userAll(cmd dsl.Command, user *auth.User, e *Engine) bfs.Response {
 	rgx := "."
 	val, ok := cmd.Options["regex"]
 	if ok {
@@ -39,7 +38,7 @@ func handler2(cmd dsl.Command, user *auth.User, e *core.Engine) bfs.BFSResponse 
 }
 
 // handler for: user.about
-func handler3(cmd dsl.Command, user *auth.User, e *core.Engine) bfs.BFSResponse {
+func userAbout(cmd dsl.Command, user *auth.User, e *Engine) bfs.Response {
 	usr := cmd.Args["username"].(string)
 	info, err := e.AuthManager.UserInfo(usr)
 	if err != nil {
@@ -49,7 +48,7 @@ func handler3(cmd dsl.Command, user *auth.User, e *core.Engine) bfs.BFSResponse 
 }
 
 // handler for: user.delete
-func handler4(cmd dsl.Command, user *auth.User, e *core.Engine) bfs.BFSResponse {
+func userDelete(cmd dsl.Command, user *auth.User, e *Engine) bfs.Response {
 	usr := cmd.Args["username"].(string)
 	err := e.AuthManager.RemoveUser(usr)
 	if err != nil {
@@ -59,7 +58,7 @@ func handler4(cmd dsl.Command, user *auth.User, e *core.Engine) bfs.BFSResponse 
 }
 
 // handler for: user.passw
-func handler5(cmd dsl.Command, user *auth.User, e *core.Engine) bfs.BFSResponse {
+func userPassw(cmd dsl.Command, user *auth.User, e *Engine) bfs.Response {
 	usr := cmd.Args["username"].(string)
 	pw := cmd.Args["password"].(string)
 	err := e.AuthManager.ChangeUserPassword(usr, pw)
@@ -70,7 +69,7 @@ func handler5(cmd dsl.Command, user *auth.User, e *core.Engine) bfs.BFSResponse 
 }
 
 // handler for: user.access
-func handler6(cmd dsl.Command, user *auth.User, e *core.Engine) bfs.BFSResponse {
+func userAccess(cmd dsl.Command, user *auth.User, e *Engine) bfs.Response {
 	usr := cmd.Args["username"].(string)
 	grant := cmd.Args["grant"].(bool)
 	err := e.AuthManager.ChangeUserStatus(usr, grant)
@@ -81,7 +80,7 @@ func handler6(cmd dsl.Command, user *auth.User, e *core.Engine) bfs.BFSResponse 
 }
 
 // handler for: user.db
-func handler7(cmd dsl.Command, user *auth.User, e *core.Engine) bfs.BFSResponse {
+func userDb(cmd dsl.Command, user *auth.User, e *Engine) bfs.Response {
 	usr := cmd.Args["username"].(string)
 	grant := cmd.Args["grant"].(bool)
 	db := cmd.Args["database"].(string)
@@ -93,7 +92,7 @@ func handler7(cmd dsl.Command, user *auth.User, e *core.Engine) bfs.BFSResponse 
 }
 
 // handler for: user.whoami
-func handler8(cmd dsl.Command, user *auth.User, e *core.Engine) bfs.BFSResponse {
+func userWhoami(cmd dsl.Command, user *auth.User, e *Engine) bfs.Response {
 	val := map[string]interface{}{
 		"username":  user.Username,
 		"databases": user.Databases,
@@ -103,7 +102,7 @@ func handler8(cmd dsl.Command, user *auth.User, e *core.Engine) bfs.BFSResponse 
 }
 
 // handler for: server.listdb
-func handler9(cmd dsl.Command, user *auth.User, e *core.Engine) bfs.BFSResponse {
+func serverListDb(cmd dsl.Command, user *auth.User, e *Engine) bfs.Response {
 	filter := "."
 	val, ok := cmd.Options["regex"]
 	if ok {
@@ -113,31 +112,31 @@ func handler9(cmd dsl.Command, user *auth.User, e *core.Engine) bfs.BFSResponse 
 }
 
 // handler for: server.newdb
-func handler10(cmd dsl.Command, user *auth.User, e *core.Engine) bfs.BFSResponse {
+func serverNewDb(cmd dsl.Command, user *auth.User, e *Engine) bfs.Response {
 	db := cmd.Args["database"].(string)
 	return e.BFSManager.CreateDatabase(db)
 }
 
 // handler for: server.init
-func handler11(cmd dsl.Command, user *auth.User, e *core.Engine) bfs.BFSResponse {
+func serverInit(cmd dsl.Command, user *auth.User, e *Engine) bfs.Response {
 	return e.BFSManager.ClearAll()
 }
 
 // handler for: server.dropdb
-func handler12(cmd dsl.Command, user *auth.User, e *core.Engine) bfs.BFSResponse {
+func serverDropDb(cmd dsl.Command, user *auth.User, e *Engine) bfs.Response {
 	db := cmd.Args["database"].(string)
 	return e.BFSManager.DropDatabase(db)
 }
 
 // handler for: database.newdir
-func handler13(cmd dsl.Command, user *auth.User, e *core.Engine) bfs.BFSResponse {
+func dbNewDir(cmd dsl.Command, user *auth.User, e *Engine) bfs.Response {
 	path := cmd.Args["path"].(string)
 	db := cmd.Database
 	return e.BFSManager.NewDir(path, db)
 }
 
 // handler for: database.newfile
-func handler14(cmd dsl.Command, user *auth.User, e *core.Engine) bfs.BFSResponse {
+func dbNewFile(cmd dsl.Command, user *auth.User, e *Engine) bfs.Response {
 	path := cmd.Args["path"].(string)
 	data := cmd.Args["data"].(map[string]interface{})
 	db := cmd.Database
@@ -145,7 +144,7 @@ func handler14(cmd dsl.Command, user *auth.User, e *core.Engine) bfs.BFSResponse
 }
 
 // handler for: database.listdir
-func handler15(cmd dsl.Command, user *auth.User, e *core.Engine) bfs.BFSResponse {
+func dbListDir(cmd dsl.Command, user *auth.User, e *Engine) bfs.Response {
 	path := cmd.Args["path"].(string)
 	filter := "."
 	val, ok := cmd.Options["regex"]
@@ -157,7 +156,7 @@ func handler15(cmd dsl.Command, user *auth.User, e *core.Engine) bfs.BFSResponse
 }
 
 // handler for: database.rename
-func handler16(cmd dsl.Command, user *auth.User, e *core.Engine) bfs.BFSResponse {
+func dbRename(cmd dsl.Command, user *auth.User, e *Engine) bfs.Response {
 	path := cmd.Args["path"].(string)
 	name := cmd.Args["name"].(string)
 	db := cmd.Database
@@ -165,7 +164,7 @@ func handler16(cmd dsl.Command, user *auth.User, e *core.Engine) bfs.BFSResponse
 }
 
 // handler for: database.move
-func handler17(cmd dsl.Command, user *auth.User, e *core.Engine) bfs.BFSResponse {
+func dbMove(cmd dsl.Command, user *auth.User, e *Engine) bfs.Response {
 	path := cmd.Args["path"].(string)
 	to := cmd.Args["to"].(string)
 	db := cmd.Database
@@ -173,7 +172,7 @@ func handler17(cmd dsl.Command, user *auth.User, e *core.Engine) bfs.BFSResponse
 }
 
 // handler for: database.copy
-func handler18(cmd dsl.Command, user *auth.User, e *core.Engine) bfs.BFSResponse {
+func dbCopy(cmd dsl.Command, user *auth.User, e *Engine) bfs.Response {
 	path := cmd.Args["path"].(string)
 	to := cmd.Args["to"].(string)
 	db := cmd.Database
@@ -181,35 +180,35 @@ func handler18(cmd dsl.Command, user *auth.User, e *core.Engine) bfs.BFSResponse
 }
 
 // handler for: database.delete
-func handler19(cmd dsl.Command, user *auth.User, e *core.Engine) bfs.BFSResponse {
+func dbDelete(cmd dsl.Command, user *auth.User, e *Engine) bfs.Response {
 	path := cmd.Args["path"].(string)
 	db := cmd.Database
 	return e.BFSManager.Delete(path, db)
 }
 
 // handler for: database.info
-func handler20(cmd dsl.Command, user *auth.User, e *core.Engine) bfs.BFSResponse {
+func dbInfo(cmd dsl.Command, user *auth.User, e *Engine) bfs.Response {
 	path := cmd.Args["path"].(string)
 	db := cmd.Database
 	return e.BFSManager.Info(path, db)
 }
 
 // handler for: database.makepublic
-func handler21(cmd dsl.Command, user *auth.User, e *core.Engine) bfs.BFSResponse {
+func dbMakePublic(cmd dsl.Command, user *auth.User, e *Engine) bfs.Response {
 	path := cmd.Args["path"].(string)
 	db := cmd.Database
 	return e.BFSManager.FileAccess(path, db, false)
 }
 
 // handler for: database.makeprivate
-func handler22(cmd dsl.Command, user *auth.User, e *core.Engine) bfs.BFSResponse {
+func dbMakePrivate(cmd dsl.Command, user *auth.User, e *Engine) bfs.Response {
 	path := cmd.Args["path"].(string)
 	db := cmd.Database
 	return e.BFSManager.FileAccess(path, db, true)
 }
 
 // handler for: database.readfile
-func handler23(cmd dsl.Command, user *auth.User, e *core.Engine) bfs.BFSResponse {
+func dbReadFile(cmd dsl.Command, user *auth.User, e *Engine) bfs.Response {
 	path := cmd.Args["path"].(string)
 	fields := cmd.Args["fields"].([]string)
 	db := cmd.Database
@@ -217,7 +216,7 @@ func handler23(cmd dsl.Command, user *auth.User, e *core.Engine) bfs.BFSResponse
 }
 
 // handler for: database.modfile
-func handler24(cmd dsl.Command, user *auth.User, e *core.Engine) bfs.BFSResponse {
+func dbModFile(cmd dsl.Command, user *auth.User, e *Engine) bfs.Response {
 	path := cmd.Args["path"].(string)
 	data := cmd.Args["data"].(map[string]interface{})
 	db := cmd.Database
@@ -225,14 +224,14 @@ func handler24(cmd dsl.Command, user *auth.User, e *core.Engine) bfs.BFSResponse
 }
 
 // handler for: database.deletebytes
-func handler25(cmd dsl.Command, user *auth.User, e *core.Engine) bfs.BFSResponse {
+func dbDeleteBytes(cmd dsl.Command, user *auth.User, e *Engine) bfs.Response {
 	path := cmd.Args["path"].(string)
 	db := cmd.Database
 	return e.BFSManager.DeleteBytes(path, db)
 }
 
 // handler for: database.counter
-func handler26(cmd dsl.Command, user *auth.User, e *core.Engine) bfs.BFSResponse {
+func dbCounter(cmd dsl.Command, user *auth.User, e *Engine) bfs.Response {
 	act := cmd.Args["action"].(string)
 	db := cmd.Database
 	if act != "list" {
@@ -249,25 +248,25 @@ func handler26(cmd dsl.Command, user *auth.User, e *core.Engine) bfs.BFSResponse
 }
 
 // handler for: database.select
-func handler27(cmd dsl.Command, user *auth.User, e *core.Engine) bfs.BFSResponse {
+func dbSelect(cmd dsl.Command, user *auth.User, e *Engine) bfs.Response {
 	db := cmd.Database
 	return e.BFSManager.BQLSearch(db, cmd.Args)
 }
 
 // handler for: database.set
-func handler28(cmd dsl.Command, user *auth.User, e *core.Engine) bfs.BFSResponse {
+func dbSet(cmd dsl.Command, user *auth.User, e *Engine) bfs.Response {
 	db := cmd.Database
 	return e.BFSManager.BQLSet(db, cmd.Args)
 }
 
 // handler for: database.unset
-func handler29(cmd dsl.Command, user *auth.User, e *core.Engine) bfs.BFSResponse {
+func dbUnset(cmd dsl.Command, user *auth.User, e *Engine) bfs.Response {
 	db := cmd.Database
 	return e.BFSManager.BQLUnset(db, cmd.Args)
 }
 
 // handler for: login
-func loginHandler(cmd dsl.Command, user *auth.User, e *core.Engine) bfs.BFSResponse {
+func loginHandler(cmd dsl.Command, user *auth.User, e *Engine) bfs.Response {
 	usr := cmd.Args["username"].(string)
 	pw := cmd.Args["password"].(string)
 	duration := cmd.Args["duration"].(int64)
@@ -292,7 +291,7 @@ func loginHandler(cmd dsl.Command, user *auth.User, e *core.Engine) bfs.BFSRespo
 }
 
 // handler for: upload ticket
-func uploadTicketHandler(cmd dsl.Command, user *auth.User, e *core.Engine) bfs.BFSResponse {
+func uploadTicketHandler(cmd dsl.Command, user *auth.User, e *Engine) bfs.Response {
 	// check if user is anonymous
 	if user == nil {
 		return bfs.ErrorResponse(fmt.Errorf("Authorization required"))
@@ -303,7 +302,7 @@ func uploadTicketHandler(cmd dsl.Command, user *auth.User, e *core.Engine) bfs.B
 	duration := cmd.Args["duration"].(int64)
 	// check if path exists
 	r := e.BFSManager.Info(path, db)
-	if !r.Success() {
+	if r.Status != bfs.OK {
 		return r
 	}
 	// create ticket
@@ -330,7 +329,7 @@ func uploadTicketHandler(cmd dsl.Command, user *auth.User, e *core.Engine) bfs.B
 }
 
 // handler for: writebytes
-func writebytesHandler(cmd dsl.Command, user *auth.User, e *core.Engine) bfs.BFSResponse {
+func writebytesHandler(cmd dsl.Command, user *auth.User, e *Engine) bfs.Response {
 	ticket := cmd.Args["ticket"].(string)
 	tmpfile := cmd.Args["tmpfile"].(string)
 	// check if ticket exists
@@ -358,7 +357,7 @@ func writebytesHandler(cmd dsl.Command, user *auth.User, e *core.Engine) bfs.BFS
 }
 
 // handler for: readbytes
-func readbytesHandler(cmd dsl.Command, user *auth.User, e *core.Engine) bfs.BFSResponse {
+func readbytesHandler(cmd dsl.Command, user *auth.User, e *Engine) bfs.Response {
 	// check if user is anonymous
 	if user == nil {
 		return bfs.ErrorResponse(fmt.Errorf("Authorization required"))
@@ -368,12 +367,12 @@ func readbytesHandler(cmd dsl.Command, user *auth.User, e *core.Engine) bfs.BFSR
 	w := cmd.Args["writer"].(io.Writer)
 	path := cmd.Args["path"].(string)
 	r := e.BFSManager.ReadBytes(path, db)
-	if !r.Success() {
+	if r.Status != bfs.OK {
 		return r
 	}
 
 	// get file pointer
-	bstoreid := r.Data().(string)
+	bstoreid := r.Data.(string)
 	err := e.BStoreManager.Read(db, bstoreid, w)
 	if err != nil {
 		return bfs.ErrorResponse(err)
@@ -383,13 +382,13 @@ func readbytesHandler(cmd dsl.Command, user *auth.User, e *core.Engine) bfs.BFSR
 }
 
 // handler for: direct access
-func direcaccessHandler(cmd dsl.Command, user *auth.User, e *core.Engine) bfs.BFSResponse {
+func direcaccessHandler(cmd dsl.Command, user *auth.User, e *Engine) bfs.Response {
 	db := cmd.Args["database"].(string)
 	w := cmd.Args["writer"].(io.Writer)
 	path := cmd.Args["path"].(string)
 	layer := cmd.Args["layer"].(string)
 	r := e.BFSManager.DirectAccess(path, db, layer)
-	if !r.Success() {
+	if r.Status != bfs.OK {
 		return r
 	}
 
@@ -402,7 +401,7 @@ func direcaccessHandler(cmd dsl.Command, user *auth.User, e *core.Engine) bfs.BF
 		}
 	case "bytes":
 		// get file pointer
-		bstoreid := r.Data().(string)
+		bstoreid := r.Data.(string)
 		err := e.BStoreManager.Read(db, bstoreid, w)
 		if err != nil {
 			return bfs.ErrorResponse(err)
