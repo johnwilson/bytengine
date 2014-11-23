@@ -51,9 +51,9 @@ Current Build Prerequisites:
 * [Redis](http://redis.io/download/ "Redis")
 * [Go](http://golang.org/doc/install/ "Go")
 
-1. Get Bytengine `go get -d github.com/johnwilson/bytengine/bytengine`
+1. Get Bytengine `go get -d github.com/johnwilson/bytengine/cmd/bytengine`
 
-2. `cd $GOPATH/src/github.com/johnwilson/bytengine/bytengine`
+2. `cd $GOPATH/src/github.com/johnwilson/bytengine/cmd/bytengine`
 
 3. Build Bytengine `go build`
 
