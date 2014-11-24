@@ -25,29 +25,6 @@ type Response struct {
 	Data          interface{}
 }
 
-/*func (r Response) Success() bool {
-	status, ok := r.content["status"].(string)
-	if !ok || status != "ok" {
-		return false
-	}
-	return true
-}
-
-func (r Response) ErrorMessage() string {
-	if !r.Success() {
-		return r.content["msg"].(string)
-	}
-	return ""
-}
-
-func (r Response) Data() interface{} {
-	data, ok := r.content["data"]
-	if !ok {
-		return nil
-	}
-	return data
-}*/
-
 func (r Response) JSON() []byte {
 	val := r.Map()
 	b, err := json.Marshal(val)
