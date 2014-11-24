@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/astaxie/beego/cache"
 	"github.com/bitly/go-simplejson"
 	"github.com/johnwilson/bytengine/auth"
 	bst "github.com/johnwilson/bytengine/bytestore"
@@ -12,6 +11,7 @@ import (
 	"github.com/johnwilson/bytengine/dsl"
 	bfs "github.com/johnwilson/bytengine/filesystem"
 	"github.com/johnwilson/bytengine/plugin"
+	sts "github.com/johnwilson/bytengine/statestore"
 )
 
 type RequestHandler func(cmd dsl.Command, user *auth.User, e *Engine) bfs.Response
@@ -97,7 +97,7 @@ type Engine struct {
 	AuthManager   auth.Authentication
 	BFSManager    bfs.BFS
 	BStoreManager bst.ByteStore
-	CacheManager  cache.Cache
+	StateManager  sts.StateStore
 }
 
 func (e Engine) checkUser(token string) (*auth.User, error) {
@@ -107,15 +107,9 @@ func (e Engine) checkUser(token string) (*auth.User, error) {
 		return nil, nil
 	}
 
-	exists := e.CacheManager.IsExist(token)
-	if !exists {
+	uname, err := e.StateManager.TokenGet(token)
+	if err != nil {
 		return nil, errors.New("invalid auth token")
-	}
-
-	// retrieve user
-	uname := cache.GetString(e.CacheManager.Get(token))
-	if len(uname) == 0 {
-		return nil, errors.New("user not found")
 	}
 
 	return e.AuthManager.UserInfo(uname)
@@ -238,16 +232,16 @@ func CreateBFSManager(bstore *bst.ByteStore, config *simplejson.Json) bfs.BFS {
 	return bfsM
 }
 
-func CreateCacheManager(config *simplejson.Json) cache.Cache {
-	b, err := config.Get("cache").MarshalJSON()
+func CreateStateManager(config *simplejson.Json) sts.StateStore {
+	b, err := config.Get("state").MarshalJSON()
 	if err != nil {
 		panic(err)
 	}
-	cacheM, err := cache.NewCache(CACHE_PLUGIN, string(b))
+	stateM, err := plugin.NewStateStore(STATE_PLUGIN, string(b))
 	if err != nil {
 		panic(err)
 	}
-	return cacheM
+	return stateM
 }
 
 func WorkerPool(n int, config *simplejson.Json) (chan *ScriptRequest, chan *CommandRequest) {
@@ -258,12 +252,12 @@ func WorkerPool(n int, config *simplejson.Json) (chan *ScriptRequest, chan *Comm
 		authM := CreateAuthManager(config)
 		bstM := CreateBSTManager(config)
 		bfsM := CreateBFSManager(&bstM, config)
-		cacheM := CreateCacheManager(config)
+		stateM := CreateStateManager(config)
 		df := CreateDataFilter(config)
 		router := NewRouter()
 		router.AddFilters(df)
 		initialize(router)
-		eng := Engine{router, authM, bfsM, bstM, cacheM}
+		eng := Engine{router, authM, bfsM, bstM, stateM}
 
 		go eng.Start(queries, commands)
 	}

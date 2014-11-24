@@ -6,7 +6,6 @@ import (
 	"io"
 	"os"
 
-	"github.com/astaxie/beego/cache"
 	"github.com/johnwilson/bytengine/auth"
 	"github.com/johnwilson/bytengine/dsl"
 	bfs "github.com/johnwilson/bytengine/filesystem"
@@ -282,7 +281,7 @@ func loginHandler(cmd dsl.Command, user *auth.User, e *Engine) bfs.Response {
 	}
 
 	token := fmt.Sprintf("%x", key)
-	err := e.CacheManager.Put(token, usr, 60*duration)
+	err := e.StateManager.TokenSet(token, usr, 60*duration)
 	if err != nil {
 		return bfs.ErrorResponse(fmt.Errorf("Token creation failed"))
 	}
@@ -320,7 +319,7 @@ func uploadTicketHandler(cmd dsl.Command, user *auth.User, e *Engine) bfs.Respon
 	if err != nil {
 		return bfs.ErrorResponse(fmt.Errorf("Ticket creation failed"))
 	}
-	err = e.CacheManager.Put(ticket, string(b), 60*duration)
+	err = e.StateManager.CacheSet(ticket, string(b), 60*duration)
 	if err != nil {
 		return bfs.ErrorResponse(fmt.Errorf("Ticket creation failed"))
 	}
@@ -332,20 +331,19 @@ func uploadTicketHandler(cmd dsl.Command, user *auth.User, e *Engine) bfs.Respon
 func writebytesHandler(cmd dsl.Command, user *auth.User, e *Engine) bfs.Response {
 	ticket := cmd.Args["ticket"].(string)
 	tmpfile := cmd.Args["tmpfile"].(string)
-	// check if ticket exists
-	raw := e.CacheManager.Get(ticket)
-	if raw == nil {
+	// get ticket
+	content, err := e.StateManager.CacheGet(ticket)
+	if err != nil {
 		os.Remove(tmpfile)
 		return bfs.ErrorResponse(fmt.Errorf("Invalid ticket"))
 	}
-	content := cache.GetString(raw)
 	// get ticket value
 	var val struct {
 		Database string
 		Path     string
 	}
 	b := []byte(content)
-	err := json.Unmarshal(b, &val)
+	err = json.Unmarshal(b, &val)
 	if err != nil {
 		os.Remove(tmpfile)
 		return bfs.ErrorResponse(fmt.Errorf("Ticket data invalid"))

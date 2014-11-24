@@ -7,12 +7,14 @@ import (
 	bst "github.com/johnwilson/bytengine/bytestore"
 	"github.com/johnwilson/bytengine/datafilter"
 	bfs "github.com/johnwilson/bytengine/filesystem"
+	sts "github.com/johnwilson/bytengine/statestore"
 )
 
 var authPlugins = make(map[string]auth.Authentication)
 var bstPlugins = make(map[string]bst.ByteStore)
 var bfsPlugins = make(map[string]bfs.BFS)
 var dfPlugins = make(map[string]datafilter.DataFilter)
+var stsPlugins = make(map[string]sts.StateStore)
 
 func Register(name string, plugin interface{}) {
 	if plugin == nil {
@@ -41,6 +43,11 @@ func Register(name string, plugin interface{}) {
 			panic(fmt.Sprintf("Data Filter Plugin Registration: plugin '%s' already registered", name))
 		}
 		dfPlugins[name] = plugin.(datafilter.DataFilter)
+	case sts.StateStore:
+		if _, exists := stsPlugins[name]; exists {
+			panic(fmt.Sprintf("State Store Plugin Registration: plugin '%s' already registered", name))
+		}
+		stsPlugins[name] = plugin.(sts.StateStore)
 	default:
 		panic(fmt.Sprintf("Plugin Registration: plugin type '%s' isn't supported", typ))
 	}
@@ -89,6 +96,19 @@ func NewDataFilter(pluginName, config string) (plugin datafilter.DataFilter, err
 	plugin, ok := dfPlugins[pluginName]
 	if !ok {
 		err = fmt.Errorf("Data Filter Plugin Creation: unknown plugin name %q (forgot to import?)", pluginName)
+		return
+	}
+	err = plugin.Start(config)
+	if err != nil {
+		plugin = nil
+	}
+	return
+}
+
+func NewStateStore(pluginName, config string) (plugin sts.StateStore, err error) {
+	plugin, ok := stsPlugins[pluginName]
+	if !ok {
+		err = fmt.Errorf("State Store Plugin Creation: unknown plugin name %q (forgot to import?)", pluginName)
 		return
 	}
 	err = plugin.Start(config)

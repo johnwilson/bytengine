@@ -9,6 +9,7 @@ import (
 )
 
 var (
+	// to be expanded
 	MimeList = map[string]string{
 		".js":  "text/javascript",
 		".css": "text/css",

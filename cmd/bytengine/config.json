@@ -14,8 +14,11 @@
             "password":"",
             "timeout":60
         },
-        "cache": {
-            "conn": "localhost:6379"
+        "state": {
+            "address": "localhost:6379",
+            "password": "",
+            "timeout": 60,
+            "database": 1
         },
         "bst": {
             "rootdir":"/tmp/bytengine_bst",
