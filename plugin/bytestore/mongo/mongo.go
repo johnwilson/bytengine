@@ -24,12 +24,12 @@ type Config struct {
 	Password     string        `json:"password"`
 }
 
-type MongoBST struct {
+type ByteStore struct {
 	session  *mgo.Session
 	database string
 }
 
-func (m *MongoBST) save(db, filename string, file *os.File) (map[string]interface{}, error) {
+func (m *ByteStore) save(db, filename string, file *os.File) (map[string]interface{}, error) {
 	gfile, err := m.session.DB(m.database).GridFS(db).Create(filename)
 	if err != nil {
 		return nil, err
@@ -51,7 +51,7 @@ func (m *MongoBST) save(db, filename string, file *os.File) (map[string]interfac
 	return info, nil
 }
 
-func (m *MongoBST) Start(config string) error {
+func (m *ByteStore) Start(config string) error {
 	var c Config
 	err := json.Unmarshal([]byte(config), &c)
 	if err != nil {
@@ -74,7 +74,7 @@ func (m *MongoBST) Start(config string) error {
 	return nil
 }
 
-func (m *MongoBST) Add(db string, file *os.File) (map[string]interface{}, error) {
+func (m *ByteStore) Add(db string, file *os.File) (map[string]interface{}, error) {
 	defer file.Close()
 	tmp, err := uuid.NewV4()
 	if err != nil {
@@ -89,7 +89,7 @@ func (m *MongoBST) Add(db string, file *os.File) (map[string]interface{}, error)
 	return info, nil
 }
 
-func (m *MongoBST) Update(db, filename string, file *os.File) (map[string]interface{}, error) {
+func (m *ByteStore) Update(db, filename string, file *os.File) (map[string]interface{}, error) {
 	defer file.Close()
 	info, err := m.save(db, filename, file)
 	if err != nil {
@@ -98,7 +98,7 @@ func (m *MongoBST) Update(db, filename string, file *os.File) (map[string]interf
 	return info, nil
 }
 
-func (m *MongoBST) Delete(db, filename string) error {
+func (m *ByteStore) Delete(db, filename string) error {
 	err := m.session.DB(m.database).GridFS(db).Remove(filename)
 	if err != nil {
 		return err
@@ -106,7 +106,7 @@ func (m *MongoBST) Delete(db, filename string) error {
 	return nil
 }
 
-func (m *MongoBST) Read(db, filename string, file io.Writer) error {
+func (m *ByteStore) Read(db, filename string, file io.Writer) error {
 	out := file
 	gfile, err := m.session.DB(m.database).GridFS(db).Open(filename)
 	if err != nil {
@@ -131,7 +131,7 @@ func (m *MongoBST) Read(db, filename string, file io.Writer) error {
 	return nil
 }
 
-func (m *MongoBST) DropDatabase(db string) error {
+func (m *ByteStore) DropDatabase(db string) error {
 	exists := false
 	list, err := m.session.DB(m.database).CollectionNames()
 	if err != nil {
@@ -158,10 +158,10 @@ func (m *MongoBST) DropDatabase(db string) error {
 	return nil
 }
 
-func NewMongoBST() *MongoBST {
-	return &MongoBST{}
+func NewByteStore() *ByteStore {
+	return &ByteStore{}
 }
 
 func init() {
-	plugin.Register("mongodb", NewMongoBST())
+	plugin.Register("mongodb", NewByteStore())
 }

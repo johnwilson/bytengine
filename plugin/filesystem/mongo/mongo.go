@@ -57,8 +57,8 @@ type Config struct {
 	Password     string        `json:"password"`
 }
 
-func NewMongodbBFS() *MongodbBFS {
-	return &MongodbBFS{}
+func NewFileSystem() *FileSystem {
+	return &FileSystem{}
 }
 
 const (
@@ -67,7 +67,7 @@ const (
 	COUNTER_COLLECTION = "bfs.counters"
 )
 
-type MongodbBFS struct {
+type FileSystem struct {
 	session *mgo.Session
 	bstore  bst.ByteStore
 }
@@ -100,7 +100,7 @@ func makeRootDir() (*Directory, error) {
 	return r, nil
 }
 
-func (m *MongodbBFS) existsDocument(p string, c *mgo.Collection) (SimpleResultItem, bool) {
+func (m *FileSystem) existsDocument(p string, c *mgo.Collection) (SimpleResultItem, bool) {
 	q := m.findPathQuery(p)
 	var ri SimpleResultItem
 	err := c.Find(q).One(&ri)
@@ -111,7 +111,7 @@ func (m *MongodbBFS) existsDocument(p string, c *mgo.Collection) (SimpleResultIt
 	return ri, true
 }
 
-func (m *MongodbBFS) copyDirectoryDocument(d *Directory, newprefix, oldprefix, newname string, c *mgo.Collection) error {
+func (m *FileSystem) copyDirectoryDocument(d *Directory, newprefix, oldprefix, newname string, c *mgo.Collection) error {
 	// update parent path prefix with new prefix
 	_parent_path := d.Header.Parent
 	_parent_path = strings.Replace(_parent_path, oldprefix, newprefix, 1)
@@ -141,7 +141,7 @@ func (m *MongodbBFS) copyDirectoryDocument(d *Directory, newprefix, oldprefix, n
 	return nil
 }
 
-func (m *MongodbBFS) copyFileDocument(f *File, newprefix, oldprefix, newname string, c *mgo.Collection) error {
+func (m *FileSystem) copyFileDocument(f *File, newprefix, oldprefix, newname string, c *mgo.Collection) error {
 	// update parent path prefix with new prefix
 	_parent_path := f.Header.Parent
 	_parent_path = strings.Replace(_parent_path, oldprefix, newprefix, 1)
@@ -173,7 +173,7 @@ func (m *MongodbBFS) copyFileDocument(f *File, newprefix, oldprefix, newname str
 	return nil
 }
 
-func (m *MongodbBFS) findPathQuery(p string) bson.M {
+func (m *FileSystem) findPathQuery(p string) bson.M {
 	// build query
 	var q bson.M
 	if p == "/" {
@@ -184,7 +184,7 @@ func (m *MongodbBFS) findPathQuery(p string) bson.M {
 	return q
 }
 
-func (m *MongodbBFS) findChildrenQuery(p, rgx string) bson.M {
+func (m *FileSystem) findChildrenQuery(p, rgx string) bson.M {
 	qre := bson.RegEx{Pattern: rgx, Options: "i"} // case insensitive regex
 	q := bson.M{
 		"__header__.parent": p,
@@ -193,7 +193,7 @@ func (m *MongodbBFS) findChildrenQuery(p, rgx string) bson.M {
 	return q
 }
 
-func (m *MongodbBFS) findAllChildrenQuery(p string) bson.M {
+func (m *FileSystem) findAllChildrenQuery(p string) bson.M {
 	// pattern
 	var r string
 	if p == "/" {
@@ -205,12 +205,12 @@ func (m *MongodbBFS) findAllChildrenQuery(p string) bson.M {
 	return q
 }
 
-func (m *MongodbBFS) getBFSCollection(db string) *mgo.Collection {
+func (m *FileSystem) getBFSCollection(db string) *mgo.Collection {
 	actual_db := DB_PREFIX + db
 	return m.session.DB(actual_db).C(BFS_COLLECTION)
 }
 
-func (m *MongodbBFS) getCounterCollection(db string) *mgo.Collection {
+func (m *FileSystem) getCounterCollection(db string) *mgo.Collection {
 	actual_db := DB_PREFIX + db
 	return m.session.DB(actual_db).C(COUNTER_COLLECTION)
 }
@@ -221,7 +221,7 @@ func (m *MongodbBFS) getCounterCollection(db string) *mgo.Collection {
 ============================================================================
 */
 
-func (m *MongodbBFS) Start(config string, b *bst.ByteStore) error {
+func (m *FileSystem) Start(config string, b *bst.ByteStore) error {
 	var c Config
 	err := json.Unmarshal([]byte(config), &c)
 	if err != nil {
@@ -244,7 +244,7 @@ func (m *MongodbBFS) Start(config string, b *bst.ByteStore) error {
 	return nil
 }
 
-func (m *MongodbBFS) ClearAll() bfs.Response {
+func (m *FileSystem) ClearAll() bfs.Response {
 	dbs, err := m.session.DatabaseNames()
 	if err != nil {
 		return bfs.ErrorResponse(err)
@@ -269,7 +269,7 @@ func (m *MongodbBFS) ClearAll() bfs.Response {
 	return bfs.OKResponse(found)
 }
 
-func (m *MongodbBFS) ListDatabase(filter string) bfs.Response {
+func (m *FileSystem) ListDatabase(filter string) bfs.Response {
 	r, err := regexp.Compile(filter)
 	if err != nil {
 		return bfs.ErrorResponse(err)
@@ -293,7 +293,7 @@ func (m *MongodbBFS) ListDatabase(filter string) bfs.Response {
 	return bfs.OKResponse(found)
 }
 
-func (m *MongodbBFS) CreateDatabase(db string) bfs.Response {
+func (m *FileSystem) CreateDatabase(db string) bfs.Response {
 	err := bfs.ValidateDbName(db)
 	if err != nil {
 		return bfs.ErrorResponse(err)
@@ -316,7 +316,7 @@ func (m *MongodbBFS) CreateDatabase(db string) bfs.Response {
 	return bfs.OKResponse(true)
 }
 
-func (m *MongodbBFS) DropDatabase(db string) bfs.Response {
+func (m *FileSystem) DropDatabase(db string) bfs.Response {
 	actual_db := DB_PREFIX + db
 
 	// check if db to be deleted exists
@@ -351,7 +351,7 @@ func (m *MongodbBFS) DropDatabase(db string) bfs.Response {
 	return bfs.OKResponse(true)
 }
 
-func (m *MongodbBFS) NewDir(p, db string) bfs.Response {
+func (m *FileSystem) NewDir(p, db string) bfs.Response {
 	// check path
 	p = path.Clean(p)
 	if p == "/" {
@@ -407,7 +407,7 @@ func (m *MongodbBFS) NewDir(p, db string) bfs.Response {
 	return bfs.OKResponse(true)
 }
 
-func (m *MongodbBFS) NewFile(p, db string, j map[string]interface{}) bfs.Response {
+func (m *FileSystem) NewFile(p, db string, j map[string]interface{}) bfs.Response {
 	// check path
 	p = path.Clean(p)
 	_name := path.Base(p)
@@ -464,7 +464,7 @@ func (m *MongodbBFS) NewFile(p, db string, j map[string]interface{}) bfs.Respons
 	return bfs.OKResponse(true)
 }
 
-func (m *MongodbBFS) ListDir(p, filter, db string) bfs.Response {
+func (m *FileSystem) ListDir(p, filter, db string) bfs.Response {
 	// check path
 	p = path.Clean(p)
 
@@ -516,7 +516,7 @@ func (m *MongodbBFS) ListDir(p, filter, db string) bfs.Response {
 	return bfs.OKResponse(res)
 }
 
-func (m *MongodbBFS) ReadJson(p, db string, fields []string) bfs.Response {
+func (m *FileSystem) ReadJson(p, db string, fields []string) bfs.Response {
 	// check path
 	p = path.Clean(p)
 
@@ -549,7 +549,7 @@ func (m *MongodbBFS) ReadJson(p, db string, fields []string) bfs.Response {
 	return bfs.OKResponse(r["content"])
 }
 
-func (m *MongodbBFS) Delete(p, db string) bfs.Response {
+func (m *FileSystem) Delete(p, db string) bfs.Response {
 	// check path
 	p = path.Clean(p)
 	if p == "/" {
@@ -624,7 +624,7 @@ func (m *MongodbBFS) Delete(p, db string) bfs.Response {
 	return bfs.OKResponse(true)
 }
 
-func (m *MongodbBFS) Rename(p, newname, db string) bfs.Response {
+func (m *FileSystem) Rename(p, newname, db string) bfs.Response {
 	// check path
 	p = path.Clean(p)
 	if p == "/" {
@@ -717,7 +717,7 @@ func (m *MongodbBFS) Rename(p, newname, db string) bfs.Response {
 	return bfs.OKResponse(true)
 }
 
-func (m *MongodbBFS) Move(from, to, db string) bfs.Response {
+func (m *FileSystem) Move(from, to, db string) bfs.Response {
 	// check path
 	from = path.Clean(from) // from
 	to = path.Clean(to)     // to
@@ -814,7 +814,7 @@ func (m *MongodbBFS) Move(from, to, db string) bfs.Response {
 	return bfs.OKResponse(true)
 }
 
-func (m *MongodbBFS) Copy(from, to, db string) bfs.Response {
+func (m *FileSystem) Copy(from, to, db string) bfs.Response {
 	// setup paths
 	_from_doc_path := path.Clean(from)
 	_from_doc_parent_path := path.Dir(_from_doc_path)
@@ -920,7 +920,7 @@ func (m *MongodbBFS) Copy(from, to, db string) bfs.Response {
 	return bfs.OKResponse(true)
 }
 
-func (m *MongodbBFS) Info(p, db string) bfs.Response {
+func (m *FileSystem) Info(p, db string) bfs.Response {
 	p = path.Clean(p)
 
 	// get collection
@@ -972,7 +972,7 @@ func (m *MongodbBFS) Info(p, db string) bfs.Response {
 	return bfs.OKResponse(_info)
 }
 
-func (m *MongodbBFS) FileAccess(p, db string, protect bool) bfs.Response {
+func (m *FileSystem) FileAccess(p, db string, protect bool) bfs.Response {
 	// check path
 	p = path.Clean(p)
 
@@ -1018,7 +1018,7 @@ func (m *MongodbBFS) FileAccess(p, db string, protect bool) bfs.Response {
 	return bfs.OKResponse(true)
 }
 
-func (m *MongodbBFS) SetCounter(counter, action string, value int64, db string) bfs.Response {
+func (m *FileSystem) SetCounter(counter, action string, value int64, db string) bfs.Response {
 	// update value 'v'
 	nv := math.Abs(float64(value))
 	value = int64(nv)
@@ -1081,7 +1081,7 @@ func (m *MongodbBFS) SetCounter(counter, action string, value int64, db string) 
 	return bfs.OKResponse(r.(bson.M)["value"])
 }
 
-func (m *MongodbBFS) ListCounter(filter, db string) bfs.Response {
+func (m *FileSystem) ListCounter(filter, db string) bfs.Response {
 	// get collection
 	c := m.getCounterCollection(db)
 
@@ -1101,7 +1101,7 @@ func (m *MongodbBFS) ListCounter(filter, db string) bfs.Response {
 	return bfs.OKResponse(list)
 }
 
-func (m *MongodbBFS) WriteBytes(p, ap, db string) bfs.Response {
+func (m *FileSystem) WriteBytes(p, ap, db string) bfs.Response {
 	// check path
 	p = path.Clean(p)
 	_, err := os.Stat(ap)
@@ -1173,7 +1173,7 @@ func (m *MongodbBFS) WriteBytes(p, ap, db string) bfs.Response {
 	return bfs.OKResponse(true)
 }
 
-func (m *MongodbBFS) ReadBytes(fp, db string) bfs.Response {
+func (m *FileSystem) ReadBytes(fp, db string) bfs.Response {
 	// check path
 	fp = path.Clean(fp)
 
@@ -1200,7 +1200,7 @@ func (m *MongodbBFS) ReadBytes(fp, db string) bfs.Response {
 	return bfs.OKResponse(id)
 }
 
-func (m *MongodbBFS) DirectAccess(fp, db, layer string) bfs.Response {
+func (m *FileSystem) DirectAccess(fp, db, layer string) bfs.Response {
 	// check path
 	fp = path.Clean(fp)
 
@@ -1239,7 +1239,7 @@ func (m *MongodbBFS) DirectAccess(fp, db, layer string) bfs.Response {
 	}
 }
 
-func (m *MongodbBFS) DeleteBytes(p, db string) bfs.Response {
+func (m *FileSystem) DeleteBytes(p, db string) bfs.Response {
 	// check path
 	p = path.Clean(p)
 
@@ -1280,7 +1280,7 @@ func (m *MongodbBFS) DeleteBytes(p, db string) bfs.Response {
 	return bfs.OKResponse(true)
 }
 
-func (m *MongodbBFS) UpdateJson(p, db string, j map[string]interface{}) bfs.Response {
+func (m *FileSystem) UpdateJson(p, db string, j map[string]interface{}) bfs.Response {
 	// check path
 	p = path.Clean(p)
 
@@ -1301,7 +1301,7 @@ func (m *MongodbBFS) UpdateJson(p, db string, j map[string]interface{}) bfs.Resp
 	return bfs.OKResponse(true)
 }
 
-func (m *MongodbBFS) BQLSearch(db string, query map[string]interface{}) bfs.Response {
+func (m *FileSystem) BQLSearch(db string, query map[string]interface{}) bfs.Response {
 	// check fields and paths
 	fields, hasfields := query["fields"].([]string)
 	paths, haspaths := query["dirs"].([]string)
@@ -1384,7 +1384,7 @@ func (m *MongodbBFS) BQLSearch(db string, query map[string]interface{}) bfs.Resp
 	return bfs.OKResponse(itemlist)
 }
 
-func (m *MongodbBFS) BQLSet(db string, query map[string]interface{}) bfs.Response {
+func (m *FileSystem) BQLSet(db string, query map[string]interface{}) bfs.Response {
 	// check fields and paths
 	fields, hasfields := query["fields"].(map[string]interface{})
 	incr_fields, hasincr := query["incr"].(map[string]interface{})
@@ -1425,7 +1425,7 @@ func (m *MongodbBFS) BQLSet(db string, query map[string]interface{}) bfs.Respons
 	return bfs.OKResponse(info.Updated)
 }
 
-func (m *MongodbBFS) BQLUnset(db string, query map[string]interface{}) bfs.Response {
+func (m *FileSystem) BQLUnset(db string, query map[string]interface{}) bfs.Response {
 	// check fields and paths
 	fields, hasfields := query["fields"].(map[string]interface{})
 	paths, haspaths := query["dirs"].([]string)
@@ -1463,5 +1463,5 @@ func (m *MongodbBFS) BQLUnset(db string, query map[string]interface{}) bfs.Respo
 }
 
 func init() {
-	plugin.Register("mongodb", NewMongodbBFS())
+	plugin.Register("mongodb", NewFileSystem())
 }

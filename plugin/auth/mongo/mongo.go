@@ -21,8 +21,8 @@ type Config struct {
 	Password     string        `json:"password"`
 }
 
-func NewMongodbAuth() *MongodbAuth {
-	return &MongodbAuth{}
+func NewAuthentication() *Authentication {
+	return &Authentication{}
 }
 
 const (
@@ -30,7 +30,7 @@ const (
 	AUTH_COLLECTION = "users"
 )
 
-type MongodbAuth struct {
+type Authentication struct {
 	session  *mgo.Session
 	database string
 }
@@ -49,7 +49,7 @@ type authToken struct {
 ============================================================================
 */
 
-func (m *MongodbAuth) getCollection() *mgo.Collection {
+func (m *Authentication) getCollection() *mgo.Collection {
 	return m.session.DB(AUTH_DATABASE).C(AUTH_COLLECTION)
 }
 
@@ -59,7 +59,7 @@ func (m *MongodbAuth) getCollection() *mgo.Collection {
 ============================================================================
 */
 
-func (m *MongodbAuth) Start(config string) error {
+func (m *Authentication) Start(config string) error {
 	var c Config
 	err := json.Unmarshal([]byte(config), &c)
 	if err != nil {
@@ -82,7 +82,7 @@ func (m *MongodbAuth) Start(config string) error {
 	return nil
 }
 
-func (m *MongodbAuth) ClearAll() error {
+func (m *Authentication) ClearAll() error {
 	names, err := m.session.DatabaseNames()
 	if err != nil {
 		return err
@@ -107,7 +107,7 @@ func (m *MongodbAuth) ClearAll() error {
 	return nil
 }
 
-func (m *MongodbAuth) Authenticate(usr, pw string) bool {
+func (m *Authentication) Authenticate(usr, pw string) bool {
 	// get collection
 	col := m.getCollection()
 
@@ -126,7 +126,7 @@ func (m *MongodbAuth) Authenticate(usr, pw string) bool {
 	return false
 }
 
-func (m *MongodbAuth) NewUser(usr, pw string, root bool) error {
+func (m *Authentication) NewUser(usr, pw string, root bool) error {
 	// usernames are lowercase
 	usr = strings.ToLower(usr)
 
@@ -179,7 +179,7 @@ func (m *MongodbAuth) NewUser(usr, pw string, root bool) error {
 	return nil
 }
 
-func (m *MongodbAuth) ChangeUserPassword(usr, pw string) error {
+func (m *Authentication) ChangeUserPassword(usr, pw string) error {
 	// validate password
 	err := auth.CheckPassword(pw)
 	if err != nil {
@@ -207,7 +207,7 @@ func (m *MongodbAuth) ChangeUserPassword(usr, pw string) error {
 	return nil
 }
 
-func (m *MongodbAuth) ChangeUserStatus(usr string, isactive bool) error {
+func (m *Authentication) ChangeUserStatus(usr string, isactive bool) error {
 	// get collection
 	col := m.getCollection()
 
@@ -223,7 +223,7 @@ func (m *MongodbAuth) ChangeUserStatus(usr string, isactive bool) error {
 	return nil
 }
 
-func (m *MongodbAuth) ListUser(rgx string) ([]string, error) {
+func (m *Authentication) ListUser(rgx string) ([]string, error) {
 	// get collection
 	col := m.getCollection()
 
@@ -246,7 +246,7 @@ func (m *MongodbAuth) ListUser(rgx string) ([]string, error) {
 	return res, nil
 }
 
-func (m *MongodbAuth) ChangeUserDbAccess(usr, db string, grant bool) error {
+func (m *Authentication) ChangeUserDbAccess(usr, db string, grant bool) error {
 	// get collection
 	col := m.getCollection()
 
@@ -267,7 +267,7 @@ func (m *MongodbAuth) ChangeUserDbAccess(usr, db string, grant bool) error {
 	return nil
 }
 
-func (m *MongodbAuth) HasDbAccess(usr, db string) bool {
+func (m *Authentication) HasDbAccess(usr, db string) bool {
 	// get collection
 	col := m.getCollection()
 
@@ -284,7 +284,7 @@ func (m *MongodbAuth) HasDbAccess(usr, db string) bool {
 	return false
 }
 
-func (m *MongodbAuth) RemoveUser(usr string) error {
+func (m *Authentication) RemoveUser(usr string) error {
 	// get collection
 	col := m.getCollection()
 
@@ -299,7 +299,7 @@ func (m *MongodbAuth) RemoveUser(usr string) error {
 	return nil
 }
 
-func (m *MongodbAuth) UserInfo(u string) (*auth.User, error) {
+func (m *Authentication) UserInfo(u string) (*auth.User, error) {
 	// get collection
 	col := m.getCollection()
 
@@ -317,5 +317,5 @@ func (m *MongodbAuth) UserInfo(u string) (*auth.User, error) {
 }
 
 func init() {
-	plugin.Register("mongodb", NewMongodbAuth())
+	plugin.Register("mongodb", NewAuthentication())
 }

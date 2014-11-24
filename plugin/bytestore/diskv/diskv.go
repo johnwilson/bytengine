@@ -20,18 +20,18 @@ type Config struct {
 
 const SEP_CHAR = "-"
 
-type DiskVBST struct {
+type ByteStore struct {
 	RootDir   string
 	CacheSize uint64
 	Transform func(s string) []string
 	DB        *diskv.Diskv
 }
 
-func (m *DiskVBST) getKey(db, filename string) string {
+func (m *ByteStore) getKey(db, filename string) string {
 	return db + SEP_CHAR + filename
 }
 
-func (m *DiskVBST) newKey(db string) (key string, id string) {
+func (m *ByteStore) newKey(db string) (key string, id string) {
 	tmp, err := uuid.NewV4()
 	if err != nil {
 		return "", ""
@@ -41,7 +41,7 @@ func (m *DiskVBST) newKey(db string) (key string, id string) {
 	return
 }
 
-func (m *DiskVBST) save(key string, file *os.File) (map[string]interface{}, error) {
+func (m *ByteStore) save(key string, file *os.File) (map[string]interface{}, error) {
 	defer file.Close()
 	err := m.DB.WriteStream(key, file, false)
 	if err != nil {
@@ -56,7 +56,7 @@ func (m *DiskVBST) save(key string, file *os.File) (map[string]interface{}, erro
 	return info, nil
 }
 
-func (m *DiskVBST) Start(config string) error {
+func (m *ByteStore) Start(config string) error {
 	var c Config
 	err := json.Unmarshal([]byte(config), &c)
 	if err != nil {
@@ -74,7 +74,7 @@ func (m *DiskVBST) Start(config string) error {
 	return nil
 }
 
-func (m *DiskVBST) Add(db string, file *os.File) (map[string]interface{}, error) {
+func (m *ByteStore) Add(db string, file *os.File) (map[string]interface{}, error) {
 	defer file.Close()
 	key, filename := m.newKey(db)
 	if len(key) == 0 {
@@ -89,7 +89,7 @@ func (m *DiskVBST) Add(db string, file *os.File) (map[string]interface{}, error)
 	return info, nil
 }
 
-func (m *DiskVBST) Update(db, filename string, file *os.File) (map[string]interface{}, error) {
+func (m *ByteStore) Update(db, filename string, file *os.File) (map[string]interface{}, error) {
 	defer file.Close()
 	key := m.getKey(db, filename)
 	info, err := m.save(key, file)
@@ -99,7 +99,7 @@ func (m *DiskVBST) Update(db, filename string, file *os.File) (map[string]interf
 	return info, nil
 }
 
-func (m *DiskVBST) Delete(db, filename string) error {
+func (m *ByteStore) Delete(db, filename string) error {
 	key := m.getKey(db, filename)
 	err := m.DB.Erase(key)
 	if err != nil {
@@ -108,7 +108,7 @@ func (m *DiskVBST) Delete(db, filename string) error {
 	return nil
 }
 
-func (m *DiskVBST) Read(db, filename string, file io.Writer) error {
+func (m *ByteStore) Read(db, filename string, file io.Writer) error {
 	out, err := m.DB.ReadStream(m.getKey(db, filename), true)
 	if err != nil {
 		return err
@@ -133,7 +133,7 @@ func (m *DiskVBST) Read(db, filename string, file io.Writer) error {
 	return nil
 }
 
-func (m *DiskVBST) DropDatabase(db string) error {
+func (m *ByteStore) DropDatabase(db string) error {
 	for key := range m.DB.Keys() {
 		prefix := db + SEP_CHAR
 		if strings.HasPrefix(key, prefix) {
@@ -147,10 +147,10 @@ func (m *DiskVBST) DropDatabase(db string) error {
 	return nil
 }
 
-func NewDiskVBST() *DiskVBST {
-	return &DiskVBST{}
+func NewByteStore() *ByteStore {
+	return &ByteStore{}
 }
 
 func init() {
-	plugin.Register("diskv", NewDiskVBST())
+	plugin.Register("diskv", NewByteStore())
 }
