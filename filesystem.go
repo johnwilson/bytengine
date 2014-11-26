@@ -1,4 +1,4 @@
-package filesystem
+package bytengine
 
 import (
 	"encoding/json"
@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	bst "github.com/johnwilson/bytengine/bytestore"
 	"github.com/nu7hatch/gouuid"
 )
 
@@ -57,7 +56,7 @@ func (r Response) String() string {
 }
 
 type BFS interface {
-	Start(config string, b *bst.ByteStore) error
+	Start(config string, b *ByteStore) error
 	ClearAll() Response
 	ListDatabase(filter string) Response
 	CreateDatabase(db string) Response

@@ -1,13 +1,13 @@
 package redis
 
 import (
-	"github.com/johnwilson/bytengine/plugin"
+	"github.com/johnwilson/bytengine"
 	"testing"
 )
 
 func TestStateStore(t *testing.T) {
 	// create plugin
-	sts, err := plugin.NewStateStore(
+	sts, err := bytengine.NewStateStore(
 		"redis",
 		`{
             "address":"localhost:6379",

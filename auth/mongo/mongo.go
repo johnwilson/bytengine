@@ -5,8 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/johnwilson/bytengine/auth"
-	"github.com/johnwilson/bytengine/plugin"
+	"github.com/johnwilson/bytengine"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 	"strings"
@@ -119,7 +118,7 @@ func (m *Authentication) Authenticate(usr, pw string) bool {
 		return false
 	}
 
-	if ok := auth.ValidatePassword([]byte(_token.Password), []byte(pw)); ok {
+	if ok := bytengine.ValidatePassword([]byte(_token.Password), []byte(pw)); ok {
 		return true
 	}
 
@@ -131,11 +130,11 @@ func (m *Authentication) NewUser(usr, pw string, root bool) error {
 	usr = strings.ToLower(usr)
 
 	// check username and password
-	err := auth.CheckUsername(usr)
+	err := bytengine.CheckUsername(usr)
 	if err != nil {
 		return err
 	}
-	err = auth.CheckPassword(pw)
+	err = bytengine.CheckPassword(pw)
 	if err != nil {
 		return err
 	}
@@ -156,7 +155,7 @@ func (m *Authentication) NewUser(usr, pw string, root bool) error {
 		return errors.New(msg)
 	}
 
-	encrypt_pw, err := auth.PasswordEncrypt(pw)
+	encrypt_pw, err := bytengine.PasswordEncrypt(pw)
 	if err != nil {
 		msg := fmt.Sprintf("user %s couldn't be created:\n%s", usr, err)
 		return errors.New(msg)
@@ -181,7 +180,7 @@ func (m *Authentication) NewUser(usr, pw string, root bool) error {
 
 func (m *Authentication) ChangeUserPassword(usr, pw string) error {
 	// validate password
-	err := auth.CheckPassword(pw)
+	err := bytengine.CheckPassword(pw)
 	if err != nil {
 		return err
 	}
@@ -189,7 +188,7 @@ func (m *Authentication) ChangeUserPassword(usr, pw string) error {
 	// get collection
 	col := m.getCollection()
 
-	encrypt_pw, err := auth.PasswordEncrypt(pw)
+	encrypt_pw, err := bytengine.PasswordEncrypt(pw)
 	if err != nil {
 		msg := fmt.Sprintf("user %s couldn't be created:\n%s", usr, err)
 		return errors.New(msg)
@@ -233,7 +232,7 @@ func (m *Authentication) ListUser(rgx string) ([]string, error) {
 
 	i := col.Find(q).Iter()
 	res := []string{}
-	var usr auth.User
+	var usr bytengine.User
 	for i.Next(&usr) {
 		res = append(res, usr.Username)
 	}
@@ -299,14 +298,14 @@ func (m *Authentication) RemoveUser(usr string) error {
 	return nil
 }
 
-func (m *Authentication) UserInfo(u string) (*auth.User, error) {
+func (m *Authentication) UserInfo(u string) (*bytengine.User, error) {
 	// get collection
 	col := m.getCollection()
 
 	// build query
 	q := map[string]interface{}{"username": u}
 
-	var usr auth.User
+	var usr bytengine.User
 	e := col.Find(q).One(&usr)
 	if e != nil {
 		msg := fmt.Sprintf("couldn't get info for user %s:\n%s", u, e)
@@ -317,5 +316,5 @@ func (m *Authentication) UserInfo(u string) (*auth.User, error) {
 }
 
 func init() {
-	plugin.Register("mongodb", NewAuthentication())
+	bytengine.RegisterAuthentication("mongodb", NewAuthentication())
 }

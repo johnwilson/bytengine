@@ -4,11 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 
-	bfs "github.com/johnwilson/bytengine/filesystem"
-	"github.com/johnwilson/bytengine/plugin"
+	"github.com/johnwilson/bytengine"
 )
 
-type FilterFunction func(r *bfs.Response) bfs.Response
+type FilterFunction func(r *bytengine.Response) bytengine.Response
 
 type RegistryItem struct {
 	fn          FilterFunction
@@ -26,15 +25,15 @@ func NewCoreFilters() *CoreFilters {
 func (cf *CoreFilters) Start(config string) error {
 	cf.registry = map[string]RegistryItem{}
 	// add filters to registry
-	fn := func(r *bfs.Response) bfs.Response {
-		if r.Status != bfs.OK {
+	fn := func(r *bytengine.Response) bytengine.Response {
+		if r.Status != bytengine.OK {
 			return *r
 		}
 		b, err := json.MarshalIndent(r.Map(), "", "  ")
 		if err != nil {
-			return bfs.ErrorResponse(fmt.Errorf("Pretty print error"))
+			return bytengine.ErrorResponse(fmt.Errorf("Pretty print error"))
 		}
-		return bfs.OKResponse(string(b))
+		return bytengine.OKResponse(string(b))
 	}
 	regItem := RegistryItem{
 		fn,
@@ -44,10 +43,10 @@ func (cf *CoreFilters) Start(config string) error {
 	return nil
 }
 
-func (cf CoreFilters) Apply(filter string, r *bfs.Response) bfs.Response {
+func (cf CoreFilters) Apply(filter string, r *bytengine.Response) bytengine.Response {
 	regitem, ok := cf.registry[filter]
 	if !ok {
-		return bfs.ErrorResponse(fmt.Errorf("Filter '%s' not found", filter))
+		return bytengine.ErrorResponse(fmt.Errorf("Filter '%s' not found", filter))
 	}
 	return regitem.fn(r)
 }
@@ -66,5 +65,5 @@ func (cf CoreFilters) Check(filter string) bool {
 }
 
 func init() {
-	plugin.Register("core", NewCoreFilters())
+	bytengine.RegisterDataFilter("core", NewCoreFilters())
 }

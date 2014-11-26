@@ -8,18 +8,38 @@ import (
 	"github.com/bitly/go-simplejson"
 	"github.com/codegangsta/cli"
 	"github.com/gin-gonic/gin"
-	"github.com/johnwilson/bytengine/core"
+	"github.com/johnwilson/bytengine"
 	"github.com/johnwilson/bytengine/dsl"
-	bfs "github.com/johnwilson/bytengine/filesystem"
 )
 
-var ScriptsChan chan *core.ScriptRequest
-var CommandsChan chan *core.CommandRequest
+var ScriptsChan chan *bytengine.ScriptRequest
+var CommandsChan chan *bytengine.CommandRequest
 var Configuration *simplejson.Json
 
 const (
 	VERSION = "0.2.0"
 )
+
+func WorkerPool(n int, config *simplejson.Json) (chan *bytengine.ScriptRequest, chan *bytengine.CommandRequest) {
+	queries := make(chan *bytengine.ScriptRequest)
+	commands := make(chan *bytengine.CommandRequest)
+
+	for i := 0; i < n; i++ {
+		authM := bytengine.CreateAuthManager(AUTH_PLUGIN, config)
+		bstM := bytengine.CreateBSTManager(BST_PLUGIN, config)
+		bfsM := bytengine.CreateBFSManager(BFS_PLUGIN, &bstM, config)
+		stateM := bytengine.CreateStateManager(STATE_PLUGIN, config)
+		df := bytengine.CreateDataFilter(DATA_FILTER_PLUGIN, config)
+		router := bytengine.NewRouter()
+		router.AddFilters(df)
+		bytengine.Initialize(router)
+		eng := bytengine.Engine{router, authM, bfsM, bstM, stateM}
+
+		go eng.Start(queries, commands)
+	}
+
+	return queries, commands
+}
 
 func welcomeHandler(ctx *gin.Context) {
 	msg := simplejson.New()
@@ -28,7 +48,7 @@ func welcomeHandler(ctx *gin.Context) {
 	b, err := msg.MarshalJSON()
 	if err != nil {
 		fmt.Println(err)
-		data := bfs.ErrorResponse(fmt.Errorf("Error creating welcome message")).JSON()
+		data := bytengine.ErrorResponse(fmt.Errorf("Error creating welcome message")).JSON()
 		ctx.Data(500, "application/json", data)
 		return
 	}
@@ -43,12 +63,12 @@ func runScriptHandler(ctx *gin.Context) {
 
 	ok := ctx.Bind(&form)
 	if !ok {
-		data := bfs.ErrorResponse(fmt.Errorf("Missing parameters")).JSON()
+		data := bytengine.ErrorResponse(fmt.Errorf("Missing parameters")).JSON()
 		ctx.Data(400, "application/json", data)
 		return
 	}
 
-	q := &core.ScriptRequest{form.Query, form.Token, make(chan []byte)}
+	q := &bytengine.ScriptRequest{form.Query, form.Token, make(chan []byte)}
 	ScriptsChan <- q
 	data := <-q.ResultChannel
 	ctx.Data(200, "application/json", data)
@@ -61,7 +81,7 @@ func getTokenHandler(ctx *gin.Context) {
 	}
 	ok := ctx.Bind(&form)
 	if !ok {
-		data := bfs.ErrorResponse(fmt.Errorf("Missing parameters")).JSON()
+		data := bytengine.ErrorResponse(fmt.Errorf("Missing parameters")).JSON()
 		ctx.Data(400, "application/json", data)
 		return
 	}
@@ -72,13 +92,13 @@ func getTokenHandler(ctx *gin.Context) {
 
 	duration, err := Configuration.Get("timeout").Get("authtoken").Int64() // in minutes
 	if err != nil {
-		data := bfs.ErrorResponse(fmt.Errorf("Token creation error.")).JSON()
+		data := bytengine.ErrorResponse(fmt.Errorf("Token creation error.")).JSON()
 		ctx.Data(500, "application/json", data)
 		return
 	}
 	cmd.Args["duration"] = duration
 
-	c := &core.CommandRequest{cmd, "", make(chan bfs.Response)}
+	c := &bytengine.CommandRequest{cmd, "", make(chan bytengine.Response)}
 	CommandsChan <- c
 	data := <-c.ResultChannel
 	ctx.Data(200, "application/json", data.JSON())
@@ -92,7 +112,7 @@ func getUploadTicketHandler(ctx *gin.Context) {
 	}
 	ok := ctx.Bind(&form)
 	if !ok {
-		data := bfs.ErrorResponse(fmt.Errorf("Missing parameters")).JSON()
+		data := bytengine.ErrorResponse(fmt.Errorf("Missing parameters")).JSON()
 		ctx.Data(400, "application/json", data)
 		return
 	}
@@ -103,13 +123,13 @@ func getUploadTicketHandler(ctx *gin.Context) {
 
 	duration, err := Configuration.Get("timeout").Get("uploadticket").Int64() // in minutes
 	if err != nil {
-		data := bfs.ErrorResponse(fmt.Errorf("Token creation error.")).JSON()
+		data := bytengine.ErrorResponse(fmt.Errorf("Token creation error.")).JSON()
 		ctx.Data(500, "application/json", data)
 		return
 	}
 	cmd.Args["duration"] = duration
 
-	c := &core.CommandRequest{cmd, form.Token, make(chan bfs.Response)}
+	c := &bytengine.CommandRequest{cmd, form.Token, make(chan bytengine.Response)}
 	CommandsChan <- c
 	data := <-c.ResultChannel
 	ctx.Data(200, "application/json", data.JSON())
@@ -170,7 +190,7 @@ func uploadFileHandler(ctx *gin.Context) {
 	ticket := ctx.Params.ByName("ticket")
 	filename, _, err := uploadFileHelper(300, ctx)
 	if err != nil {
-		data := bfs.ErrorResponse(fmt.Errorf("upload failed: %s", err.Error())).JSON()
+		data := bytengine.ErrorResponse(fmt.Errorf("upload failed: %s", err.Error())).JSON()
 		ctx.Data(500, "application/json", data)
 		return
 	}
@@ -178,7 +198,7 @@ func uploadFileHandler(ctx *gin.Context) {
 	cmd := dsl.NewCommand("writebytes", false)
 	cmd.Args["ticket"] = ticket
 	cmd.Args["tmpfile"] = filename
-	c := &core.CommandRequest{cmd, "", make(chan bfs.Response)}
+	c := &bytengine.CommandRequest{cmd, "", make(chan bytengine.Response)}
 	CommandsChan <- c
 	data := <-c.ResultChannel
 	ctx.Data(200, "application/json", data.JSON())
@@ -192,7 +212,7 @@ func downloadFileHandler(ctx *gin.Context) {
 	}
 	ok := ctx.Bind(&form)
 	if !ok {
-		data := bfs.ErrorResponse(fmt.Errorf("Missing parameters")).JSON()
+		data := bytengine.ErrorResponse(fmt.Errorf("Missing parameters")).JSON()
 		ctx.Data(400, "application/json", data)
 		return
 	}
@@ -201,11 +221,11 @@ func downloadFileHandler(ctx *gin.Context) {
 	cmd.Database = form.Database
 	cmd.Args["path"] = form.Path
 	cmd.Args["writer"] = ctx.Writer
-	c := &core.CommandRequest{cmd, form.Token, make(chan bfs.Response)}
+	c := &bytengine.CommandRequest{cmd, form.Token, make(chan bytengine.Response)}
 	ctx.Writer.Header().Set("Content-Type", "application/octet-stream")
 	CommandsChan <- c
 	data := <-c.ResultChannel
-	if data.Status != bfs.OK {
+	if data.Status != bytengine.OK {
 		ctx.String(500, data.String())
 		return
 	}
@@ -221,7 +241,7 @@ func directaccessHandler(ctx *gin.Context) {
 	cmd.Args["path"] = path
 	cmd.Args["layer"] = layer
 	cmd.Args["writer"] = ctx.Writer
-	c := &core.CommandRequest{cmd, "", make(chan bfs.Response)}
+	c := &bytengine.CommandRequest{cmd, "", make(chan bytengine.Response)}
 	if layer == "json" {
 		ctx.Writer.Header().Set("Content-Type", "application/json")
 	} else {
@@ -229,7 +249,7 @@ func directaccessHandler(ctx *gin.Context) {
 	}
 	CommandsChan <- c
 	data := <-c.ResultChannel
-	if data.Status != bfs.OK {
+	if data.Status != bytengine.OK {
 		ctx.String(404, data.String())
 		return
 	}
@@ -256,7 +276,7 @@ func main() {
 			}
 			Configuration, err = simplejson.NewFromReader(rdr)
 
-			err = core.CreateAdminUser(usr, pw, Configuration.Get("bytengine"))
+			err = bytengine.CreateAdminUser(AUTH_PLUGIN, usr, pw, Configuration.Get("bytengine"))
 			if err != nil {
 				fmt.Println("Error: ", err)
 				os.Exit(1)
@@ -283,7 +303,7 @@ func main() {
 			port := Configuration.Get("port").MustInt()
 
 			// setup channels
-			ScriptsChan, CommandsChan = core.WorkerPool(wcount, Configuration.Get("bytengine"))
+			ScriptsChan, CommandsChan = WorkerPool(wcount, Configuration.Get("bytengine"))
 
 			// setup routes
 			router := gin.Default()

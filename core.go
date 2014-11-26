@@ -1,45 +1,39 @@
-package core
+package bytengine
 
 import (
 	"errors"
 	"fmt"
 
 	"github.com/bitly/go-simplejson"
-	"github.com/johnwilson/bytengine/auth"
-	bst "github.com/johnwilson/bytengine/bytestore"
-	"github.com/johnwilson/bytengine/datafilter"
 	"github.com/johnwilson/bytengine/dsl"
-	bfs "github.com/johnwilson/bytengine/filesystem"
-	"github.com/johnwilson/bytengine/plugin"
-	sts "github.com/johnwilson/bytengine/statestore"
 )
 
-type RequestHandler func(cmd dsl.Command, user *auth.User, e *Engine) bfs.Response
+type RequestHandler func(cmd dsl.Command, user *User, e *Engine) Response
 
-type FilterMethod func(r *bfs.Response) bfs.Response
+type FilterMethod func(r *Response) Response
 
 // Routes commands to handlers
 type Router struct {
 	cmdRegistry map[string]RequestHandler
-	filters     []datafilter.DataFilter
+	filters     []DataFilter
 }
 
 func (cr *Router) Add(name string, fn RequestHandler) {
 	cr.cmdRegistry[name] = fn
 }
 
-func (cr *Router) Exec(cmd dsl.Command, user *auth.User, e *Engine) bfs.Response {
+func (cr *Router) Exec(cmd dsl.Command, user *User, e *Engine) Response {
 	// check if command in cmdRegistry
 	fn, ok := cr.cmdRegistry[cmd.Name]
 	if !ok {
 		msg := fmt.Sprintf("Command '%s' not found", cmd.Name)
-		return bfs.ErrorResponse(errors.New(msg))
+		return ErrorResponse(errors.New(msg))
 	}
 
 	msg_auth := "User not authorized to execute command"
 	// check id admin command
 	if cmd.IsAdmin() && !user.Root {
-		return bfs.ErrorResponse(errors.New(msg_auth))
+		return ErrorResponse(errors.New(msg_auth))
 	}
 
 	// check user database access
@@ -52,7 +46,7 @@ func (cr *Router) Exec(cmd dsl.Command, user *auth.User, e *Engine) bfs.Response
 			}
 		}
 		if !dbaccess {
-			return bfs.ErrorResponse(errors.New(msg_auth))
+			return ErrorResponse(errors.New(msg_auth))
 		}
 	}
 
@@ -64,19 +58,19 @@ func (cr *Router) Exec(cmd dsl.Command, user *auth.User, e *Engine) bfs.Response
 				return filtergroup.Apply(cmd.Filter, &val)
 			}
 		}
-		return bfs.ErrorResponse(fmt.Errorf("Filter '%s' not found", cmd.Filter))
+		return ErrorResponse(fmt.Errorf("Filter '%s' not found", cmd.Filter))
 	}
 	return val
 }
 
-func (cr *Router) AddFilters(f datafilter.DataFilter) {
+func (cr *Router) AddFilters(f DataFilter) {
 	cr.filters = append(cr.filters, f)
 }
 
 func NewRouter() *Router {
 	cr := Router{}
 	cr.cmdRegistry = map[string]RequestHandler{}
-	cr.filters = []datafilter.DataFilter{}
+	cr.filters = []DataFilter{}
 	return &cr
 }
 
@@ -89,18 +83,18 @@ type ScriptRequest struct {
 type CommandRequest struct {
 	Command       dsl.Command
 	Token         string
-	ResultChannel chan bfs.Response
+	ResultChannel chan Response
 }
 
 type Engine struct {
 	Router        *Router
-	AuthManager   auth.Authentication
-	BFSManager    bfs.BFS
-	BStoreManager bst.ByteStore
-	StateManager  sts.StateStore
+	AuthManager   Authentication
+	BFSManager    BFS
+	BStoreManager ByteStore
+	StateManager  StateStore
 }
 
-func (e Engine) checkUser(token string) (*auth.User, error) {
+func (e Engine) checkUser(token string) (*User, error) {
 	// check token
 	if len(token) == 0 {
 		// anonymous user
@@ -140,18 +134,18 @@ func (e Engine) Start(scripts chan *ScriptRequest, commands chan *CommandRequest
 			user, err := e.checkUser(srq.Token)
 			// check anonymous login
 			if user == nil && err == nil {
-				srq.ResultChannel <- bfs.ErrorResponse(errors.New("Authorization required")).JSON()
+				srq.ResultChannel <- ErrorResponse(errors.New("Authorization required")).JSON()
 				continue
 			}
 			if err != nil {
-				srq.ResultChannel <- bfs.ErrorResponse(err).JSON()
+				srq.ResultChannel <- ErrorResponse(err).JSON()
 				continue
 			}
 
 			// parse script
 			cmdlist, err := e.parseScript(srq.Text)
 			if err != nil {
-				srq.ResultChannel <- bfs.ErrorResponse(err).JSON()
+				srq.ResultChannel <- ErrorResponse(err).JSON()
 				continue
 			}
 
@@ -160,7 +154,7 @@ func (e Engine) Start(scripts chan *ScriptRequest, commands chan *CommandRequest
 			execerr := false
 			for _, cmd := range cmdlist {
 				r := e.Router.Exec(cmd, user, &e)
-				if r.Status != bfs.OK {
+				if r.Status != OK {
 					srq.ResultChannel <- r.JSON()
 					execerr = true
 					break
@@ -170,15 +164,15 @@ func (e Engine) Start(scripts chan *ScriptRequest, commands chan *CommandRequest
 
 			if !execerr {
 				if len(resultset) > 1 {
-					srq.ResultChannel <- bfs.OKResponse(resultset).JSON()
+					srq.ResultChannel <- OKResponse(resultset).JSON()
 				} else {
-					srq.ResultChannel <- bfs.OKResponse(resultset[0]).JSON()
+					srq.ResultChannel <- OKResponse(resultset[0]).JSON()
 				}
 			}
 		case crq := <-commands:
 			user, err := e.checkUser(crq.Token)
 			if err != nil {
-				crq.ResultChannel <- bfs.ErrorResponse(err)
+				crq.ResultChannel <- ErrorResponse(err)
 				continue
 			}
 			// exec command
@@ -188,85 +182,64 @@ func (e Engine) Start(scripts chan *ScriptRequest, commands chan *CommandRequest
 	}
 }
 
-func CreateDataFilter(config *simplejson.Json) datafilter.DataFilter {
-	df, err := plugin.NewDataFilter(DATA_FILTER_PLUGIN, "")
+func CreateDataFilter(plugin string, config *simplejson.Json) DataFilter {
+	df, err := NewDataFilter(plugin, "")
 	if err != nil {
 		panic(err)
 	}
 	return df
 }
 
-func CreateAuthManager(config *simplejson.Json) auth.Authentication {
+func CreateAuthManager(plugin string, config *simplejson.Json) Authentication {
 	b, err := config.Get("auth").MarshalJSON()
 	if err != nil {
 		panic(err)
 	}
-	authM, err := plugin.NewAuthentication(AUTH_PLUGIN, string(b))
+	authM, err := NewAuthentication(plugin, string(b))
 	if err != nil {
 		panic(err)
 	}
 	return authM
 }
 
-func CreateBSTManager(config *simplejson.Json) bst.ByteStore {
+func CreateBSTManager(plugin string, config *simplejson.Json) ByteStore {
 	b, err := config.Get("bst").MarshalJSON()
 	if err != nil {
 		panic(err)
 	}
-	bstM, err := plugin.NewByteStore(BST_PLUGIN, string(b))
+	bstM, err := NewByteStore(plugin, string(b))
 	if err != nil {
 		panic(err)
 	}
 	return bstM
 }
 
-func CreateBFSManager(bstore *bst.ByteStore, config *simplejson.Json) bfs.BFS {
+func CreateBFSManager(plugin string, bstore *ByteStore, config *simplejson.Json) BFS {
 	b, err := config.Get("bfs").MarshalJSON()
 	if err != nil {
 		panic(err)
 	}
-	bfsM, err := plugin.NewFileSystem(BFS_PLUGIN, string(b), bstore)
+	bfsM, err := NewFileSystem(plugin, string(b), bstore)
 	if err != nil {
 		panic(err)
 	}
 	return bfsM
 }
 
-func CreateStateManager(config *simplejson.Json) sts.StateStore {
+func CreateStateManager(plugin string, config *simplejson.Json) StateStore {
 	b, err := config.Get("state").MarshalJSON()
 	if err != nil {
 		panic(err)
 	}
-	stateM, err := plugin.NewStateStore(STATE_PLUGIN, string(b))
+	stateM, err := NewStateStore(plugin, string(b))
 	if err != nil {
 		panic(err)
 	}
 	return stateM
 }
 
-func WorkerPool(n int, config *simplejson.Json) (chan *ScriptRequest, chan *CommandRequest) {
-	queries := make(chan *ScriptRequest)
-	commands := make(chan *CommandRequest)
-
-	for i := 0; i < n; i++ {
-		authM := CreateAuthManager(config)
-		bstM := CreateBSTManager(config)
-		bfsM := CreateBFSManager(&bstM, config)
-		stateM := CreateStateManager(config)
-		df := CreateDataFilter(config)
-		router := NewRouter()
-		router.AddFilters(df)
-		initialize(router)
-		eng := Engine{router, authM, bfsM, bstM, stateM}
-
-		go eng.Start(queries, commands)
-	}
-
-	return queries, commands
-}
-
-func CreateAdminUser(usr, pw string, config *simplejson.Json) error {
-	authM := CreateAuthManager(config)
+func CreateAdminUser(plugin, usr, pw string, config *simplejson.Json) error {
+	authM := CreateAuthManager(plugin, config)
 	err := authM.NewUser(usr, pw, true)
 	return err
 }

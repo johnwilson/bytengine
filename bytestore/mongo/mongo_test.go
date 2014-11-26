@@ -1,13 +1,13 @@
-package diskv
+package mongo
 
 import (
-	"github.com/johnwilson/bytengine/plugin"
+	"github.com/johnwilson/bytengine"
 	"io/ioutil"
 	"os"
 	"testing"
 )
 
-func TestDiskVBST(t *testing.T) {
+func TestMongoBST(t *testing.T) {
 	// create test file
 	txt := "Hello from bst!"
 	fpath := "/tmp/bytengine_bst_test.txt"
@@ -17,11 +17,14 @@ func TestDiskVBST(t *testing.T) {
 	}
 
 	// create bst client
-	b, err := plugin.NewByteStore(
-		"diskv",
+	b, err := bytengine.NewByteStore(
+		"mongodb",
 		`{
-            "rootdir":"/tmp/diskv_data",
-            "cachesize":1
+            "addresses":["localhost:27017"],
+            "authdb":"",
+            "username":"",
+            "password":"",
+            "timeout":60
         }`,
 	)
 	if err != nil {

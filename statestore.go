@@ -1,4 +1,4 @@
-package statestore
+package bytengine
 
 type StateStore interface {
 	TokenSet(token, user string, timeout int64) error

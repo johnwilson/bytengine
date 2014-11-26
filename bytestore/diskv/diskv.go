@@ -7,8 +7,7 @@ import (
 	"os"
 	"strings"
 
-	bst "github.com/johnwilson/bytengine/bytestore"
-	"github.com/johnwilson/bytengine/plugin"
+	"github.com/johnwilson/bytengine"
 	"github.com/nu7hatch/gouuid"
 	"github.com/peterbourgon/diskv"
 )
@@ -48,7 +47,7 @@ func (m *ByteStore) save(key string, file *os.File) (map[string]interface{}, err
 		return nil, err
 	}
 
-	info, err := bst.GetFileInfo(file.Name())
+	info, err := bytengine.GetFileInfo(file.Name())
 	if err != nil {
 		return nil, err
 	}
@@ -152,5 +151,5 @@ func NewByteStore() *ByteStore {
 }
 
 func init() {
-	plugin.Register("diskv", NewByteStore())
+	bytengine.RegisterByteStore("diskv", NewByteStore())
 }

@@ -5,9 +5,9 @@ import (
 	"os"
 	"testing"
 
+	"github.com/johnwilson/bytengine"
 	"github.com/johnwilson/bytengine/dsl"
 	bfs "github.com/johnwilson/bytengine/filesystem"
-	"github.com/johnwilson/bytengine/plugin"
 	_ "github.com/johnwilson/bytengine/plugin/bytestore/diskv"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/mgo.v2/bson"
@@ -31,10 +31,10 @@ const (
 
 func TestDatabaseManagement(t *testing.T) {
 	// get bst plugin
-	bstore, err := plugin.NewByteStore("diskv", BSTORE_CONFIG)
+	bstore, err := bytengine.NewByteStore("diskv", BSTORE_CONFIG)
 	assert.Nil(t, err, "bst not created")
 	// get bfs plugin
-	mfs, err := plugin.NewFileSystem("mongodb", BFS_CONFIG, &bstore)
+	mfs, err := bytengine.NewFileSystem("mongodb", BFS_CONFIG, &bstore)
 	assert.Nil(t, err, "bfs not created")
 
 	// Clear all
@@ -97,10 +97,10 @@ func TestDatabaseManagement(t *testing.T) {
 
 func TestContentManagement(t *testing.T) {
 	// get bst plugin
-	bstore, err := plugin.NewByteStore("diskv", BSTORE_CONFIG)
+	bstore, err := bytengine.NewByteStore("diskv", BSTORE_CONFIG)
 	assert.Nil(t, err, "bst not created")
 	// get bfs plugin
-	mfs, err := plugin.NewFileSystem("mongodb", BFS_CONFIG, &bstore)
+	mfs, err := bytengine.NewFileSystem("mongodb", BFS_CONFIG, &bstore)
 	assert.Nil(t, err, "bfs not created")
 
 	// set database
@@ -167,10 +167,10 @@ func TestContentManagement(t *testing.T) {
 
 func TestCounters(t *testing.T) {
 	// get bst plugin
-	bstore, err := plugin.NewByteStore("diskv", BSTORE_CONFIG)
+	bstore, err := bytengine.NewByteStore("diskv", BSTORE_CONFIG)
 	assert.Nil(t, err, "bst not created")
 	// get bfs plugin
-	mfs, err := plugin.NewFileSystem("mongodb", BFS_CONFIG, &bstore)
+	mfs, err := bytengine.NewFileSystem("mongodb", BFS_CONFIG, &bstore)
 	assert.Nil(t, err, "bfs not created")
 
 	// set database
@@ -214,10 +214,10 @@ func TestCounters(t *testing.T) {
 
 func TestSearch(t *testing.T) {
 	// get bst plugin
-	bstore, err := plugin.NewByteStore("diskv", BSTORE_CONFIG)
+	bstore, err := bytengine.NewByteStore("diskv", BSTORE_CONFIG)
 	assert.Nil(t, err, "bst not created")
 	// get bfs plugin
-	mfs, err := plugin.NewFileSystem("mongodb", BFS_CONFIG, &bstore)
+	mfs, err := bytengine.NewFileSystem("mongodb", BFS_CONFIG, &bstore)
 	assert.Nil(t, err, "bfs not created")
 
 	// set database
@@ -291,10 +291,10 @@ func TestSearch(t *testing.T) {
 
 func TestSetUnset(t *testing.T) {
 	// get bst plugin
-	bstore, err := plugin.NewByteStore("diskv", BSTORE_CONFIG)
+	bstore, err := bytengine.NewByteStore("diskv", BSTORE_CONFIG)
 	assert.Nil(t, err, "bst not created")
 	// get bfs plugin
-	mfs, err := plugin.NewFileSystem("mongodb", BFS_CONFIG, &bstore)
+	mfs, err := bytengine.NewFileSystem("mongodb", BFS_CONFIG, &bstore)
 	assert.Nil(t, err, "bfs not created")
 
 	// set database
@@ -347,10 +347,10 @@ func TestSetUnset(t *testing.T) {
 
 func TestAttachmentManagement(t *testing.T) {
 	// get bst plugin
-	bstore, err := plugin.NewByteStore("diskv", BSTORE_CONFIG)
+	bstore, err := bytengine.NewByteStore("diskv", BSTORE_CONFIG)
 	assert.Nil(t, err, "bst not created")
 	// get bfs plugin
-	mfs, err := plugin.NewFileSystem("mongodb", BFS_CONFIG, &bstore)
+	mfs, err := bytengine.NewFileSystem("mongodb", BFS_CONFIG, &bstore)
 	assert.Nil(t, err, "bfs not created")
 
 	// set database

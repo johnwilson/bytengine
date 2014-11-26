@@ -1,6 +1,6 @@
-package core
+package bytengine
 
-func initialize(r *Router) {
+func Initialize(r *Router) {
 	// user management commands
 	r.Add("user.new", userNew)
 	r.Add("user.all", userAll)

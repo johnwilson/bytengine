@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/fzzy/radix/redis"
-	"github.com/johnwilson/bytengine/plugin"
+	"github.com/johnwilson/bytengine"
 )
 
 type Config struct {
@@ -104,5 +104,5 @@ func NewStateStore() *StateStore {
 }
 
 func init() {
-	plugin.Register("redis", NewStateStore())
+	bytengine.RegisterStateStore("redis", NewStateStore())
 }

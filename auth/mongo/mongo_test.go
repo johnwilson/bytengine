@@ -1,7 +1,7 @@
 package mongo
 
 import (
-	"github.com/johnwilson/bytengine/plugin"
+	"github.com/johnwilson/bytengine"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -18,7 +18,7 @@ const (
 )
 
 func TestUserManagement(t *testing.T) {
-	mgauth, err := plugin.NewAuthentication("mongodb", CONFIG)
+	mgauth, err := bytengine.NewAuthentication("mongodb", CONFIG)
 	assert.Nil(t, err, "auth not created")
 
 	// initialize db

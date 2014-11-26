@@ -2,14 +2,14 @@ package mongo
 
 import (
 	"encoding/json"
-	bst "github.com/johnwilson/bytengine/bytestore"
-	"github.com/johnwilson/bytengine/plugin"
-	"github.com/nu7hatch/gouuid"
-	"gopkg.in/mgo.v2"
 	"io"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/johnwilson/bytengine"
+	"github.com/nu7hatch/gouuid"
+	"gopkg.in/mgo.v2"
 )
 
 const (
@@ -43,7 +43,7 @@ func (m *ByteStore) save(db, filename string, file *os.File) (map[string]interfa
 	if err != nil {
 		return nil, err
 	}
-	info, err := bst.GetFileInfo(file.Name())
+	info, err := bytengine.GetFileInfo(file.Name())
 	if err != nil {
 		return nil, err
 	}
@@ -163,5 +163,5 @@ func NewByteStore() *ByteStore {
 }
 
 func init() {
-	plugin.Register("mongodb", NewByteStore())
+	bytengine.RegisterByteStore("mongodb", NewByteStore())
 }
