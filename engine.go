@@ -8,8 +8,6 @@ import (
 	"github.com/johnwilson/bytengine/dsl"
 )
 
-type CommandHandler func(cmd dsl.Command, user *User, eng *Engine) Response
-
 type Engine struct {
 	AuthPlugin       Authentication
 	FileSystemPlugin BFS

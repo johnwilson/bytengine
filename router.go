@@ -7,30 +7,37 @@ import (
 	"github.com/johnwilson/bytengine/dsl"
 )
 
-var commandRegistry = make(map[string]CommandHandler)
-var datafilters = make([]DataFilter, 1)
+type CommandHandler func(cmd dsl.Command, user *User, eng *Engine) Response
+type DataFilter func(r *Response, eng *Engine) Response
+
+var cmdHandlerRegistry = make(map[string]CommandHandler)
+var dataFilterRegistry = make(map[string]DataFilter)
 
 func RegisterCommandHandler(name string, fn CommandHandler) {
 	if fn == nil {
-		panic("Command Handler Addition: handler is nil")
+		panic("Command Handler registration: handler is nil")
 	}
 
-	if _, exists := commandRegistry[name]; exists {
-		panic(fmt.Sprintf("Command Handler Addition: handler '%s' already added", name))
+	if _, exists := cmdHandlerRegistry[name]; exists {
+		panic(fmt.Sprintf("Command Handler registration: handler '%s' already added", name))
 	}
-	commandRegistry[name] = fn
+	cmdHandlerRegistry[name] = fn
 }
 
-func RegisterFilters(f DataFilter) {
-	if f == nil {
-		panic("Data Filter Addition: data filter is nil")
+func RegisterDataFilter(name string, fn DataFilter) {
+	if fn == nil {
+		panic("Data Filter registration: filter is nil")
 	}
-	datafilters = append(datafilters, f)
+
+	if _, exists := dataFilterRegistry[name]; exists {
+		panic(fmt.Sprintf("Data Filter registration: filter '%s' already added", name))
+	}
+	dataFilterRegistry[name] = fn
 }
 
 func (eng *Engine) Exec(cmd dsl.Command, user *User) Response {
-	// check if command in commandRegistry
-	fn, ok := commandRegistry[cmd.Name]
+	// check if command in cmdHandlerRegistry
+	fn, ok := cmdHandlerRegistry[cmd.Name]
 	if !ok {
 		msg := fmt.Sprintf("Command '%s' not found", cmd.Name)
 		return ErrorResponse(errors.New(msg))
@@ -59,12 +66,13 @@ func (eng *Engine) Exec(cmd dsl.Command, user *User) Response {
 	val := fn(cmd, user, eng)
 	// check sendto
 	if cmd.Filter != "" {
-		for _, filtergroup := range datafilters {
-			if filtergroup.Check(cmd.Filter) {
-				return filtergroup.Apply(cmd.Filter, &val, eng)
-			}
+		df, ok := dataFilterRegistry[cmd.Filter]
+		if !ok {
+			msg := fmt.Sprintf("Filter '%s' not found", cmd.Filter)
+			return ErrorResponse(errors.New(msg))
 		}
-		return ErrorResponse(fmt.Errorf("Filter '%s' not found", cmd.Filter))
+
+		return df(&val, eng)
 	}
 	return val
 }

@@ -43,17 +43,6 @@ func RegisterFileSystem(name string, plugin BFS) {
 	bfsPlugins[name] = plugin
 }
 
-func RegisterDataFilter(name string, plugin DataFilter) {
-	if plugin == nil {
-		panic("Data Filter Plugin Registration: plugin is nil")
-	}
-
-	if _, exists := dfPlugins[name]; exists {
-		panic(fmt.Sprintf("Data Filter Plugin Registration: plugin '%s' already registered", name))
-	}
-	dfPlugins[name] = plugin
-}
-
 func RegisterStateStore(name string, plugin StateStore) {
 	if plugin == nil {
 		panic("State Store Plugin Registration: plugin is nil")
@@ -98,19 +87,6 @@ func NewFileSystem(pluginName, config string, b *ByteStore) (plugin BFS, err err
 		return
 	}
 	err = plugin.Start(config, b)
-	if err != nil {
-		plugin = nil
-	}
-	return
-}
-
-func NewDataFilter(pluginName, config string) (plugin DataFilter, err error) {
-	plugin, ok := dfPlugins[pluginName]
-	if !ok {
-		err = fmt.Errorf("Data Filter Plugin Creation: unknown plugin name %q (forgot to import?)", pluginName)
-		return
-	}
-	err = plugin.Start(config)
 	if err != nil {
 		plugin = nil
 	}
