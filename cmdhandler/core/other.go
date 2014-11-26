@@ -11,12 +11,12 @@ import (
 )
 
 // handler for: login
-func LoginHandler(cmd dsl.Command, user *bytengine.User) bytengine.Response {
+func LoginHandler(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) bytengine.Response {
 	usr := cmd.Args["username"].(string)
 	pw := cmd.Args["password"].(string)
 	duration := cmd.Args["duration"].(int64)
 
-	ok := bytengine.AuthPlugin.Authenticate(usr, pw)
+	ok := eng.AuthPlugin.Authenticate(usr, pw)
 	if !ok {
 		return bytengine.ErrorResponse(fmt.Errorf("Authentication failed"))
 	}
@@ -27,7 +27,7 @@ func LoginHandler(cmd dsl.Command, user *bytengine.User) bytengine.Response {
 	}
 
 	token := fmt.Sprintf("%x", key)
-	err := bytengine.StateStorePlugin.TokenSet(token, usr, 60*duration)
+	err := eng.StateStorePlugin.TokenSet(token, usr, 60*duration)
 	if err != nil {
 		return bytengine.ErrorResponse(fmt.Errorf("Token creation failed"))
 	}
@@ -36,7 +36,7 @@ func LoginHandler(cmd dsl.Command, user *bytengine.User) bytengine.Response {
 }
 
 // handler for: upload ticket
-func UploadTicketHandler(cmd dsl.Command, user *bytengine.User) bytengine.Response {
+func UploadTicketHandler(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) bytengine.Response {
 	// check if user is anonymous
 	if user == nil {
 		return bytengine.ErrorResponse(fmt.Errorf("Authorization required"))
@@ -46,7 +46,7 @@ func UploadTicketHandler(cmd dsl.Command, user *bytengine.User) bytengine.Respon
 	path := cmd.Args["path"].(string)
 	duration := cmd.Args["duration"].(int64)
 	// check if path exists
-	r := bytengine.FileSystemPlugin.Info(path, db)
+	r := eng.FileSystemPlugin.Info(path, db)
 	if r.Status != bytengine.OK {
 		return r
 	}
@@ -65,7 +65,7 @@ func UploadTicketHandler(cmd dsl.Command, user *bytengine.User) bytengine.Respon
 	if err != nil {
 		return bytengine.ErrorResponse(fmt.Errorf("Ticket creation failed"))
 	}
-	err = bytengine.StateStorePlugin.CacheSet(ticket, string(b), 60*duration)
+	err = eng.StateStorePlugin.CacheSet(ticket, string(b), 60*duration)
 	if err != nil {
 		return bytengine.ErrorResponse(fmt.Errorf("Ticket creation failed"))
 	}
@@ -74,11 +74,11 @@ func UploadTicketHandler(cmd dsl.Command, user *bytengine.User) bytengine.Respon
 }
 
 // handler for: writebytes
-func WritebytesHandler(cmd dsl.Command, user *bytengine.User) bytengine.Response {
+func WritebytesHandler(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) bytengine.Response {
 	ticket := cmd.Args["ticket"].(string)
 	tmpfile := cmd.Args["tmpfile"].(string)
 	// get ticket
-	content, err := bytengine.StateStorePlugin.CacheGet(ticket)
+	content, err := eng.StateStorePlugin.CacheGet(ticket)
 	if err != nil {
 		os.Remove(tmpfile)
 		return bytengine.ErrorResponse(fmt.Errorf("Invalid ticket"))
@@ -95,13 +95,13 @@ func WritebytesHandler(cmd dsl.Command, user *bytengine.User) bytengine.Response
 		return bytengine.ErrorResponse(fmt.Errorf("Ticket data invalid"))
 	}
 
-	r := bytengine.FileSystemPlugin.WriteBytes(val.Path, tmpfile, val.Database)
+	r := eng.FileSystemPlugin.WriteBytes(val.Path, tmpfile, val.Database)
 	os.Remove(tmpfile)
 	return r
 }
 
 // handler for: readbytes
-func ReadbytesHandler(cmd dsl.Command, user *bytengine.User) bytengine.Response {
+func ReadbytesHandler(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) bytengine.Response {
 	// check if user is anonymous
 	if user == nil {
 		return bytengine.ErrorResponse(fmt.Errorf("Authorization required"))
@@ -110,14 +110,14 @@ func ReadbytesHandler(cmd dsl.Command, user *bytengine.User) bytengine.Response 
 	db := cmd.Database
 	w := cmd.Args["writer"].(io.Writer)
 	path := cmd.Args["path"].(string)
-	r := bytengine.FileSystemPlugin.ReadBytes(path, db)
+	r := eng.FileSystemPlugin.ReadBytes(path, db)
 	if r.Status != bytengine.OK {
 		return r
 	}
 
 	// get file pointer
 	bstoreid := r.Data.(string)
-	err := bytengine.ByteStorePlugin.Read(db, bstoreid, w)
+	err := eng.ByteStorePlugin.Read(db, bstoreid, w)
 	if err != nil {
 		return bytengine.ErrorResponse(err)
 	}
@@ -126,12 +126,12 @@ func ReadbytesHandler(cmd dsl.Command, user *bytengine.User) bytengine.Response 
 }
 
 // handler for: direct access
-func DirecaccessHandler(cmd dsl.Command, user *bytengine.User) bytengine.Response {
+func DirecaccessHandler(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) bytengine.Response {
 	db := cmd.Args["database"].(string)
 	w := cmd.Args["writer"].(io.Writer)
 	path := cmd.Args["path"].(string)
 	layer := cmd.Args["layer"].(string)
-	r := bytengine.FileSystemPlugin.DirectAccess(path, db, layer)
+	r := eng.FileSystemPlugin.DirectAccess(path, db, layer)
 	if r.Status != bytengine.OK {
 		return r
 	}
@@ -146,7 +146,7 @@ func DirecaccessHandler(cmd dsl.Command, user *bytengine.User) bytengine.Respons
 	case "bytes":
 		// get file pointer
 		bstoreid := r.Data.(string)
-		err := bytengine.ByteStorePlugin.Read(db, bstoreid, w)
+		err := eng.ByteStorePlugin.Read(db, bstoreid, w)
 		if err != nil {
 			return bytengine.ErrorResponse(err)
 		}

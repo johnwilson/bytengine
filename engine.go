@@ -8,32 +8,36 @@ import (
 	"github.com/johnwilson/bytengine/dsl"
 )
 
-type CommandHandler func(cmd dsl.Command, user *User) Response
+type CommandHandler func(cmd dsl.Command, user *User, eng *Engine) Response
 
-var (
+type Engine struct {
 	AuthPlugin       Authentication
 	FileSystemPlugin BFS
 	ByteStorePlugin  ByteStore
 	StateStorePlugin StateStore
-	DataFilterPlugin DataFilter
-)
+}
 
-func checkUser(token string) (*User, error) {
+func NewEngine() *Engine {
+	e := Engine{}
+	return &e
+}
+
+func (eng *Engine) checkUser(token string) (*User, error) {
 	// check token
 	if len(token) == 0 {
 		// anonymous user
 		return nil, nil
 	}
 
-	uname, err := StateStorePlugin.TokenGet(token)
+	uname, err := eng.StateStorePlugin.TokenGet(token)
 	if err != nil {
 		return nil, errors.New("invalid auth token")
 	}
 
-	return AuthPlugin.UserInfo(uname)
+	return eng.AuthPlugin.UserInfo(uname)
 }
 
-func parseScript(script string) ([]dsl.Command, error) {
+func (eng *Engine) parseScript(script string) ([]dsl.Command, error) {
 	var cmds []dsl.Command
 	if len(script) == 0 {
 		return cmds, errors.New("empty script")
@@ -48,15 +52,6 @@ func parseScript(script string) ([]dsl.Command, error) {
 	}
 
 	return cmds, nil
-}
-
-func createDataFilter(config *simplejson.Json) DataFilter {
-	plugin := config.Get("datafilter").Get("plugin").MustString("")
-	df, err := NewDataFilter(plugin, "")
-	if err != nil {
-		panic(err)
-	}
-	return df
 }
 
 func createAuthManager(config *simplejson.Json) Authentication {
@@ -112,17 +107,16 @@ func createStateManager(config *simplejson.Json) StateStore {
 }
 
 // start engine and configure plugins with 'config'
-func Start(config *simplejson.Json) {
-	AuthPlugin = createAuthManager(config)
-	ByteStorePlugin = createBSTManager(config)
-	FileSystemPlugin = createBFSManager(&ByteStorePlugin, config)
-	StateStorePlugin = createStateManager(config)
-	DataFilterPlugin = createDataFilter(config)
+func (eng *Engine) Start(config *simplejson.Json) {
+	eng.AuthPlugin = createAuthManager(config)
+	eng.ByteStorePlugin = createBSTManager(config)
+	eng.FileSystemPlugin = createBFSManager(&eng.ByteStorePlugin, config)
+	eng.StateStorePlugin = createStateManager(config)
 }
 
-func ExecuteScript(token, script string) (*Response, error) {
+func (eng *Engine) ExecuteScript(token, script string) (*Response, error) {
 	// check user
-	user, err := checkUser(token)
+	user, err := eng.checkUser(token)
 	// check anonymous login
 	if user == nil && err == nil {
 		return nil, errors.New("Authorization required")
@@ -132,7 +126,7 @@ func ExecuteScript(token, script string) (*Response, error) {
 	}
 
 	// parse script
-	cmdlist, err := parseScript(script)
+	cmdlist, err := eng.parseScript(script)
 	if err != nil {
 		return nil, err
 	}
@@ -140,7 +134,7 @@ func ExecuteScript(token, script string) (*Response, error) {
 	// execute command(s)
 	resultset := []interface{}{}
 	for _, cmd := range cmdlist {
-		r := Exec(cmd, user)
+		r := eng.Exec(cmd, user)
 		if r.Status != OK {
 			return nil, errors.New(r.StatusMessage)
 		}
@@ -156,17 +150,17 @@ func ExecuteScript(token, script string) (*Response, error) {
 	return &r, nil
 }
 
-func ExecuteCommand(token string, cmd dsl.Command) (*Response, error) {
-	user, err := checkUser(token)
+func (eng *Engine) ExecuteCommand(token string, cmd dsl.Command) (*Response, error) {
+	user, err := eng.checkUser(token)
 	if err != nil {
 		return nil, err
 	}
 	// exec command
-	r := Exec(cmd, user)
+	r := eng.Exec(cmd, user)
 	return &r, nil
 }
 
-func CreateAdminUser(usr, pw string) error {
-	err := AuthPlugin.NewUser(usr, pw, true)
+func (eng *Engine) CreateAdminUser(usr, pw string) error {
+	err := eng.AuthPlugin.NewUser(usr, pw, true)
 	return err
 }

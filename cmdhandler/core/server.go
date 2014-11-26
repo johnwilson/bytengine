@@ -6,30 +6,30 @@ import (
 )
 
 // handler for: server.listdb
-func ServerListDb(cmd dsl.Command, user *bytengine.User) bytengine.Response {
+func ServerListDb(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) bytengine.Response {
 	filter := "."
 	val, ok := cmd.Options["regex"]
 	if ok {
 		filter = val.(string)
 	}
-	return bytengine.FileSystemPlugin.ListDatabase(filter)
+	return eng.FileSystemPlugin.ListDatabase(filter)
 }
 
 // handler for: server.newdb
-func ServerNewDb(cmd dsl.Command, user *bytengine.User) bytengine.Response {
+func ServerNewDb(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) bytengine.Response {
 	db := cmd.Args["database"].(string)
-	return bytengine.FileSystemPlugin.CreateDatabase(db)
+	return eng.FileSystemPlugin.CreateDatabase(db)
 }
 
 // handler for: server.init
-func ServerInit(cmd dsl.Command, user *bytengine.User) bytengine.Response {
-	return bytengine.FileSystemPlugin.ClearAll()
+func ServerInit(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) bytengine.Response {
+	return eng.FileSystemPlugin.ClearAll()
 }
 
 // handler for: server.dropdb
-func ServerDropDb(cmd dsl.Command, user *bytengine.User) bytengine.Response {
+func ServerDropDb(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) bytengine.Response {
 	db := cmd.Args["database"].(string)
-	return bytengine.FileSystemPlugin.DropDatabase(db)
+	return eng.FileSystemPlugin.DropDatabase(db)
 }
 
 func init() {

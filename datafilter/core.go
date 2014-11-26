@@ -7,7 +7,7 @@ import (
 	"github.com/johnwilson/bytengine"
 )
 
-type FilterFunction func(r *bytengine.Response) bytengine.Response
+type FilterFunction func(r *bytengine.Response, eng *bytengine.Engine) bytengine.Response
 
 type RegistryItem struct {
 	fn          FilterFunction
@@ -25,7 +25,7 @@ func NewCoreFilters() *CoreFilters {
 func (cf *CoreFilters) Start(config string) error {
 	cf.registry = map[string]RegistryItem{}
 	// add filters to registry
-	fn := func(r *bytengine.Response) bytengine.Response {
+	fn := func(r *bytengine.Response, eng *bytengine.Engine) bytengine.Response {
 		if r.Status != bytengine.OK {
 			return *r
 		}
@@ -43,12 +43,12 @@ func (cf *CoreFilters) Start(config string) error {
 	return nil
 }
 
-func (cf CoreFilters) Apply(filter string, r *bytengine.Response) bytengine.Response {
+func (cf CoreFilters) Apply(filter string, r *bytengine.Response, eng *bytengine.Engine) bytengine.Response {
 	regitem, ok := cf.registry[filter]
 	if !ok {
 		return bytengine.ErrorResponse(fmt.Errorf("Filter '%s' not found", filter))
 	}
-	return regitem.fn(r)
+	return regitem.fn(r, eng)
 }
 
 func (cf CoreFilters) Info(filter string) string {

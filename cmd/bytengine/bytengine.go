@@ -13,6 +13,7 @@ import (
 )
 
 var Configuration *simplejson.Json
+var engine *bytengine.Engine
 
 const (
 	VERSION = "0.2.0"
@@ -45,7 +46,7 @@ func runScriptHandler(ctx *gin.Context) {
 		return
 	}
 
-	r, err := bytengine.ExecuteScript(form.Token, form.Query)
+	r, err := engine.ExecuteScript(form.Token, form.Query)
 	if err != nil {
 		data := bytengine.ErrorResponse(err).JSON()
 		ctx.Data(500, "application/json", data)
@@ -79,7 +80,7 @@ func getTokenHandler(ctx *gin.Context) {
 	}
 	cmd.Args["duration"] = duration
 
-	r, err := bytengine.ExecuteCommand("", cmd)
+	r, err := engine.ExecuteCommand("", cmd)
 	if err != nil {
 		data := bytengine.ErrorResponse(err).JSON()
 		ctx.Data(500, "application/json", data)
@@ -114,7 +115,7 @@ func getUploadTicketHandler(ctx *gin.Context) {
 	}
 	cmd.Args["duration"] = duration
 
-	r, err := bytengine.ExecuteCommand(form.Token, cmd)
+	r, err := engine.ExecuteCommand(form.Token, cmd)
 	if err != nil {
 		data := bytengine.ErrorResponse(err).JSON()
 		ctx.Data(500, "application/json", data)
@@ -188,7 +189,7 @@ func uploadFileHandler(ctx *gin.Context) {
 	cmd.Args["ticket"] = ticket
 	cmd.Args["tmpfile"] = filename
 
-	r, err := bytengine.ExecuteCommand("", cmd)
+	r, err := engine.ExecuteCommand("", cmd)
 	if err != nil {
 		data := bytengine.ErrorResponse(err).JSON()
 		ctx.Data(500, "application/json", data)
@@ -217,7 +218,7 @@ func downloadFileHandler(ctx *gin.Context) {
 	cmd.Args["writer"] = ctx.Writer
 
 	ctx.Writer.Header().Set("Content-Type", "application/octet-stream")
-	_, err := bytengine.ExecuteCommand(form.Token, cmd)
+	_, err := engine.ExecuteCommand(form.Token, cmd)
 	if err != nil {
 		data := bytengine.ErrorResponse(err).String()
 		ctx.String(500, data)
@@ -242,7 +243,7 @@ func directaccessHandler(ctx *gin.Context) {
 		ctx.Writer.Header().Set("Content-Type", "application/octet-stream")
 	}
 
-	_, err := bytengine.ExecuteCommand("", cmd)
+	_, err := engine.ExecuteCommand("", cmd)
 	if err != nil {
 		data := bytengine.ErrorResponse(err).String()
 		ctx.String(404, data)
@@ -252,6 +253,8 @@ func directaccessHandler(ctx *gin.Context) {
 
 func main() {
 	app := cli.NewApp()
+	engine = bytengine.NewEngine()
+
 	createadminCmd := cli.Command{
 		Name: "createadmin",
 		Flags: []cli.Flag{
@@ -272,9 +275,9 @@ func main() {
 			Configuration, err = simplejson.NewFromReader(rdr)
 
 			// start bytengine
-			bytengine.Start(Configuration.Get("bytengine"))
+			engine.Start(Configuration.Get("bytengine"))
 
-			err = bytengine.CreateAdminUser(usr, pw)
+			err = engine.CreateAdminUser(usr, pw)
 			if err != nil {
 				fmt.Println("Error: ", err)
 				os.Exit(1)
@@ -300,7 +303,7 @@ func main() {
 			port := Configuration.Get("port").MustInt()
 
 			// start bytengine
-			bytengine.Start(Configuration.Get("bytengine"))
+			engine.Start(Configuration.Get("bytengine"))
 
 			// setup routes
 			router := gin.Default()

@@ -1,5 +1,6 @@
 package bytengine
 
+// Manages authentication tokens, upload tickets and caching
 type StateStore interface {
 	TokenSet(token, user string, timeout int64) error
 	TokenGet(token string) (string, error)

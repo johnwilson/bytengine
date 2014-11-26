@@ -28,7 +28,7 @@ func RegisterFilters(f DataFilter) {
 	datafilters = append(datafilters, f)
 }
 
-func Exec(cmd dsl.Command, user *User) Response {
+func (eng *Engine) Exec(cmd dsl.Command, user *User) Response {
 	// check if command in commandRegistry
 	fn, ok := commandRegistry[cmd.Name]
 	if !ok {
@@ -56,12 +56,12 @@ func Exec(cmd dsl.Command, user *User) Response {
 		}
 	}
 
-	val := fn(cmd, user)
+	val := fn(cmd, user, eng)
 	// check sendto
 	if cmd.Filter != "" {
 		for _, filtergroup := range datafilters {
 			if filtergroup.Check(cmd.Filter) {
-				return filtergroup.Apply(cmd.Filter, &val)
+				return filtergroup.Apply(cmd.Filter, &val, eng)
 			}
 		}
 		return ErrorResponse(fmt.Errorf("Filter '%s' not found", cmd.Filter))
