@@ -6,9 +6,8 @@ import (
 	"testing"
 
 	"github.com/johnwilson/bytengine"
+	_ "github.com/johnwilson/bytengine/bytestore/diskv"
 	"github.com/johnwilson/bytengine/dsl"
-	bfs "github.com/johnwilson/bytengine/filesystem"
-	_ "github.com/johnwilson/bytengine/plugin/bytestore/diskv"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/mgo.v2/bson"
 )
@@ -39,17 +38,17 @@ func TestDatabaseManagement(t *testing.T) {
 
 	// Clear all
 	rep := mfs.ClearAll()
-	assert.Equal(t, bfs.OK, rep.Status, rep.StatusMessage)
+	assert.Equal(t, bytengine.OK, rep.Status, rep.StatusMessage)
 
 	// Create databases
 	rep = mfs.CreateDatabase("db1")
-	assert.Equal(t, bfs.OK, rep.Status, rep.StatusMessage)
+	assert.Equal(t, bytengine.OK, rep.Status, rep.StatusMessage)
 	rep = mfs.CreateDatabase("db2")
-	assert.Equal(t, bfs.OK, rep.Status, rep.StatusMessage)
+	assert.Equal(t, bytengine.OK, rep.Status, rep.StatusMessage)
 
 	// List databases
 	rep = mfs.ListDatabase("")
-	assert.Equal(t, bfs.OK, rep.Status, rep.StatusMessage)
+	assert.Equal(t, bytengine.OK, rep.Status, rep.StatusMessage)
 
 	list := rep.Data.([]string)
 	assert.Len(t, list, 2, "all databases not created")
@@ -71,11 +70,11 @@ func TestDatabaseManagement(t *testing.T) {
 
 	// Delete database
 	rep = mfs.DropDatabase("db2")
-	assert.Equal(t, bfs.OK, rep.Status, rep.StatusMessage)
+	assert.Equal(t, bytengine.OK, rep.Status, rep.StatusMessage)
 
 	// check database list
 	rep = mfs.ListDatabase("")
-	assert.Equal(t, bfs.OK, rep.Status, rep.StatusMessage)
+	assert.Equal(t, bytengine.OK, rep.Status, rep.StatusMessage)
 	list = rep.Data.([]string)
 	assert.Len(t, list, 1, "database not deleted")
 
@@ -91,7 +90,7 @@ func TestDatabaseManagement(t *testing.T) {
 			continue
 		}
 	}
-	assert.True(t, db1_found, "db1 not found after bfs.dropdatabase")
+	assert.True(t, db1_found, "db1 not found after bytengine.dropdatabase")
 	assert.False(t, db2_found, "db2 not deleted from bfs")
 }
 
@@ -108,13 +107,13 @@ func TestContentManagement(t *testing.T) {
 
 	// create directories
 	rep := mfs.NewDir("/var", db)
-	assert.Equal(t, bfs.OK, rep.Status, rep.StatusMessage)
+	assert.Equal(t, bytengine.OK, rep.Status, rep.StatusMessage)
 	rep = mfs.NewDir("/var/www", db)
-	assert.Equal(t, bfs.OK, rep.Status, rep.StatusMessage)
+	assert.Equal(t, bytengine.OK, rep.Status, rep.StatusMessage)
 
 	// create file
 	rep = mfs.NewFile("/var/www/index.html", db, map[string]interface{}{})
-	assert.Equal(t, bfs.OK, rep.Status, rep.StatusMessage)
+	assert.Equal(t, bytengine.OK, rep.Status, rep.StatusMessage)
 
 	// update file
 	data := map[string]interface{}{
@@ -122,11 +121,11 @@ func TestContentManagement(t *testing.T) {
 		"body":  "Hello world!",
 	}
 	rep = mfs.UpdateJson("/var/www/index.html", db, data)
-	assert.Equal(t, bfs.OK, rep.Status, rep.StatusMessage)
+	assert.Equal(t, bytengine.OK, rep.Status, rep.StatusMessage)
 
 	// read file
 	rep = mfs.ReadJson("/var/www/index.html", db, []string{"title", "body"})
-	assert.Equal(t, bfs.OK, rep.Status, rep.StatusMessage)
+	assert.Equal(t, bytengine.OK, rep.Status, rep.StatusMessage)
 	val, ok := rep.Data.(bson.M)
 	assert.True(t, ok, "couldn't cast file content to bson.M")
 	assert.Equal(t, val["title"], "welcome", "incorrect file content: title")
@@ -134,11 +133,11 @@ func TestContentManagement(t *testing.T) {
 
 	// copy file
 	rep = mfs.Copy("/var/www/index.html", "/var/www/index_copy.html", db)
-	assert.Equal(t, bfs.OK, rep.Status, rep.StatusMessage)
+	assert.Equal(t, bytengine.OK, rep.Status, rep.StatusMessage)
 
 	// directory listing
 	rep = mfs.ListDir("/var/www", "", db)
-	assert.Equal(t, bfs.OK, rep.Status, rep.StatusMessage)
+	assert.Equal(t, bytengine.OK, rep.Status, rep.StatusMessage)
 	val2, ok := rep.Data.(map[string][]string)
 	assert.True(t, ok, "couldn't cast directory listing to map[string][]string")
 	l := val2["files"]
@@ -146,11 +145,11 @@ func TestContentManagement(t *testing.T) {
 
 	// copy directory
 	rep = mfs.Copy("/var/www", "/www", db)
-	assert.Equal(t, bfs.OK, rep.Status, rep.StatusMessage)
+	assert.Equal(t, bytengine.OK, rep.Status, rep.StatusMessage)
 
 	// directory listing
 	rep = mfs.ListDir("/www", "", db)
-	assert.Equal(t, bfs.OK, rep.Status, rep.StatusMessage)
+	assert.Equal(t, bytengine.OK, rep.Status, rep.StatusMessage)
 	val2, ok = rep.Data.(map[string][]string)
 	assert.True(t, ok, "couldn't cast directory listing to map[string][]string")
 	l = val2["files"]
@@ -158,7 +157,7 @@ func TestContentManagement(t *testing.T) {
 
 	// read copied file contents
 	rep = mfs.ReadJson("/www/index_copy.html", db, []string{"title", "body"})
-	assert.Equal(t, bfs.OK, rep.Status, rep.StatusMessage)
+	assert.Equal(t, bytengine.OK, rep.Status, rep.StatusMessage)
 	val, ok = rep.Data.(bson.M)
 	assert.True(t, ok, "couldn't cast file content to bson.M")
 	assert.Equal(t, val["title"], "welcome", "incorrect file content: title")
@@ -177,36 +176,36 @@ func TestCounters(t *testing.T) {
 	db := "db1"
 
 	rep := mfs.SetCounter("users", "incr", 1, db)
-	assert.Equal(t, bfs.OK, rep.Status, rep.StatusMessage)
+	assert.Equal(t, bytengine.OK, rep.Status, rep.StatusMessage)
 	val, ok := rep.Data.(int64)
 	assert.True(t, ok, "couldn't cast search result into int")
 	assert.Equal(t, val, 1, "counter create failed")
 
 	rep = mfs.SetCounter("users", "decr", 1, db)
-	assert.Equal(t, bfs.OK, rep.Status, rep.StatusMessage)
+	assert.Equal(t, bytengine.OK, rep.Status, rep.StatusMessage)
 	val, ok = rep.Data.(int64)
 	assert.True(t, ok, "couldn't cast search result into int")
 	assert.Equal(t, val, 0, "counter create failed")
 
 	rep = mfs.SetCounter("users", "reset", 5, db)
-	assert.Equal(t, bfs.OK, rep.Status, rep.StatusMessage)
+	assert.Equal(t, bytengine.OK, rep.Status, rep.StatusMessage)
 	val, ok = rep.Data.(int64)
 	assert.True(t, ok, "couldn't cast search result into int")
 	assert.Equal(t, val, 5, "counter create failed")
 
 	rep = mfs.SetCounter("user1.likes", "incr", 1, db)
-	assert.Equal(t, bfs.OK, rep.Status, rep.StatusMessage)
+	assert.Equal(t, bytengine.OK, rep.Status, rep.StatusMessage)
 	rep = mfs.SetCounter("car.users", "incr", 1, db)
-	assert.Equal(t, bfs.OK, rep.Status, rep.StatusMessage)
+	assert.Equal(t, bytengine.OK, rep.Status, rep.StatusMessage)
 
 	rep = mfs.ListCounter("", db)
-	assert.Equal(t, bfs.OK, rep.Status, rep.StatusMessage)
+	assert.Equal(t, bytengine.OK, rep.Status, rep.StatusMessage)
 	val2, ok := rep.Data.([]CounterItem)
 	assert.True(t, ok, "couldn't cast search result into []interface")
 	assert.Len(t, val2, 3, "counter list failed")
 
 	rep = mfs.ListCounter("^user", db)
-	assert.Equal(t, bfs.OK, rep.Status, rep.StatusMessage)
+	assert.Equal(t, bytengine.OK, rep.Status, rep.StatusMessage)
 	val2, ok = rep.Data.([]CounterItem)
 	assert.True(t, ok, "couldn't cast search result into []interface")
 	assert.Len(t, val2, 2, "counter list failed")
@@ -225,43 +224,43 @@ func TestSearch(t *testing.T) {
 
 	// create dir and add files
 	rep := mfs.NewDir("/users", db)
-	assert.Equal(t, bfs.OK, rep.Status, rep.StatusMessage)
+	assert.Equal(t, bytengine.OK, rep.Status, rep.StatusMessage)
 	rep = mfs.NewFile("/users/u1", db, map[string]interface{}{
 		"name":    "john",
 		"age":     34,
 		"country": "ghana",
 	})
-	assert.Equal(t, bfs.OK, rep.Status, rep.StatusMessage)
+	assert.Equal(t, bytengine.OK, rep.Status, rep.StatusMessage)
 	rep = mfs.NewFile("/users/u2", db, map[string]interface{}{
 		"name":    "jason",
 		"age":     18,
 		"country": "ghana",
 	})
-	assert.Equal(t, bfs.OK, rep.Status, rep.StatusMessage)
+	assert.Equal(t, bytengine.OK, rep.Status, rep.StatusMessage)
 	rep = mfs.NewFile("/users/u3", db, map[string]interface{}{
 		"name": "juliette",
 		"age":  18,
 	})
-	assert.Equal(t, bfs.OK, rep.Status, rep.StatusMessage)
+	assert.Equal(t, bytengine.OK, rep.Status, rep.StatusMessage)
 	rep = mfs.NewFile("/users/u4", db, map[string]interface{}{
 		"name":    "michelle",
 		"age":     21,
 		"country": "uk",
 	})
-	assert.Equal(t, bfs.OK, rep.Status, rep.StatusMessage)
+	assert.Equal(t, bytengine.OK, rep.Status, rep.StatusMessage)
 	rep = mfs.NewFile("/users/u5", db, map[string]interface{}{
 		"name":    "dennis",
 		"age":     22,
 		"country": "france",
 	})
-	assert.Equal(t, bfs.OK, rep.Status, rep.StatusMessage)
+	assert.Equal(t, bytengine.OK, rep.Status, rep.StatusMessage)
 
 	// parse script and run
 	script := `@test.select "name" "age" in /users where "country" in ["ghana"]`
 	cmd, err := dsl.NewParser().Parse(script)
 	assert.Nil(t, err, "couldn't parse script")
 	rep = mfs.BQLSearch(db, cmd[0].Args)
-	assert.Equal(t, bfs.OK, rep.Status, rep.StatusMessage)
+	assert.Equal(t, bytengine.OK, rep.Status, rep.StatusMessage)
 	val, ok := rep.Data.([]interface{})
 	assert.True(t, ok, "couldn't cast search result into []interface")
 	assert.Len(t, val, 2, "search failed")
@@ -272,7 +271,7 @@ func TestSearch(t *testing.T) {
 	cmd, err = dsl.NewParser().Parse(script)
 	assert.Nil(t, err, "couldn't parse script")
 	rep = mfs.BQLSearch(db, cmd[0].Args)
-	assert.Equal(t, bfs.OK, rep.Status, rep.StatusMessage)
+	assert.Equal(t, bytengine.OK, rep.Status, rep.StatusMessage)
 	val, ok = rep.Data.([]interface{})
 	assert.True(t, ok, "couldn't cast search result into []interface")
 	assert.Len(t, val, 2, "search failed")
@@ -283,7 +282,7 @@ func TestSearch(t *testing.T) {
 	cmd, err = dsl.NewParser().Parse(script)
 	assert.Nil(t, err, "couldn't parse script")
 	rep = mfs.BQLSearch(db, cmd[0].Args)
-	assert.Equal(t, bfs.OK, rep.Status, rep.StatusMessage)
+	assert.Equal(t, bytengine.OK, rep.Status, rep.StatusMessage)
 	val, ok = rep.Data.([]interface{})
 	assert.True(t, ok, "couldn't cast search result into []interface")
 	assert.Len(t, val, 4, "search failed")
@@ -309,13 +308,13 @@ func TestSetUnset(t *testing.T) {
 	cmd, err := dsl.NewParser().Parse(script)
 	assert.Nil(t, err, "couldn't parse script")
 	rep := mfs.BQLSet(db, cmd[0].Args)
-	assert.Equal(t, bfs.OK, rep.Status, rep.StatusMessage)
+	assert.Equal(t, bytengine.OK, rep.Status, rep.StatusMessage)
 	val, ok := rep.Data.(int)
 	assert.True(t, ok, "couldn't cast search result into int")
 	assert.Equal(t, val, 2, "set data failed")
 
 	rep = mfs.ReadJson("/users/u1", db, []string{})
-	assert.Equal(t, bfs.OK, rep.Status, rep.StatusMessage)
+	assert.Equal(t, bytengine.OK, rep.Status, rep.StatusMessage)
 	data, ok := rep.Data.(bson.M)
 	assert.True(t, ok, "couldn't cast file content to bson.M")
 	country, ok := data["country"].(bson.M)
@@ -330,7 +329,7 @@ func TestSetUnset(t *testing.T) {
 	cmd, err = dsl.NewParser().Parse(script)
 	assert.Nil(t, err, "couldn't parse script")
 	rep = mfs.BQLUnset(db, cmd[0].Args)
-	assert.Equal(t, bfs.OK, rep.Status, rep.StatusMessage)
+	assert.Equal(t, bytengine.OK, rep.Status, rep.StatusMessage)
 	val, ok = rep.Data.(int)
 	assert.True(t, ok, "couldn't cast search result into int")
 	assert.Equal(t, val, 4, "unset data failed")
@@ -339,7 +338,7 @@ func TestSetUnset(t *testing.T) {
 	cmd, err = dsl.NewParser().Parse(script)
 	assert.Nil(t, err, "couldn't parse script")
 	rep = mfs.BQLSearch(db, cmd[0].Args)
-	assert.Equal(t, bfs.OK, rep.Status, rep.StatusMessage)
+	assert.Equal(t, bytengine.OK, rep.Status, rep.StatusMessage)
 	val2, ok := rep.Data.([]interface{})
 	assert.True(t, ok, "couldn't cast search result into []interface")
 	assert.Len(t, val2, 5, "search failed")
@@ -368,11 +367,11 @@ func TestAttachmentManagement(t *testing.T) {
 	}
 	bfs_path := "/file_with_attachment"
 	rep := mfs.NewFile(bfs_path, db, data)
-	assert.Equal(t, bfs.OK, rep.Status, rep.StatusMessage)
+	assert.Equal(t, bytengine.OK, rep.Status, rep.StatusMessage)
 
 	// add to bfs
 	rep = mfs.WriteBytes(bfs_path, fpath, db)
-	assert.Equal(t, bfs.OK, rep.Status, rep.StatusMessage)
+	assert.Equal(t, bytengine.OK, rep.Status, rep.StatusMessage)
 
 	// read from store
 	fpath2 := "/tmp/bfs_attach_down.txt"
@@ -380,7 +379,7 @@ func TestAttachmentManagement(t *testing.T) {
 	assert.Nil(t, err, "download test file not created")
 
 	rep = mfs.ReadBytes(bfs_path, db)
-	assert.Equal(t, bfs.OK, rep.Status, rep.StatusMessage)
+	assert.Equal(t, bytengine.OK, rep.Status, rep.StatusMessage)
 	bstore_id, ok := rep.Data.(string)
 	assert.True(t, ok, "couldn't cast bst id into string")
 

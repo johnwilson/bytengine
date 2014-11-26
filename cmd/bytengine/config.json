@@ -1,6 +1,7 @@
 {
     "bytengine": {
         "auth": {
+            "plugin": "mongodb",
             "addresses":["localhost:27017"],
             "authdb":"",
             "username":"",
@@ -8,6 +9,7 @@
             "timeout":60
         },
         "bfs": {
+            "plugin": "mongodb",
             "addresses":["localhost:27017"],
             "authdb":"",
             "username":"",
@@ -15,14 +17,19 @@
             "timeout":60
         },
         "state": {
+            "plugin": "redis",
             "address": "localhost:6379",
             "password": "",
             "timeout": 60,
             "database": 1
         },
         "bst": {
+            "plugin": "diskv",
             "rootdir":"/tmp/bytengine_bst",
             "cachesize":1
+        },
+        "datafilter": {
+            "plugin": "core"
         }
     },
     "workers": 2,

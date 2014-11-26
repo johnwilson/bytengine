@@ -12,34 +12,11 @@ import (
 	"github.com/johnwilson/bytengine/dsl"
 )
 
-var ScriptsChan chan *bytengine.ScriptRequest
-var CommandsChan chan *bytengine.CommandRequest
 var Configuration *simplejson.Json
 
 const (
 	VERSION = "0.2.0"
 )
-
-func WorkerPool(n int, config *simplejson.Json) (chan *bytengine.ScriptRequest, chan *bytengine.CommandRequest) {
-	queries := make(chan *bytengine.ScriptRequest)
-	commands := make(chan *bytengine.CommandRequest)
-
-	for i := 0; i < n; i++ {
-		authM := bytengine.CreateAuthManager(AUTH_PLUGIN, config)
-		bstM := bytengine.CreateBSTManager(BST_PLUGIN, config)
-		bfsM := bytengine.CreateBFSManager(BFS_PLUGIN, &bstM, config)
-		stateM := bytengine.CreateStateManager(STATE_PLUGIN, config)
-		df := bytengine.CreateDataFilter(DATA_FILTER_PLUGIN, config)
-		router := bytengine.NewRouter()
-		router.AddFilters(df)
-		bytengine.Initialize(router)
-		eng := bytengine.Engine{router, authM, bfsM, bstM, stateM}
-
-		go eng.Start(queries, commands)
-	}
-
-	return queries, commands
-}
 
 func welcomeHandler(ctx *gin.Context) {
 	msg := simplejson.New()
@@ -68,10 +45,14 @@ func runScriptHandler(ctx *gin.Context) {
 		return
 	}
 
-	q := &bytengine.ScriptRequest{form.Query, form.Token, make(chan []byte)}
-	ScriptsChan <- q
-	data := <-q.ResultChannel
-	ctx.Data(200, "application/json", data)
+	r, err := bytengine.ExecuteScript(form.Token, form.Query)
+	if err != nil {
+		data := bytengine.ErrorResponse(err).JSON()
+		ctx.Data(500, "application/json", data)
+		return
+	}
+
+	ctx.Data(200, "application/json", r.JSON())
 }
 
 func getTokenHandler(ctx *gin.Context) {
@@ -98,10 +79,14 @@ func getTokenHandler(ctx *gin.Context) {
 	}
 	cmd.Args["duration"] = duration
 
-	c := &bytengine.CommandRequest{cmd, "", make(chan bytengine.Response)}
-	CommandsChan <- c
-	data := <-c.ResultChannel
-	ctx.Data(200, "application/json", data.JSON())
+	r, err := bytengine.ExecuteCommand("", cmd)
+	if err != nil {
+		data := bytengine.ErrorResponse(err).JSON()
+		ctx.Data(500, "application/json", data)
+		return
+	}
+
+	ctx.Data(200, "application/json", r.JSON())
 }
 
 func getUploadTicketHandler(ctx *gin.Context) {
@@ -129,10 +114,14 @@ func getUploadTicketHandler(ctx *gin.Context) {
 	}
 	cmd.Args["duration"] = duration
 
-	c := &bytengine.CommandRequest{cmd, form.Token, make(chan bytengine.Response)}
-	CommandsChan <- c
-	data := <-c.ResultChannel
-	ctx.Data(200, "application/json", data.JSON())
+	r, err := bytengine.ExecuteCommand(form.Token, cmd)
+	if err != nil {
+		data := bytengine.ErrorResponse(err).JSON()
+		ctx.Data(500, "application/json", data)
+		return
+	}
+
+	ctx.Data(200, "application/json", r.JSON())
 }
 
 func uploadFileHelper(max int, ctx *gin.Context) (string, int, error) {
@@ -198,10 +187,15 @@ func uploadFileHandler(ctx *gin.Context) {
 	cmd := dsl.NewCommand("writebytes", false)
 	cmd.Args["ticket"] = ticket
 	cmd.Args["tmpfile"] = filename
-	c := &bytengine.CommandRequest{cmd, "", make(chan bytengine.Response)}
-	CommandsChan <- c
-	data := <-c.ResultChannel
-	ctx.Data(200, "application/json", data.JSON())
+
+	r, err := bytengine.ExecuteCommand("", cmd)
+	if err != nil {
+		data := bytengine.ErrorResponse(err).JSON()
+		ctx.Data(500, "application/json", data)
+		return
+	}
+
+	ctx.Data(200, "application/json", r.JSON())
 }
 
 func downloadFileHandler(ctx *gin.Context) {
@@ -221,12 +215,12 @@ func downloadFileHandler(ctx *gin.Context) {
 	cmd.Database = form.Database
 	cmd.Args["path"] = form.Path
 	cmd.Args["writer"] = ctx.Writer
-	c := &bytengine.CommandRequest{cmd, form.Token, make(chan bytengine.Response)}
+
 	ctx.Writer.Header().Set("Content-Type", "application/octet-stream")
-	CommandsChan <- c
-	data := <-c.ResultChannel
-	if data.Status != bytengine.OK {
-		ctx.String(500, data.String())
+	_, err := bytengine.ExecuteCommand(form.Token, cmd)
+	if err != nil {
+		data := bytengine.ErrorResponse(err).String()
+		ctx.String(500, data)
 		return
 	}
 }
@@ -241,16 +235,17 @@ func directaccessHandler(ctx *gin.Context) {
 	cmd.Args["path"] = path
 	cmd.Args["layer"] = layer
 	cmd.Args["writer"] = ctx.Writer
-	c := &bytengine.CommandRequest{cmd, "", make(chan bytengine.Response)}
+
 	if layer == "json" {
 		ctx.Writer.Header().Set("Content-Type", "application/json")
 	} else {
 		ctx.Writer.Header().Set("Content-Type", "application/octet-stream")
 	}
-	CommandsChan <- c
-	data := <-c.ResultChannel
-	if data.Status != bytengine.OK {
-		ctx.String(404, data.String())
+
+	_, err := bytengine.ExecuteCommand("", cmd)
+	if err != nil {
+		data := bytengine.ErrorResponse(err).String()
+		ctx.String(404, data)
 		return
 	}
 }
@@ -276,7 +271,10 @@ func main() {
 			}
 			Configuration, err = simplejson.NewFromReader(rdr)
 
-			err = bytengine.CreateAdminUser(AUTH_PLUGIN, usr, pw, Configuration.Get("bytengine"))
+			// start bytengine
+			bytengine.Start(Configuration.Get("bytengine"))
+
+			err = bytengine.CreateAdminUser(usr, pw)
 			if err != nil {
 				fmt.Println("Error: ", err)
 				os.Exit(1)
@@ -298,12 +296,11 @@ func main() {
 				os.Exit(1)
 			}
 			Configuration, err = simplejson.NewFromReader(rdr)
-			wcount := Configuration.Get("workers").MustInt()
 			addr := Configuration.Get("address").MustString()
 			port := Configuration.Get("port").MustInt()
 
-			// setup channels
-			ScriptsChan, CommandsChan = WorkerPool(wcount, Configuration.Get("bytengine"))
+			// start bytengine
+			bytengine.Start(Configuration.Get("bytengine"))
 
 			// setup routes
 			router := gin.Default()
