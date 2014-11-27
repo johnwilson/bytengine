@@ -132,9 +132,9 @@ func (eng *Engine) ExecuteScript(token, script string) (*Response, error) {
 	// execute command(s)
 	resultset := []interface{}{}
 	for _, cmd := range cmdlist {
-		r := eng.Exec(cmd, user)
-		if r.Status != OK {
-			return nil, errors.New(r.StatusMessage)
+		r, err := eng.execute(cmd, user)
+		if err != nil {
+			return nil, err
 		}
 		resultset = append(resultset, r.Data)
 	}
@@ -154,8 +154,8 @@ func (eng *Engine) ExecuteCommand(token string, cmd dsl.Command) (*Response, err
 		return nil, err
 	}
 	// exec command
-	r := eng.Exec(cmd, user)
-	return &r, nil
+	r, err := eng.execute(cmd, user)
+	return &r, err
 }
 
 func (eng *Engine) CreateAdminUser(usr, pw string) error {

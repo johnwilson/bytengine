@@ -242,10 +242,11 @@ func (m *FileSystem) Start(config string, b *bytengine.ByteStore) error {
 	return nil
 }
 
-func (m *FileSystem) ClearAll() bytengine.Response {
+func (m *FileSystem) ClearAll() (bytengine.Response, error) {
+	msg := "clear all data failed" // general error message
 	dbs, err := m.session.DatabaseNames()
 	if err != nil {
-		return bytengine.ErrorResponse(err)
+		return bytengine.ErrorResponse(errors.New(msg)), err
 	}
 
 	found := make([]string, 0)
@@ -253,29 +254,30 @@ func (m *FileSystem) ClearAll() bytengine.Response {
 		if strings.HasPrefix(db, DB_PREFIX) {
 			err = m.session.DB(db).DropDatabase()
 			if err != nil {
-				return bytengine.ErrorResponse(err)
+				return bytengine.ErrorResponse(errors.New(msg)), err
 			}
 			// drop database from bst
 			err = m.bstore.DropDatabase(db)
 			if err != nil {
-				return bytengine.ErrorResponse(err)
+				return bytengine.ErrorResponse(errors.New(msg)), err
 			}
-			found = append(found, db)
+			found = append(found, strings.TrimPrefix(db, DB_PREFIX))
 		}
 	}
 
-	return bytengine.OKResponse(found)
+	return bytengine.OKResponse(found), nil
 }
 
-func (m *FileSystem) ListDatabase(filter string) bytengine.Response {
+func (m *FileSystem) ListDatabase(filter string) (bytengine.Response, error) {
+	msg := "list databases failed" // general error message
 	r, err := regexp.Compile(filter)
 	if err != nil {
-		return bytengine.ErrorResponse(err)
+		return bytengine.ErrorResponse(errors.New(msg)), err
 	}
 
 	dbs, err := m.session.DatabaseNames()
 	if err != nil {
-		return bytengine.ErrorResponse(err)
+		return bytengine.ErrorResponse(errors.New(msg)), err
 	}
 
 	found := make([]string, 0)
@@ -288,19 +290,20 @@ func (m *FileSystem) ListDatabase(filter string) bytengine.Response {
 		}
 	}
 
-	return bytengine.OKResponse(found)
+	return bytengine.OKResponse(found), nil
 }
 
-func (m *FileSystem) CreateDatabase(db string) bytengine.Response {
+func (m *FileSystem) CreateDatabase(db string) (bytengine.Response, error) {
 	err := bytengine.ValidateDbName(db)
 	if err != nil {
-		return bytengine.ErrorResponse(err)
+		return bytengine.ErrorResponse(errors.New("invalid database name")), err
 	}
 
+	msg := "database creation failed"
 	// create mongodb database collection root node
 	rn, err := makeRootDir()
 	if err != nil {
-		return bytengine.ErrorResponse(err)
+		return bytengine.ErrorResponse(errors.New(msg)), err
 	}
 
 	// create mongodb database and collection and insert record
@@ -308,19 +311,20 @@ func (m *FileSystem) CreateDatabase(db string) bytengine.Response {
 
 	err = col.Insert(&rn)
 	if err != nil {
-		return bytengine.ErrorResponse(err)
+		return bytengine.ErrorResponse(errors.New(msg)), err
 	}
 
-	return bytengine.OKResponse(true)
+	return bytengine.OKResponse(true), nil
 }
 
-func (m *FileSystem) DropDatabase(db string) bytengine.Response {
+func (m *FileSystem) DropDatabase(db string) (bytengine.Response, error) {
 	actual_db := DB_PREFIX + db
+	msg := "database deletion failed" // general error message
 
 	// check if db to be deleted exists
 	dbs, err := m.session.DatabaseNames()
 	if err != nil {
-		return bytengine.ErrorResponse(err)
+		return bytengine.ErrorResponse(errors.New(msg)), err
 	}
 	_db_exists := false
 	for _, item := range dbs {
@@ -330,36 +334,38 @@ func (m *FileSystem) DropDatabase(db string) bytengine.Response {
 		}
 	}
 	if !_db_exists {
-		msg := fmt.Sprintf("database '%s' doesn't exist", db)
-		return bytengine.ErrorResponse(errors.New(msg))
+		err := errors.New(fmt.Sprintf("database '%s' doesn't exist", db))
+		return bytengine.ErrorResponse(err), err
 	}
 
 	// drop db from mongodb
 	err = m.session.DB(actual_db).DropDatabase()
 	if err != nil {
-		return bytengine.ErrorResponse(err)
+		return bytengine.ErrorResponse(errors.New(msg)), err
 	}
 
 	// drop database from bst
 	err = m.bstore.DropDatabase(db)
 	if err != nil {
-		return bytengine.ErrorResponse(err)
+		return bytengine.ErrorResponse(errors.New(msg)), err
 	}
 
-	return bytengine.OKResponse(true)
+	return bytengine.OKResponse(true), nil
 }
 
-func (m *FileSystem) NewDir(p, db string) bytengine.Response {
+func (m *FileSystem) NewDir(p, db string) (bytengine.Response, error) {
+	errMsg := "directory creation failed" // general error message
 	// check path
 	p = path.Clean(p)
 	if p == "/" {
-		return bytengine.ErrorResponse(errors.New("root directory already exists"))
+		err := errors.New("root directory already exists")
+		return bytengine.ErrorResponse(err), err
 	}
 	_name := path.Base(p)
 	_parent := path.Dir(p)
 	err := bytengine.ValidateDirName(_name)
 	if err != nil {
-		return bytengine.ErrorResponse(err)
+		return bytengine.ErrorResponse(errors.New("invalid directory name")), err
 	}
 	// check if parent directory exists
 	q := m.findPathQuery(_parent)
@@ -371,27 +377,28 @@ func (m *FileSystem) NewDir(p, db string) bytengine.Response {
 	err = c.Find(q).One(&_parentdir)
 	if err != nil {
 		fmt.Println("here")
-		return bytengine.ErrorResponse(err)
+		return bytengine.ErrorResponse(errors.New(errMsg)), err
 	}
 	if _parentdir.Header.Type != "Directory" {
 		msg := fmt.Sprintf("directory '%s' couldn't be created: destination isn't a directory.", p)
-		return bytengine.ErrorResponse(errors.New(msg))
+		err := errors.New(msg)
+		return bytengine.ErrorResponse(err), err
 	}
 	// check if name already taken
 	q = m.findPathQuery(p)
 	_count, err := c.Find(q).Count()
 	if err != nil {
-		return bytengine.ErrorResponse(err)
+		return bytengine.ErrorResponse(errors.New(errMsg)), err
 	}
 	if _count > 0 {
-		msg := fmt.Sprintf("directory '%s' already exists", p)
-		return bytengine.ErrorResponse(errors.New(msg))
+		err := errors.New(fmt.Sprintf("directory '%s' already exists", p))
+		return bytengine.ErrorResponse(err), err
 	}
 
 	// create directory
 	id, err := bytengine.NewNodeID()
 	if err != nil {
-		return bytengine.ErrorResponse(err)
+		return bytengine.ErrorResponse(errors.New(errMsg)), err
 	}
 	dt := bytengine.FormatDatetime(time.Now())
 	h := NodeHeader{_name, "Directory", false, dt, _parent}
@@ -399,20 +406,21 @@ func (m *FileSystem) NewDir(p, db string) bytengine.Response {
 	// insert node into mongodb
 	err = c.Insert(&_dir)
 	if err != nil {
-		return bytengine.ErrorResponse(err)
+		return bytengine.ErrorResponse(errors.New(errMsg)), err
 	}
 
-	return bytengine.OKResponse(true)
+	return bytengine.OKResponse(true), nil
 }
 
-func (m *FileSystem) NewFile(p, db string, j map[string]interface{}) bytengine.Response {
+func (m *FileSystem) NewFile(p, db string, j map[string]interface{}) (bytengine.Response, error) {
+	errMsg := "file creation failed" // general error message
 	// check path
 	p = path.Clean(p)
 	_name := path.Base(p)
 	_parent := path.Dir(p)
 	err := bytengine.ValidateFileName(_name)
 	if err != nil {
-		return bytengine.ErrorResponse(err)
+		return bytengine.ErrorResponse(errors.New("invalid file name")), err
 	}
 	// check if parent directory exists
 	q := m.findPathQuery(_parent)
@@ -423,30 +431,27 @@ func (m *FileSystem) NewFile(p, db string, j map[string]interface{}) bytengine.R
 	// find record
 	err = c.Find(q).One(&_parentdir)
 	if err != nil {
-		msg := fmt.Sprintf("file '%s' couldn't be created: destination directory not found\n%s", p, err)
-		return bytengine.ErrorResponse(errors.New(msg))
+		return bytengine.ErrorResponse(errors.New("destination directory not found")), err
 	}
 	if _parentdir.Header.Type != "Directory" {
-		msg := fmt.Sprintf("file '%s' couldn't be created: destination isn't a directory.", p)
-		return bytengine.ErrorResponse(errors.New(msg))
+		err = errors.New("destination isn't a directory")
+		return bytengine.ErrorResponse(err), err
 	}
 	// check if name already taken
 	q = m.findPathQuery(p)
 	_count, err := c.Find(q).Count()
 	if err != nil {
-		msg := fmt.Sprintf("file '%s' couldn't be created.\n%s", p, err)
-		return bytengine.ErrorResponse(errors.New(msg))
+		return bytengine.ErrorResponse(errors.New(errMsg)), err
 	}
 	if _count > 0 {
-		msg := fmt.Sprintf("file '%s' already exists", p)
-		return bytengine.ErrorResponse(errors.New(msg))
+		err := fmt.Errorf("file '%s' already exists", p)
+		return bytengine.ErrorResponse(err), err
 	}
 
 	// create file
 	id, err := bytengine.NewNodeID()
 	if err != nil {
-		msg := fmt.Sprintf("file '%s' couldn't be created.\n%s", p, err)
-		return bytengine.ErrorResponse(errors.New(msg))
+		return bytengine.ErrorResponse(errors.New(errMsg)), err
 	}
 	dt := bytengine.FormatDatetime(time.Now())
 	h := NodeHeader{_name, "File", false, dt, _parent}
@@ -455,14 +460,14 @@ func (m *FileSystem) NewFile(p, db string, j map[string]interface{}) bytengine.R
 	// insert node into mongodb
 	err = c.Insert(&_file)
 	if err != nil {
-		msg := fmt.Sprintf("file '%s' couldn't be created.\n%s", p, err)
-		return bytengine.ErrorResponse(errors.New(msg))
+		return bytengine.ErrorResponse(errors.New(errMsg)), err
 	}
 
-	return bytengine.OKResponse(true)
+	return bytengine.OKResponse(true), nil
 }
 
-func (m *FileSystem) ListDir(p, filter, db string) bytengine.Response {
+func (m *FileSystem) ListDir(p, filter, db string) (bytengine.Response, error) {
+	errMsg := "directory listing failed" // general error message
 	// check path
 	p = path.Clean(p)
 
@@ -473,12 +478,11 @@ func (m *FileSystem) ListDir(p, filter, db string) bytengine.Response {
 	q := m.findPathQuery(p)
 	n, err := c.Find(q).Count()
 	if err != nil {
-		msg := fmt.Sprintf("error while trying to find the path: %s.\n%s", p, err)
-		return bytengine.ErrorResponse(errors.New(msg))
+		return bytengine.ErrorResponse(errors.New(errMsg)), err
 	}
 	if n != 1 {
-		msg := fmt.Sprintf("path '%s' doesn't exist.", p)
-		return bytengine.ErrorResponse(errors.New(msg))
+		err = fmt.Errorf("path '%s' doesn't exist.", p)
+		return bytengine.ErrorResponse(err), err
 	}
 
 	// find children
@@ -502,8 +506,7 @@ func (m *FileSystem) ListDir(p, filter, db string) bytengine.Response {
 	}
 	err = i.Err()
 	if err != nil {
-		msg := fmt.Sprintf("error while trying directory listing for: %s\n%s", p, err)
-		return bytengine.ErrorResponse(errors.New(msg))
+		return bytengine.ErrorResponse(errors.New(errMsg)), err
 	}
 	res := map[string][]string{
 		"dirs":   dirs,
@@ -511,10 +514,11 @@ func (m *FileSystem) ListDir(p, filter, db string) bytengine.Response {
 		"bfiles": bfiles,
 	}
 
-	return bytengine.OKResponse(res)
+	return bytengine.OKResponse(res), nil
 }
 
-func (m *FileSystem) ReadJson(p, db string, fields []string) bytengine.Response {
+func (m *FileSystem) ReadJson(p, db string, fields []string) (bytengine.Response, error) {
+	errMsg := "file content couldn't be retrieved" // general error message
 	// check path
 	p = path.Clean(p)
 
@@ -529,8 +533,7 @@ func (m *FileSystem) ReadJson(p, db string, fields []string) bytengine.Response 
 	if len(fields) == 0 {
 		err := c.Find(q).One(&r)
 		if err != nil {
-			msg := fmt.Sprintf("file '%s' content couldn't be retrieved.\n%s", p, err)
-			return bytengine.ErrorResponse(errors.New(msg))
+			return bytengine.ErrorResponse(errors.New(errMsg)), err
 		}
 	} else {
 		_flds := bson.M{"__header__": 1}
@@ -539,19 +542,21 @@ func (m *FileSystem) ReadJson(p, db string, fields []string) bytengine.Response 
 		}
 		err := c.Find(q).Select(_flds).One(&r)
 		if err != nil {
-			msg := fmt.Sprintf("file '%s' content couldn't be retrieved.\n%s", p, err)
-			return bytengine.ErrorResponse(errors.New(msg))
+			return bytengine.ErrorResponse(errors.New(errMsg)), err
 		}
 	}
 
-	return bytengine.OKResponse(r["content"])
+	return bytengine.OKResponse(r["content"]), nil
 }
 
-func (m *FileSystem) Delete(p, db string) bytengine.Response {
+func (m *FileSystem) Delete(p, db string) (bytengine.Response, error) {
+	errMsg := "deletion failed" // general error message
+
 	// check path
 	p = path.Clean(p)
 	if p == "/" {
-		return bytengine.ErrorResponse(errors.New("root directory cannot be deleted."))
+		err := errors.New("root directory can't be deleted")
+		return bytengine.ErrorResponse(err), err
 	}
 
 	// get collection
@@ -562,8 +567,7 @@ func (m *FileSystem) Delete(p, db string) bytengine.Response {
 	var ri SimpleResultItem
 	err := c.Find(q).One(&ri)
 	if err != nil {
-		msg := fmt.Sprintf("path '%s' couldn't be deleted.\n%s", p, err)
-		return bytengine.ErrorResponse(errors.New(msg))
+		return bytengine.ErrorResponse(errors.New(errMsg)), err
 	}
 	if ri.Header.Type == "Directory" {
 		// find all children
@@ -578,28 +582,24 @@ func (m *FileSystem) Delete(p, db string) bytengine.Response {
 		}
 		err = i.Err()
 		if err != nil {
-			msg := fmt.Sprintf("path '%s' couldn't be deleted.\n%s", p, err)
-			return bytengine.ErrorResponse(errors.New(msg))
+			return bytengine.ErrorResponse(errors.New(errMsg)), err
 		}
 		// delete all children
 		_, err := c.RemoveAll(q)
 		if err != nil {
-			msg := fmt.Sprintf("path '%s' couldn't be deleted.\n%s", p, err)
-			return bytengine.ErrorResponse(errors.New(msg))
+			return bytengine.ErrorResponse(errors.New(errMsg)), err
 		}
 		// delete attachments from bst
 		for _, item := range _attchs {
 			err = m.bstore.Delete(db, item)
 			if err != nil {
-				msg := fmt.Sprintf("path '%s' couldn't be deleted.\n%s", p, err)
-				return bytengine.ErrorResponse(errors.New(msg))
+				return bytengine.ErrorResponse(errors.New(errMsg)), err
 			}
 		}
 		// delete directory
 		err = c.RemoveId(ri.Id)
 		if err != nil {
-			msg := fmt.Sprintf("path '%s' couldn't be deleted.\n%s", p, err)
-			return bytengine.ErrorResponse(errors.New(msg))
+			return bytengine.ErrorResponse(errors.New(errMsg)), err
 		}
 
 	} else {
@@ -607,26 +607,27 @@ func (m *FileSystem) Delete(p, db string) bytengine.Response {
 			// delete attachment from bst
 			err = m.bstore.Delete(db, ri.AHeader.Filepointer)
 			if err != nil {
-				msg := fmt.Sprintf("path '%s' couldn't be deleted.\n%s", p, err)
-				return bytengine.ErrorResponse(errors.New(msg))
+				return bytengine.ErrorResponse(errors.New(errMsg)), err
 			}
 		}
 		// delete file
 		err = c.RemoveId(ri.Id)
 		if err != nil {
-			msg := fmt.Sprintf("path '%s' couldn't be deleted.\n%s", p, err)
-			return bytengine.ErrorResponse(errors.New(msg))
+			return bytengine.ErrorResponse(errors.New(errMsg)), err
 		}
 	}
 
-	return bytengine.OKResponse(true)
+	return bytengine.OKResponse(true), nil
 }
 
-func (m *FileSystem) Rename(p, newname, db string) bytengine.Response {
+func (m *FileSystem) Rename(p, newname, db string) (bytengine.Response, error) {
+	errMsg := "rename failed" // general error message
+
 	// check path
 	p = path.Clean(p)
 	if p == "/" {
-		return bytengine.ErrorResponse(errors.New("root directory cannot be renamed."))
+		err := errors.New("root directory cannot be renamed.")
+		return bytengine.ErrorResponse(err), err
 	}
 
 	// get collection
@@ -637,35 +638,31 @@ func (m *FileSystem) Rename(p, newname, db string) bytengine.Response {
 	var ri SimpleResultItem
 	err := c.Find(q).One(&ri)
 	if err != nil {
-		msg := fmt.Sprintf("renaming '%s'failed.\n%s", p, err)
-		return bytengine.ErrorResponse(errors.New(msg))
+		return bytengine.ErrorResponse(errors.New(errMsg)), err
 	}
 
 	if ri.Header.Type == "Directory" {
 		// check if name is valid
-		if bytengine.ValidateDirName(newname) != nil {
-			msg := fmt.Sprintf("invalid directory name: %s", newname)
-			return bytengine.ErrorResponse(errors.New(msg))
+		if err = bytengine.ValidateDirName(newname); err != nil {
+			return bytengine.ErrorResponse(errors.New("invalid directory name")), err
 		}
 		// check if name isn't already in use
 		np := path.Join(path.Dir(p), newname)
 		q = m.findPathQuery(np)
-		_count, e := c.Find(q).Count()
-		if e != nil {
-			msg := fmt.Sprintf("directory '%s' couldn't be renamed.\n%s", p, e)
-			return bytengine.ErrorResponse(errors.New(msg))
+		_count, err := c.Find(q).Count()
+		if err != nil {
+			return bytengine.ErrorResponse(errors.New(errMsg)), err
 		}
 		if _count > 0 {
-			msg := fmt.Sprintf("directory '%s' already exists", np)
-			return bytengine.ErrorResponse(errors.New(msg))
+			err := fmt.Errorf("directory '%s' already exists", np)
+			return bytengine.ErrorResponse(err), err
 		}
 		// get affected parent directories
 		q = m.findAllChildrenQuery(p)
 		var _dirs []string
 		err = c.Find(q).Distinct("__header__.parent", &_dirs)
 		if err != nil {
-			msg := fmt.Sprintf("directory '%s' couldn't be renamed.\n%s", p, err)
-			return bytengine.ErrorResponse(errors.New(msg))
+			return bytengine.ErrorResponse(errors.New(errMsg)), err
 		}
 		for _, item := range _dirs {
 			newparent := strings.Replace(item, p, np, 1)
@@ -673,58 +670,57 @@ func (m *FileSystem) Rename(p, newname, db string) bytengine.Response {
 			uq := bson.M{"$set": bson.M{"__header__.parent": newparent}}
 			_, e := c.UpdateAll(q, uq)
 			if e != nil {
-				msg := fmt.Sprintf("directory '%s' couldn't be renamed.\n%s", p, e)
-				return bytengine.ErrorResponse(errors.New(msg))
+				return bytengine.ErrorResponse(errors.New(errMsg)), e
 			}
 		}
 		// rename directory by updating field
 		q = bson.M{"$set": bson.M{"__header__.name": newname}}
 		err = c.UpdateId(ri.Id, q)
 		if err != nil {
-			msg := fmt.Sprintf("directory '%s' couldn't be renamed.\n%s", p, err)
-			return bytengine.ErrorResponse(errors.New(msg))
+			return bytengine.ErrorResponse(errors.New(errMsg)), err
 		}
 
 	} else {
 		// check if name is valid
-		if bytengine.ValidateFileName(newname) != nil {
-			msg := fmt.Sprintf("invalid file name: %s", newname)
-			return bytengine.ErrorResponse(errors.New(msg))
+		if err = bytengine.ValidateFileName(newname); err != nil {
+			return bytengine.ErrorResponse(errors.New("invalid file name")), err
 		}
 		// check if name isn't already in use
 		np := path.Join(path.Dir(p), newname)
 		q = m.findPathQuery(np)
 		_count, e := c.Find(q).Count()
 		if e != nil {
-			msg := fmt.Sprintf("file '%s' couldn't be renamed.\n%s", p, e)
-			return bytengine.ErrorResponse(errors.New(msg))
+			return bytengine.ErrorResponse(errors.New(errMsg)), e
 		}
 		if _count > 0 {
-			msg := fmt.Sprintf("file '%s' already exists", np)
-			return bytengine.ErrorResponse(errors.New(msg))
+			err = fmt.Errorf("file '%s' already exists", np)
+			return bytengine.ErrorResponse(err), err
 		}
 		// rename file by updating field
 		q = bson.M{"$set": bson.M{"__header__.name": newname}}
 		err = c.UpdateId(ri.Id, q)
 		if err != nil {
-			msg := fmt.Sprintf("file '%s' couldn't be renamed.\n%s", p, err)
-			return bytengine.ErrorResponse(errors.New(msg))
+			return bytengine.ErrorResponse(errors.New(errMsg)), err
 		}
 	}
 
-	return bytengine.OKResponse(true)
+	return bytengine.OKResponse(true), nil
 }
 
-func (m *FileSystem) Move(from, to, db string) bytengine.Response {
+func (m *FileSystem) Move(from, to, db string) (bytengine.Response, error) {
+	errMsg := "move failed" // general error message
+
 	// check path
 	from = path.Clean(from) // from
 	to = path.Clean(to)     // to
 	if from == "/" {
-		return bytengine.ErrorResponse(errors.New("root directory cannot be moved."))
+		err := errors.New("root directory can't be moved")
+		return bytengine.ErrorResponse(err), err
 	}
 	// check illegal move operation i.e. moving from parent to sub directory
 	if strings.HasPrefix(to, from) {
-		return bytengine.ErrorResponse(errors.New("illegal move operation."))
+		err := errors.New("illegal move operation.")
+		return bytengine.ErrorResponse(err), err
 	}
 
 	// get collection
@@ -733,10 +729,12 @@ func (m *FileSystem) Move(from, to, db string) bytengine.Response {
 	// check if destination dir exists
 	_doc_dest, _exists_dest := m.existsDocument(to, c)
 	if !_exists_dest {
-		return bytengine.ErrorResponse(errors.New("Destination directory doesn't exist"))
+		err := errors.New("Destination directory doesn't exist")
+		return bytengine.ErrorResponse(err), err
 	}
 	if _doc_dest.Header.Type != "Directory" {
-		return bytengine.ErrorResponse(errors.New("Destination must be a directory"))
+		err := errors.New("Destination must be a directory")
+		return bytengine.ErrorResponse(err), err
 	}
 
 	// get file or directory if it exists
@@ -744,8 +742,7 @@ func (m *FileSystem) Move(from, to, db string) bytengine.Response {
 	var ri SimpleResultItem
 	err := c.Find(q).One(&ri)
 	if err != nil {
-		msg := fmt.Sprintf("moving '%s'failed.\n%s", from, err)
-		return bytengine.ErrorResponse(errors.New(msg))
+		return bytengine.ErrorResponse(errors.New(errMsg)), err
 	}
 
 	if ri.Header.Type == "Directory" {
@@ -754,20 +751,18 @@ func (m *FileSystem) Move(from, to, db string) bytengine.Response {
 		q = m.findPathQuery(np)
 		_count, e := c.Find(q).Count()
 		if e != nil {
-			msg := fmt.Sprintf("directory '%s' couldn't be moved.\n%s", from, e)
-			return bytengine.ErrorResponse(errors.New(msg))
+			return bytengine.ErrorResponse(errors.New(errMsg)), e
 		}
 		if _count > 0 {
-			msg := fmt.Sprintf("directory '%s' already exists", np)
-			return bytengine.ErrorResponse(errors.New(msg))
+			err = fmt.Errorf("directory '%s' already exists", np)
+			return bytengine.ErrorResponse(err), err
 		}
 		// get affected parent directories
 		q = m.findAllChildrenQuery(from)
 		var _dirs []string
 		err = c.Find(q).Distinct("__header__.parent", &_dirs)
 		if err != nil {
-			msg := fmt.Sprintf("directory '%s' couldn't be moved.\n%s", from, err)
-			return bytengine.ErrorResponse(errors.New(msg))
+			return bytengine.ErrorResponse(errors.New(errMsg)), err
 		}
 		for _, item := range _dirs {
 			newparent := strings.Replace(item, from, np, 1)
@@ -775,16 +770,14 @@ func (m *FileSystem) Move(from, to, db string) bytengine.Response {
 			uq := bson.M{"$set": bson.M{"__header__.parent": newparent}}
 			_, e := c.UpdateAll(q, uq)
 			if e != nil {
-				msg := fmt.Sprintf("directory '%s' couldn't be moved.\n%s", from, e)
-				return bytengine.ErrorResponse(errors.New(msg))
+				return bytengine.ErrorResponse(errors.New(errMsg)), e
 			}
 		}
 		// move directory by updating parent field
 		q = bson.M{"$set": bson.M{"__header__.parent": to}}
 		err = c.UpdateId(ri.Id, q)
 		if err != nil {
-			msg := fmt.Sprintf("directory '%s' couldn't be moved.\n%s", from, err)
-			return bytengine.ErrorResponse(errors.New(msg))
+			return bytengine.ErrorResponse(errors.New(errMsg)), err
 		}
 
 	} else {
@@ -793,26 +786,26 @@ func (m *FileSystem) Move(from, to, db string) bytengine.Response {
 		q = m.findPathQuery(np)
 		_count, e := c.Find(q).Count()
 		if e != nil {
-			msg := fmt.Sprintf("file '%s' couldn't be moved.\n%s", from, e)
-			return bytengine.ErrorResponse(errors.New(msg))
+			return bytengine.ErrorResponse(errors.New(errMsg)), e
 		}
 		if _count > 0 {
-			msg := fmt.Sprintf("file '%s' already exists", np)
-			return bytengine.ErrorResponse(errors.New(msg))
+			err = fmt.Errorf("file '%s' already exists", np)
+			return bytengine.ErrorResponse(err), err
 		}
 		// rename file by updating field
 		q = bson.M{"$set": bson.M{"__header__.parent": to}}
 		err = c.UpdateId(ri.Id, q)
 		if err != nil {
-			msg := fmt.Sprintf("file '%s' couldn't be moved.\n%s", from, err)
-			return bytengine.ErrorResponse(errors.New(msg))
+			return bytengine.ErrorResponse(errors.New(errMsg)), err
 		}
 	}
 
-	return bytengine.OKResponse(true)
+	return bytengine.OKResponse(true), nil
 }
 
-func (m *FileSystem) Copy(from, to, db string) bytengine.Response {
+func (m *FileSystem) Copy(from, to, db string) (bytengine.Response, error) {
+	errMsg := "copy failed" // general error message
+
 	// setup paths
 	_from_doc_path := path.Clean(from)
 	_from_doc_parent_path := path.Dir(_from_doc_path)
@@ -821,11 +814,13 @@ func (m *FileSystem) Copy(from, to, db string) bytengine.Response {
 	_to_doc_name := path.Base(_to_doc_path)
 
 	if _from_doc_path == "/" {
-		return bytengine.ErrorResponse(errors.New("root directory cannot be copied."))
+		err := errors.New("root directory cannot be copied.")
+		return bytengine.ErrorResponse(err), err
 	}
 	// check illegal copy operation i.e. copy from parent to sub directory
 	if strings.HasPrefix(_to_doc_parent_path, _from_doc_path) {
-		return bytengine.ErrorResponse(errors.New("illegal copy operation."))
+		err := errors.New("illegal copy operation.")
+		return bytengine.ErrorResponse(err), err
 	}
 
 	// get collection
@@ -834,22 +829,26 @@ func (m *FileSystem) Copy(from, to, db string) bytengine.Response {
 	// check if destination dir exists
 	_doc_dest, _exists_dest := m.existsDocument(_to_doc_parent_path, c)
 	if !_exists_dest {
-		return bytengine.ErrorResponse(errors.New("Destination directory doesn't exist"))
+		err := errors.New("Destination directory doesn't exist")
+		return bytengine.ErrorResponse(err), err
 	}
 	if _doc_dest.Header.Type != "Directory" {
-		return bytengine.ErrorResponse(errors.New("Destination must be a directory"))
+		err := errors.New("Destination must be a directory")
+		return bytengine.ErrorResponse(err), err
 	}
 
 	// check if item to copy exists
 	_doc, _exists := m.existsDocument(_from_doc_path, c)
 	if !_exists {
-		return bytengine.ErrorResponse(errors.New(fmt.Sprintf("'%s' doesn't exist", _from_doc_path)))
+		err := fmt.Errorf("'%s' doesn't exist", _from_doc_path)
+		return bytengine.ErrorResponse(err), err
 	}
 
 	// check if name isn't already in use
 	_, _exists = m.existsDocument(_to_doc_path, c)
 	if _exists {
-		return bytengine.ErrorResponse(errors.New(fmt.Sprintf("'%s' already exists.", _to_doc_path)))
+		err := fmt.Errorf("'%s' already exists.", _to_doc_path)
+		return bytengine.ErrorResponse(err), err
 	}
 
 	if _doc.Header.Type == "Directory" {
@@ -857,16 +856,13 @@ func (m *FileSystem) Copy(from, to, db string) bytengine.Response {
 		var _main_dir Directory
 		err := c.FindId(_doc.Id).One(&_main_dir)
 		if err != nil {
-			msg := fmt.Sprintf("copying '%s'failed.\n%s", _from_doc_path, err)
-			return bytengine.ErrorResponse(errors.New(msg))
+			return bytengine.ErrorResponse(errors.New(errMsg)), err
 		}
 
 		// copy directory
 		err = m.copyDirectoryDocument(&_main_dir, _to_doc_parent_path, _from_doc_parent_path, _to_doc_name, c)
 		if err != nil {
-			txt := "sub-directory '%s' in directory '%s' couldn't be copied.\n%s"
-			msg := fmt.Sprintf(txt, _main_dir.Header.Name, _main_dir.Header.Parent, err)
-			return bytengine.ErrorResponse(errors.New(msg))
+			return bytengine.ErrorResponse(errors.New(errMsg)), err
 		}
 
 		// get affected dirs
@@ -877,9 +873,7 @@ func (m *FileSystem) Copy(from, to, db string) bytengine.Response {
 		for i.Next(&_tmpdir) {
 			err = m.copyDirectoryDocument(&_tmpdir, _to_doc_path, _from_doc_path, "", c)
 			if err != nil {
-				txt := "sub-directory '%s' in directory '%s' couldn't be copied.\n%s"
-				msg := fmt.Sprintf(txt, _tmpdir.Header.Name, _tmpdir.Header.Parent, err)
-				return bytengine.ErrorResponse(errors.New(msg))
+				return bytengine.ErrorResponse(errors.New(errMsg)), err
 			}
 		}
 
@@ -891,9 +885,7 @@ func (m *FileSystem) Copy(from, to, db string) bytengine.Response {
 		for i.Next(&_tmpfile) {
 			err = m.copyFileDocument(&_tmpfile, _to_doc_path, _from_doc_path, "", c)
 			if err != nil {
-				txt := "file '%s' in directory '%s' couldn't be copied.\n%s"
-				msg := fmt.Sprintf(txt, _tmpfile.Header.Name, _tmpfile.Header.Parent, err)
-				return bytengine.ErrorResponse(errors.New(msg))
+				return bytengine.ErrorResponse(errors.New(errMsg)), err
 			}
 		}
 
@@ -902,24 +894,22 @@ func (m *FileSystem) Copy(from, to, db string) bytengine.Response {
 		var _filedoc File
 		err := c.FindId(_doc.Id).One(&_filedoc)
 		if err != nil {
-			msg := fmt.Sprintf("copying '%s'failed.\n%s", _from_doc_path, err)
-			return bytengine.ErrorResponse(errors.New(msg))
+			return bytengine.ErrorResponse(errors.New(errMsg)), err
 		}
 
 		// copy file
 		err = m.copyFileDocument(&_filedoc, _to_doc_parent_path, _from_doc_parent_path, _to_doc_name, c)
 		if err != nil {
-			txt := "file '%s' in directory '%s' couldn't be copied.\n%s"
-			msg := fmt.Sprintf(txt, _filedoc.Header.Name, _filedoc.Header.Parent, err)
-			return bytengine.ErrorResponse(errors.New(msg))
+			return bytengine.ErrorResponse(errors.New(errMsg)), err
 		}
 	}
 
-	return bytengine.OKResponse(true)
+	return bytengine.OKResponse(true), nil
 }
 
-func (m *FileSystem) Info(p, db string) bytengine.Response {
+func (m *FileSystem) Info(p, db string) (bytengine.Response, error) {
 	p = path.Clean(p)
+	errMsg := "information retrieval failed" // general error message
 
 	// get collection
 	c := m.getBFSCollection(db)
@@ -929,8 +919,7 @@ func (m *FileSystem) Info(p, db string) bytengine.Response {
 	var ri SimpleResultItem
 	err := c.Find(q).One(&ri)
 	if err != nil {
-		msg := fmt.Sprintf("couldn't retrieve info for '%s'.\n%s", p, err)
-		return bytengine.ErrorResponse(errors.New(msg))
+		return bytengine.ErrorResponse(errors.New(errMsg)), err
 	}
 
 	var _info map[string]interface{}
@@ -953,8 +942,7 @@ func (m *FileSystem) Info(p, db string) bytengine.Response {
 		q = m.findChildrenQuery(p, ".")
 		_count, e := c.Find(q).Count()
 		if e != nil {
-			msg := fmt.Sprintf("couldn't retrieve info for '%s'.\n%s", p, e)
-			return bytengine.ErrorResponse(errors.New(msg))
+			return bytengine.ErrorResponse(errors.New(errMsg)), e
 		}
 		_info["type"] = _type
 		_info["content_count"] = _count
@@ -967,12 +955,14 @@ func (m *FileSystem) Info(p, db string) bytengine.Response {
 		}
 	}
 
-	return bytengine.OKResponse(_info)
+	return bytengine.OKResponse(_info), nil
 }
 
-func (m *FileSystem) FileAccess(p, db string, protect bool) bytengine.Response {
+func (m *FileSystem) FileAccess(p, db string, protect bool) (bytengine.Response, error) {
 	// check path
 	p = path.Clean(p)
+
+	errMsg := "access update failed" // general message
 
 	// get collection
 	c := m.getBFSCollection(db)
@@ -982,8 +972,7 @@ func (m *FileSystem) FileAccess(p, db string, protect bool) bytengine.Response {
 	var ri SimpleResultItem
 	err := c.Find(q).One(&ri)
 	if err != nil {
-		msg := fmt.Sprintf("couldn't retrieve info for '%s'.\n%s", p, err)
-		return bytengine.ErrorResponse(errors.New(msg))
+		return bytengine.ErrorResponse(errors.New(errMsg)), err
 	}
 
 	if ri.Header.Type == "Directory" {
@@ -991,16 +980,14 @@ func (m *FileSystem) FileAccess(p, db string, protect bool) bytengine.Response {
 		q = bson.M{"$set": bson.M{"__header__.ispublic": !protect}}
 		err = c.UpdateId(ri.Id, q)
 		if err != nil {
-			msg := fmt.Sprintf("directory '%s' access couldn't be updated.\n%s", p, err)
-			return bytengine.ErrorResponse(errors.New(msg))
+			return bytengine.ErrorResponse(errors.New(errMsg)), err
 		}
 		// automatically cascade to sub nodes
 		q = m.findAllChildrenQuery(p)
 		uq := bson.M{"$set": bson.M{"__header__.ispublic": !protect}}
 		_, e := c.UpdateAll(q, uq)
 		if e != nil {
-			msg := fmt.Sprintf("directory '%s' access couldn't be updated.\n%s", p, e)
-			return bytengine.ErrorResponse(errors.New(msg))
+			return bytengine.ErrorResponse(errors.New(errMsg)), e
 		}
 
 	} else {
@@ -1008,15 +995,16 @@ func (m *FileSystem) FileAccess(p, db string, protect bool) bytengine.Response {
 		q = bson.M{"$set": bson.M{"__header__.ispublic": !protect}}
 		err = c.UpdateId(ri.Id, q)
 		if err != nil {
-			msg := fmt.Sprintf("file '%s' access couldn't be updated.\n%s", p, err)
-			return bytengine.ErrorResponse(errors.New(msg))
+			return bytengine.ErrorResponse(errors.New(errMsg)), err
 		}
 	}
 
-	return bytengine.OKResponse(true)
+	return bytengine.OKResponse(true), nil
 }
 
-func (m *FileSystem) SetCounter(counter, action string, value int64, db string) bytengine.Response {
+func (m *FileSystem) SetCounter(counter, action string, value int64, db string) (bytengine.Response, error) {
+	errMsg := "counter action failed" // general error message
+
 	// update value 'v'
 	nv := math.Abs(float64(value))
 	value = int64(nv)
@@ -1028,22 +1016,22 @@ func (m *FileSystem) SetCounter(counter, action string, value int64, db string) 
 	q := bson.M{"name": counter}
 	num, err := c.Find(q).Count()
 	if err != nil {
-		return bytengine.ErrorResponse(err)
+		return bytengine.ErrorResponse(errors.New(errMsg)), err
 	}
 	// if not exists create new counter
 	if num < 1 {
 		err = bytengine.ValidateCounterName(counter)
 		if err != nil {
-			return bytengine.ErrorResponse(err)
+			return bytengine.ErrorResponse(errors.New(errMsg)), err
 		}
 
 		doc := bson.M{"name": counter, "value": value}
 		err = c.Insert(doc)
 		if err != nil {
-			return bytengine.ErrorResponse(err)
+			return bytengine.ErrorResponse(errors.New(errMsg)), err
 		}
 
-		return bytengine.OKResponse(value)
+		return bytengine.OKResponse(value), nil
 	}
 
 	var cq mgo.Change
@@ -1067,19 +1055,20 @@ func (m *FileSystem) SetCounter(counter, action string, value int64, db string) 
 		}
 		break
 	default: // shouldn't reach here
-		return bytengine.ErrorResponse(errors.New("Invalid counter action."))
+		err = errors.New(errMsg)
+		return bytengine.ErrorResponse(err), err
 	}
 
 	var r interface{}
 	_, err = c.Find(q).Apply(cq, &r)
 	if err != nil {
-		return bytengine.ErrorResponse(err)
+		return bytengine.ErrorResponse(errors.New(errMsg)), err
 	}
 
-	return bytengine.OKResponse(r.(bson.M)["value"])
+	return bytengine.OKResponse(r.(bson.M)["value"]), nil
 }
 
-func (m *FileSystem) ListCounter(filter, db string) bytengine.Response {
+func (m *FileSystem) ListCounter(filter, db string) (bytengine.Response, error) {
 	// get collection
 	c := m.getCounterCollection(db)
 
@@ -1093,18 +1082,20 @@ func (m *FileSystem) ListCounter(filter, db string) bytengine.Response {
 	}
 	err := iter.Close()
 	if err != nil {
-		return bytengine.ErrorResponse(err)
+		return bytengine.ErrorResponse(errors.New("counter listing failed")), err
 	}
 
-	return bytengine.OKResponse(list)
+	return bytengine.OKResponse(list), nil
 }
 
-func (m *FileSystem) WriteBytes(p, ap, db string) bytengine.Response {
+func (m *FileSystem) WriteBytes(p, ap, db string) (bytengine.Response, error) {
+	errMsg := "write bytes failed" // general error message
+
 	// check path
 	p = path.Clean(p)
 	_, err := os.Stat(ap)
 	if err != nil {
-		return bytengine.ErrorResponse(errors.New("File not found."))
+		return bytengine.ErrorResponse(errors.New(errMsg)), err
 	}
 
 	// get collection
@@ -1115,12 +1106,12 @@ func (m *FileSystem) WriteBytes(p, ap, db string) bytengine.Response {
 	var ri SimpleResultItem
 	err = c.Find(q).One(&ri)
 	if err != nil {
-		msg := fmt.Sprintf("couldn't retrieve info for '%s'.\n%s", p, err)
-		return bytengine.ErrorResponse(errors.New(msg))
+		return bytengine.ErrorResponse(errors.New(errMsg)), err
 	}
 
 	if ri.Header.Type == "Directory" {
-		return bytengine.ErrorResponse(errors.New("command only valid for files."))
+		err = errors.New("command only valid for files.")
+		return bytengine.ErrorResponse(err), err
 
 	} else {
 		// if bytes already writen then update else create new
@@ -1131,7 +1122,7 @@ func (m *FileSystem) WriteBytes(p, ap, db string) bytengine.Response {
 		// open attachment and add to bst
 		file, err := os.Open(ap)
 		if err != nil {
-			return bytengine.ErrorResponse(err)
+			return bytengine.ErrorResponse(errors.New(errMsg)), err
 		}
 
 		var q bson.M // query
@@ -1139,7 +1130,7 @@ func (m *FileSystem) WriteBytes(p, ap, db string) bytengine.Response {
 		if isnew {
 			info, err := m.bstore.Add(db, file)
 			if err != nil {
-				return bytengine.ErrorResponse(err)
+				return bytengine.ErrorResponse(errors.New(errMsg)), err
 			}
 			// update file access by updating field
 			q = bson.M{
@@ -1151,7 +1142,7 @@ func (m *FileSystem) WriteBytes(p, ap, db string) bytengine.Response {
 		} else {
 			info, err := m.bstore.Update(db, ri.AHeader.Filepointer, file)
 			if err != nil {
-				return bytengine.ErrorResponse(err)
+				return bytengine.ErrorResponse(errors.New(errMsg)), err
 			}
 			// update file access by updating field
 			q = bson.M{
@@ -1163,15 +1154,14 @@ func (m *FileSystem) WriteBytes(p, ap, db string) bytengine.Response {
 
 		err = c.UpdateId(ri.Id, q)
 		if err != nil {
-			msg := fmt.Sprintf("attachment for file '%s' couldn't be added.\n%s", p, err)
-			return bytengine.ErrorResponse(errors.New(msg))
+			return bytengine.ErrorResponse(errors.New(errMsg)), err
 		}
 	}
 
-	return bytengine.OKResponse(true)
+	return bytengine.OKResponse(true), nil
 }
 
-func (m *FileSystem) ReadBytes(fp, db string) bytengine.Response {
+func (m *FileSystem) ReadBytes(fp, db string) (bytengine.Response, error) {
 	// check path
 	fp = path.Clean(fp)
 
@@ -1183,22 +1173,23 @@ func (m *FileSystem) ReadBytes(fp, db string) bytengine.Response {
 	var ri File
 	err := c.Find(q).One(&ri)
 	if err != nil {
-		msg := fmt.Sprintf("couldn't retrieve info for '%s'.\n%s", fp, err)
-		return bytengine.ErrorResponse(errors.New(msg))
+		return bytengine.ErrorResponse(errors.New("read bytes failed")), err
 	}
 
 	if ri.Header.Type == "Directory" {
-		return bytengine.ErrorResponse(errors.New("command only valid for files."))
+		err = errors.New("command only valid for files.")
+		return bytengine.ErrorResponse(err), err
 
 	}
 	id := ri.AHeader.Filepointer
 	if len(id) == 0 {
-		return bytengine.ErrorResponse(errors.New("byte layer is empty"))
+		err = errors.New("byte layer is empty")
+		return bytengine.ErrorResponse(err), err
 	}
-	return bytengine.OKResponse(id)
+	return bytengine.OKResponse(id), nil
 }
 
-func (m *FileSystem) DirectAccess(fp, db, layer string) bytengine.Response {
+func (m *FileSystem) DirectAccess(fp, db, layer string) (bytengine.Response, error) {
 	// check path
 	fp = path.Clean(fp)
 
@@ -1210,34 +1201,40 @@ func (m *FileSystem) DirectAccess(fp, db, layer string) bytengine.Response {
 	var ri File
 	err := c.Find(q).One(&ri)
 	if err != nil {
-		msg := fmt.Sprintf("couldn't retrieve info for '%s'.\n%s", fp, err)
-		return bytengine.ErrorResponse(errors.New(msg))
+		err = errors.New("file not found")
+		return bytengine.ErrorResponse(err), err
 	}
 
 	if ri.Header.Type == "Directory" {
-		return bytengine.ErrorResponse(errors.New("command only valid for files."))
+		err = errors.New("command only valid for files.")
+		return bytengine.ErrorResponse(err), err
 
 	}
 
 	if !ri.Header.IsPublic {
-		return bytengine.ErrorResponse(errors.New("file isn't public"))
+		err = errors.New("file isn't public")
+		return bytengine.ErrorResponse(err), err
 	}
 
 	switch layer {
 	case "json":
-		return bytengine.OKResponse(ri.Content)
+		return bytengine.OKResponse(ri.Content), nil
 	case "bytes":
 		id := ri.AHeader.Filepointer
 		if len(id) == 0 {
-			return bytengine.ErrorResponse(errors.New("byte layer is empty"))
+			err = errors.New("byte layer is empty")
+			return bytengine.ErrorResponse(err), err
 		}
-		return bytengine.OKResponse(id)
+		return bytengine.OKResponse(id), nil
 	default:
-		return bytengine.ErrorResponse(errors.New("data not found"))
+		err = errors.New("data not found")
+		return bytengine.ErrorResponse(err), err
 	}
 }
 
-func (m *FileSystem) DeleteBytes(p, db string) bytengine.Response {
+func (m *FileSystem) DeleteBytes(p, db string) (bytengine.Response, error) {
+	errMsg := "delete bytes failed" // general error message
+
 	// check path
 	p = path.Clean(p)
 
@@ -1249,12 +1246,12 @@ func (m *FileSystem) DeleteBytes(p, db string) bytengine.Response {
 	var ri SimpleResultItem
 	err := c.Find(q).One(&ri)
 	if err != nil {
-		msg := fmt.Sprintf("couldn't retrieve info for '%s'.\n%s", p, err)
-		return bytengine.ErrorResponse(errors.New(msg))
+		return bytengine.ErrorResponse(errors.New(errMsg)), err
 	}
 
 	if ri.Header.Type == "Directory" {
-		return bytengine.ErrorResponse(errors.New("command only valid for files."))
+		err = errors.New("command only valid for files.")
+		return bytengine.ErrorResponse(err), err
 
 	} else {
 		// delete attachment
@@ -1262,23 +1259,21 @@ func (m *FileSystem) DeleteBytes(p, db string) bytengine.Response {
 			// delete attachment
 			err = m.bstore.Delete(db, ri.AHeader.Filepointer)
 			if err != nil && os.IsExist(err) {
-				msg := fmt.Sprintf("attachment for file '%s' couldn't be deleted.\n%s", p, err)
-				return bytengine.ErrorResponse(errors.New(msg))
+				return bytengine.ErrorResponse(errors.New(errMsg)), err
 			}
 		}
 		// update file access by updating field
 		q = bson.M{"$set": bson.M{"__bytes__.filepointer": ""}}
 		err = c.UpdateId(ri.Id, q)
 		if err != nil {
-			msg := fmt.Sprintf("attachment for file '%s' couldn't be deleted.\n%s", p, err)
-			return bytengine.ErrorResponse(errors.New(msg))
+			return bytengine.ErrorResponse(errors.New(errMsg)), err
 		}
 	}
 
-	return bytengine.OKResponse(true)
+	return bytengine.OKResponse(true), nil
 }
 
-func (m *FileSystem) UpdateJson(p, db string, j map[string]interface{}) bytengine.Response {
+func (m *FileSystem) UpdateJson(p, db string, j map[string]interface{}) (bytengine.Response, error) {
 	// check path
 	p = path.Clean(p)
 
@@ -1292,14 +1287,13 @@ func (m *FileSystem) UpdateJson(p, db string, j map[string]interface{}) bytengin
 	// update file
 	err := c.Update(q, uq)
 	if err != nil {
-		msg := fmt.Sprintf("file '%s' content couldn't be updated.\n%s", p, err)
-		return bytengine.ErrorResponse(errors.New(msg))
+		return bytengine.ErrorResponse(errors.New("json layer update failed")), err
 	}
 
-	return bytengine.OKResponse(true)
+	return bytengine.OKResponse(true), nil
 }
 
-func (m *FileSystem) BQLSearch(db string, query map[string]interface{}) bytengine.Response {
+func (m *FileSystem) BQLSearch(db string, query map[string]interface{}) (bytengine.Response, error) {
 	// check fields and paths
 	fields, hasfields := query["fields"].([]string)
 	paths, haspaths := query["dirs"].([]string)
@@ -1310,7 +1304,8 @@ func (m *FileSystem) BQLSearch(db string, query map[string]interface{}) bytengin
 	distinct, hasdistinct := query["distinct"].(string)
 
 	if !hasfields && !haspaths {
-		return bytengine.ErrorResponse(errors.New("Invalid select query: No fields or document paths."))
+		err := errors.New("Invalid select query: No fields or document paths.")
+		return bytengine.ErrorResponse(err), err
 	}
 
 	// build mongodb query
@@ -1337,18 +1332,18 @@ func (m *FileSystem) BQLSearch(db string, query map[string]interface{}) bytengin
 	if hascount {
 		count, err := tmp.Count()
 		if err != nil {
-			return bytengine.ErrorResponse(err)
+			return bytengine.ErrorResponse(errors.New("select failed")), err
 		}
-		return bytengine.OKResponse(count)
+		return bytengine.OKResponse(count), nil
 	}
 	// check distinct
 	if hasdistinct {
 		var distinctlist interface{}
 		err := tmp.Distinct(distinct, &distinctlist)
 		if err != nil {
-			return bytengine.ErrorResponse(err)
+			return bytengine.ErrorResponse(errors.New("select failed")), err
 		}
-		return bytengine.OKResponse(distinctlist)
+		return bytengine.OKResponse(distinctlist), nil
 	}
 	// check limit
 	if haslimit {
@@ -1379,10 +1374,10 @@ func (m *FileSystem) BQLSearch(db string, query map[string]interface{}) bytengin
 		itemlist = append(itemlist, bson.M{"path": _path, "content": _data})
 	}
 
-	return bytengine.OKResponse(itemlist)
+	return bytengine.OKResponse(itemlist), nil
 }
 
-func (m *FileSystem) BQLSet(db string, query map[string]interface{}) bytengine.Response {
+func (m *FileSystem) BQLSet(db string, query map[string]interface{}) (bytengine.Response, error) {
 	// check fields and paths
 	fields, hasfields := query["fields"].(map[string]interface{})
 	incr_fields, hasincr := query["incr"].(map[string]interface{})
@@ -1390,7 +1385,8 @@ func (m *FileSystem) BQLSet(db string, query map[string]interface{}) bytengine.R
 	where, haswhere := query["where"].(map[string]interface{})
 
 	if !hasfields && !haspaths {
-		return bytengine.ErrorResponse(errors.New("Invalid set command: No fields or document paths."))
+		err := errors.New("Invalid set command: No fields or document paths.")
+		return bytengine.ErrorResponse(err), err
 	}
 
 	// build query
@@ -1417,20 +1413,21 @@ func (m *FileSystem) BQLSet(db string, query map[string]interface{}) bytengine.R
 	// run query
 	info, err := c.UpdateAll(q, uquery)
 	if err != nil {
-		return bytengine.ErrorResponse(err)
+		return bytengine.ErrorResponse(errors.New("set failed")), err
 	}
 
-	return bytengine.OKResponse(info.Updated)
+	return bytengine.OKResponse(info.Updated), nil
 }
 
-func (m *FileSystem) BQLUnset(db string, query map[string]interface{}) bytengine.Response {
+func (m *FileSystem) BQLUnset(db string, query map[string]interface{}) (bytengine.Response, error) {
 	// check fields and paths
 	fields, hasfields := query["fields"].(map[string]interface{})
 	paths, haspaths := query["dirs"].([]string)
 	where, haswhere := query["where"].(map[string]interface{})
 
 	if !hasfields && !haspaths {
-		return bytengine.ErrorResponse(errors.New("Invalid unset command: No fields or document paths."))
+		err := errors.New("Invalid unset command: No fields or document paths.")
+		return bytengine.ErrorResponse(err), err
 	}
 
 	// build query
@@ -1454,10 +1451,10 @@ func (m *FileSystem) BQLUnset(db string, query map[string]interface{}) bytengine
 	// run query
 	info, err := c.UpdateAll(q, uq)
 	if err != nil {
-		return bytengine.ErrorResponse(err)
+		return bytengine.ErrorResponse(errors.New("unset failed")), err
 	}
 
-	return bytengine.OKResponse(info.Updated)
+	return bytengine.OKResponse(info.Updated), nil
 }
 
 func init() {

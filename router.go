@@ -7,8 +7,8 @@ import (
 	"github.com/johnwilson/bytengine/dsl"
 )
 
-type CommandHandler func(cmd dsl.Command, user *User, eng *Engine) Response
-type DataFilter func(r *Response, eng *Engine) Response
+type CommandHandler func(cmd dsl.Command, user *User, eng *Engine) (Response, error)
+type DataFilter func(r *Response, eng *Engine) (Response, error)
 
 var cmdHandlerRegistry = make(map[string]CommandHandler)
 var dataFilterRegistry = make(map[string]DataFilter)
@@ -35,18 +35,18 @@ func RegisterDataFilter(name string, fn DataFilter) {
 	dataFilterRegistry[name] = fn
 }
 
-func (eng *Engine) Exec(cmd dsl.Command, user *User) Response {
+func (eng *Engine) execute(cmd dsl.Command, user *User) (Response, error) {
 	// check if command in cmdHandlerRegistry
 	fn, ok := cmdHandlerRegistry[cmd.Name]
 	if !ok {
-		msg := fmt.Sprintf("Command '%s' not found", cmd.Name)
-		return ErrorResponse(errors.New(msg))
+		err := errors.New(fmt.Sprintf("Command '%s' not found", cmd.Name))
+		return ErrorResponse(err), err
 	}
 
-	msg_auth := "User not authorized to execute command"
+	err := errors.New("User not authorized to execute command")
 	// check id admin command
 	if cmd.IsAdmin() && !user.Root {
-		return ErrorResponse(errors.New(msg_auth))
+		return ErrorResponse(err), err
 	}
 
 	// check user database access
@@ -59,20 +59,23 @@ func (eng *Engine) Exec(cmd dsl.Command, user *User) Response {
 			}
 		}
 		if !dbaccess {
-			return ErrorResponse(errors.New(msg_auth))
+			return ErrorResponse(err), err
 		}
 	}
 
-	val := fn(cmd, user, eng)
+	val, err := fn(cmd, user, eng)
+	if err != nil {
+		return ErrorResponse(err), err
+	}
 	// check sendto
 	if cmd.Filter != "" {
 		df, ok := dataFilterRegistry[cmd.Filter]
 		if !ok {
-			msg := fmt.Sprintf("Filter '%s' not found", cmd.Filter)
-			return ErrorResponse(errors.New(msg))
+			err := errors.New(fmt.Sprintf("Filter '%s' not found", cmd.Filter))
+			return ErrorResponse(err), err
 		}
 
 		return df(&val, eng)
 	}
-	return val
+	return val, nil
 }

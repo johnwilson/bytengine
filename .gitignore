@@ -1,5 +1,6 @@
 # executables
 cmd/bytengine/bytengine
+cmd/bshell/bshell
 
 # Mac OS X files
 .DS_Store

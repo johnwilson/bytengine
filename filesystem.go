@@ -57,30 +57,30 @@ func (r Response) String() string {
 
 type BFS interface {
 	Start(config string, b *ByteStore) error
-	ClearAll() Response
-	ListDatabase(filter string) Response
-	CreateDatabase(db string) Response
-	DropDatabase(db string) Response
-	NewDir(p, db string) Response
-	NewFile(p, db string, jsondata map[string]interface{}) Response
-	ListDir(p, filter, db string) Response
-	ReadJson(p, db string, fields []string) Response
-	Delete(p, db string) Response
-	Rename(p, newname, db string) Response
-	Move(from, to, db string) Response
-	Copy(from, to, db string) Response
-	Info(p, db string) Response
-	FileAccess(p, db string, protect bool) Response
-	SetCounter(counter, action string, value int64, db string) Response
-	ListCounter(filter, db string) Response
-	WriteBytes(p, ap, db string) Response
-	ReadBytes(fp, db string) Response
-	DirectAccess(fp, db, layer string) Response
-	DeleteBytes(p, db string) Response
-	UpdateJson(p, db string, j map[string]interface{}) Response
-	BQLSearch(db string, query map[string]interface{}) Response
-	BQLSet(db string, query map[string]interface{}) Response
-	BQLUnset(db string, query map[string]interface{}) Response
+	ClearAll() (Response, error)
+	ListDatabase(filter string) (Response, error)
+	CreateDatabase(db string) (Response, error)
+	DropDatabase(db string) (Response, error)
+	NewDir(p, db string) (Response, error)
+	NewFile(p, db string, jsondata map[string]interface{}) (Response, error)
+	ListDir(p, filter, db string) (Response, error)
+	ReadJson(p, db string, fields []string) (Response, error)
+	Delete(p, db string) (Response, error)
+	Rename(p, newname, db string) (Response, error)
+	Move(from, to, db string) (Response, error)
+	Copy(from, to, db string) (Response, error)
+	Info(p, db string) (Response, error)
+	FileAccess(p, db string, protect bool) (Response, error)
+	SetCounter(counter, action string, value int64, db string) (Response, error)
+	ListCounter(filter, db string) (Response, error)
+	WriteBytes(p, ap, db string) (Response, error)
+	ReadBytes(fp, db string) (Response, error)
+	DirectAccess(fp, db, layer string) (Response, error)
+	DeleteBytes(p, db string) (Response, error)
+	UpdateJson(p, db string, j map[string]interface{}) (Response, error)
+	BQLSearch(db string, query map[string]interface{}) (Response, error)
+	BQLSet(db string, query map[string]interface{}) (Response, error)
+	BQLUnset(db string, query map[string]interface{}) (Response, error)
 }
 
 func ValidateDbName(d string) error {

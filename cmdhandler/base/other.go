@@ -1,4 +1,4 @@
-package core
+package base
 
 import (
 	"encoding/json"
@@ -11,49 +11,54 @@ import (
 )
 
 // handler for: login
-func LoginHandler(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) bytengine.Response {
+func LoginHandler(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) (bytengine.Response, error) {
 	usr := cmd.Args["username"].(string)
 	pw := cmd.Args["password"].(string)
 	duration := cmd.Args["duration"].(int64)
 
 	ok := eng.AuthPlugin.Authenticate(usr, pw)
 	if !ok {
-		return bytengine.ErrorResponse(fmt.Errorf("Authentication failed"))
+		err := fmt.Errorf("Authentication failed")
+		return bytengine.ErrorResponse(err), err
 	}
 
 	key := bytengine.GenerateRandomKey(16)
 	if len(key) == 0 {
-		return bytengine.ErrorResponse(fmt.Errorf("Token creation failed"))
+		err := fmt.Errorf("Token creation failed")
+		return bytengine.ErrorResponse(err), err
 	}
 
 	token := fmt.Sprintf("%x", key)
 	err := eng.StateStorePlugin.TokenSet(token, usr, 60*duration)
 	if err != nil {
-		return bytengine.ErrorResponse(fmt.Errorf("Token creation failed"))
+		err := fmt.Errorf("Token creation failed")
+		return bytengine.ErrorResponse(err), err
 	}
 
-	return bytengine.OKResponse(token)
+	return bytengine.OKResponse(token), nil
 }
 
 // handler for: upload ticket
-func UploadTicketHandler(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) bytengine.Response {
+func UploadTicketHandler(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) (bytengine.Response, error) {
 	// check if user is anonymous
 	if user == nil {
-		return bytengine.ErrorResponse(fmt.Errorf("Authorization required"))
+		err := fmt.Errorf("Authorization required")
+		return bytengine.ErrorResponse(err), err
 	}
 
 	db := cmd.Database
 	path := cmd.Args["path"].(string)
 	duration := cmd.Args["duration"].(int64)
 	// check if path exists
-	r := eng.FileSystemPlugin.Info(path, db)
-	if r.Status != bytengine.OK {
-		return r
+	r, err := eng.FileSystemPlugin.Info(path, db)
+	if err != nil {
+		return r, err
 	}
 	// create ticket
 	key := bytengine.GenerateRandomKey(16)
 	if len(key) == 0 {
-		return bytengine.ErrorResponse(fmt.Errorf("Ticket creation failed"))
+		err := fmt.Errorf("Ticket creation failed")
+		return bytengine.ErrorResponse(err), err
 	}
 
 	ticket := fmt.Sprintf("%x", key)
@@ -63,25 +68,28 @@ func UploadTicketHandler(cmd dsl.Command, user *bytengine.User, eng *bytengine.E
 	}
 	b, err := json.Marshal(val)
 	if err != nil {
-		return bytengine.ErrorResponse(fmt.Errorf("Ticket creation failed"))
+		err := fmt.Errorf("Ticket creation failed")
+		return bytengine.ErrorResponse(err), err
 	}
 	err = eng.StateStorePlugin.CacheSet(ticket, string(b), 60*duration)
 	if err != nil {
-		return bytengine.ErrorResponse(fmt.Errorf("Ticket creation failed"))
+		err := fmt.Errorf("Ticket creation failed")
+		return bytengine.ErrorResponse(err), err
 	}
 
-	return bytengine.OKResponse(ticket)
+	return bytengine.OKResponse(ticket), nil
 }
 
 // handler for: writebytes
-func WritebytesHandler(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) bytengine.Response {
+func WritebytesHandler(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) (bytengine.Response, error) {
 	ticket := cmd.Args["ticket"].(string)
 	tmpfile := cmd.Args["tmpfile"].(string)
 	// get ticket
 	content, err := eng.StateStorePlugin.CacheGet(ticket)
 	if err != nil {
 		os.Remove(tmpfile)
-		return bytengine.ErrorResponse(fmt.Errorf("Invalid ticket"))
+		err := fmt.Errorf("Invalid ticket")
+		return bytengine.ErrorResponse(err), err
 	}
 	// get ticket value
 	var val struct {
@@ -92,48 +100,50 @@ func WritebytesHandler(cmd dsl.Command, user *bytengine.User, eng *bytengine.Eng
 	err = json.Unmarshal(b, &val)
 	if err != nil {
 		os.Remove(tmpfile)
-		return bytengine.ErrorResponse(fmt.Errorf("Ticket data invalid"))
+		err := fmt.Errorf("Ticket data invalid")
+		return bytengine.ErrorResponse(err), err
 	}
 
-	r := eng.FileSystemPlugin.WriteBytes(val.Path, tmpfile, val.Database)
+	r, err := eng.FileSystemPlugin.WriteBytes(val.Path, tmpfile, val.Database)
 	os.Remove(tmpfile)
-	return r
+	return r, err
 }
 
 // handler for: readbytes
-func ReadbytesHandler(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) bytengine.Response {
+func ReadbytesHandler(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) (bytengine.Response, error) {
 	// check if user is anonymous
 	if user == nil {
-		return bytengine.ErrorResponse(fmt.Errorf("Authorization required"))
+		err := fmt.Errorf("Authorization required")
+		return bytengine.ErrorResponse(err), err
 	}
 
 	db := cmd.Database
 	w := cmd.Args["writer"].(io.Writer)
 	path := cmd.Args["path"].(string)
-	r := eng.FileSystemPlugin.ReadBytes(path, db)
-	if r.Status != bytengine.OK {
-		return r
+	r, err := eng.FileSystemPlugin.ReadBytes(path, db)
+	if err != nil {
+		return r, err
 	}
 
 	// get file pointer
 	bstoreid := r.Data.(string)
-	err := eng.ByteStorePlugin.Read(db, bstoreid, w)
+	err = eng.ByteStorePlugin.Read(db, bstoreid, w)
 	if err != nil {
-		return bytengine.ErrorResponse(err)
+		return bytengine.ErrorResponse(err), err
 	}
 
-	return bytengine.OKResponse(true)
+	return bytengine.OKResponse(true), nil
 }
 
 // handler for: direct access
-func DirecaccessHandler(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) bytengine.Response {
+func DirecaccessHandler(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) (bytengine.Response, error) {
 	db := cmd.Args["database"].(string)
 	w := cmd.Args["writer"].(io.Writer)
 	path := cmd.Args["path"].(string)
 	layer := cmd.Args["layer"].(string)
-	r := eng.FileSystemPlugin.DirectAccess(path, db, layer)
-	if r.Status != bytengine.OK {
-		return r
+	r, err := eng.FileSystemPlugin.DirectAccess(path, db, layer)
+	if err != nil {
+		return r, err
 	}
 
 	switch layer {
@@ -141,17 +151,17 @@ func DirecaccessHandler(cmd dsl.Command, user *bytengine.User, eng *bytengine.En
 		// write json
 		_, err := w.Write(r.JSON())
 		if err != nil {
-			return bytengine.ErrorResponse(err)
+			return bytengine.ErrorResponse(err), err
 		}
 	case "bytes":
 		// get file pointer
 		bstoreid := r.Data.(string)
 		err := eng.ByteStorePlugin.Read(db, bstoreid, w)
 		if err != nil {
-			return bytengine.ErrorResponse(err)
+			return bytengine.ErrorResponse(err), err
 		}
 	}
-	return bytengine.OKResponse(true)
+	return bytengine.OKResponse(true), nil
 }
 
 func init() {

@@ -1,4 +1,4 @@
-package core
+package base
 
 import (
 	"github.com/johnwilson/bytengine"
@@ -6,7 +6,7 @@ import (
 )
 
 // handler for: server.listdb
-func ServerListDb(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) bytengine.Response {
+func ServerListDb(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) (bytengine.Response, error) {
 	filter := "."
 	val, ok := cmd.Options["regex"]
 	if ok {
@@ -16,18 +16,18 @@ func ServerListDb(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) 
 }
 
 // handler for: server.newdb
-func ServerNewDb(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) bytengine.Response {
+func ServerNewDb(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) (bytengine.Response, error) {
 	db := cmd.Args["database"].(string)
 	return eng.FileSystemPlugin.CreateDatabase(db)
 }
 
 // handler for: server.init
-func ServerInit(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) bytengine.Response {
+func ServerInit(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) (bytengine.Response, error) {
 	return eng.FileSystemPlugin.ClearAll()
 }
 
 // handler for: server.dropdb
-func ServerDropDb(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) bytengine.Response {
+func ServerDropDb(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) (bytengine.Response, error) {
 	db := cmd.Args["database"].(string)
 	return eng.FileSystemPlugin.DropDatabase(db)
 }

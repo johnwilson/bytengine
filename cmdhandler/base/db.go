@@ -1,4 +1,4 @@
-package core
+package base
 
 import (
 	"github.com/johnwilson/bytengine"
@@ -6,14 +6,14 @@ import (
 )
 
 // handler for: database.newdir
-func DbNewDir(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) bytengine.Response {
+func DbNewDir(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) (bytengine.Response, error) {
 	path := cmd.Args["path"].(string)
 	db := cmd.Database
 	return eng.FileSystemPlugin.NewDir(path, db)
 }
 
 // handler for: database.newfile
-func DbNewFile(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) bytengine.Response {
+func DbNewFile(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) (bytengine.Response, error) {
 	path := cmd.Args["path"].(string)
 	data := cmd.Args["data"].(map[string]interface{})
 	db := cmd.Database
@@ -21,7 +21,7 @@ func DbNewFile(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) byt
 }
 
 // handler for: database.listdir
-func DbListDir(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) bytengine.Response {
+func DbListDir(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) (bytengine.Response, error) {
 	path := cmd.Args["path"].(string)
 	filter := "."
 	val, ok := cmd.Options["regex"]
@@ -33,7 +33,7 @@ func DbListDir(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) byt
 }
 
 // handler for: database.rename
-func DbRename(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) bytengine.Response {
+func DbRename(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) (bytengine.Response, error) {
 	path := cmd.Args["path"].(string)
 	name := cmd.Args["name"].(string)
 	db := cmd.Database
@@ -41,7 +41,7 @@ func DbRename(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) byte
 }
 
 // handler for: database.move
-func DbMove(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) bytengine.Response {
+func DbMove(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) (bytengine.Response, error) {
 	path := cmd.Args["path"].(string)
 	to := cmd.Args["to"].(string)
 	db := cmd.Database
@@ -49,7 +49,7 @@ func DbMove(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) byteng
 }
 
 // handler for: database.copy
-func DbCopy(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) bytengine.Response {
+func DbCopy(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) (bytengine.Response, error) {
 	path := cmd.Args["path"].(string)
 	to := cmd.Args["to"].(string)
 	db := cmd.Database
@@ -57,35 +57,35 @@ func DbCopy(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) byteng
 }
 
 // handler for: database.delete
-func DbDelete(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) bytengine.Response {
+func DbDelete(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) (bytengine.Response, error) {
 	path := cmd.Args["path"].(string)
 	db := cmd.Database
 	return eng.FileSystemPlugin.Delete(path, db)
 }
 
 // handler for: database.info
-func DbInfo(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) bytengine.Response {
+func DbInfo(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) (bytengine.Response, error) {
 	path := cmd.Args["path"].(string)
 	db := cmd.Database
 	return eng.FileSystemPlugin.Info(path, db)
 }
 
 // handler for: database.makepublic
-func DbMakePublic(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) bytengine.Response {
+func DbMakePublic(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) (bytengine.Response, error) {
 	path := cmd.Args["path"].(string)
 	db := cmd.Database
 	return eng.FileSystemPlugin.FileAccess(path, db, false)
 }
 
 // handler for: database.makeprivate
-func DbMakePrivate(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) bytengine.Response {
+func DbMakePrivate(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) (bytengine.Response, error) {
 	path := cmd.Args["path"].(string)
 	db := cmd.Database
 	return eng.FileSystemPlugin.FileAccess(path, db, true)
 }
 
 // handler for: database.readfile
-func DbReadFile(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) bytengine.Response {
+func DbReadFile(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) (bytengine.Response, error) {
 	path := cmd.Args["path"].(string)
 	fields := cmd.Args["fields"].([]string)
 	db := cmd.Database
@@ -93,7 +93,7 @@ func DbReadFile(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) by
 }
 
 // handler for: database.modfile
-func DbModFile(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) bytengine.Response {
+func DbModFile(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) (bytengine.Response, error) {
 	path := cmd.Args["path"].(string)
 	data := cmd.Args["data"].(map[string]interface{})
 	db := cmd.Database
@@ -101,14 +101,14 @@ func DbModFile(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) byt
 }
 
 // handler for: database.deletebytes
-func DbDeleteBytes(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) bytengine.Response {
+func DbDeleteBytes(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) (bytengine.Response, error) {
 	path := cmd.Args["path"].(string)
 	db := cmd.Database
 	return eng.FileSystemPlugin.DeleteBytes(path, db)
 }
 
 // handler for: database.counter
-func DbCounter(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) bytengine.Response {
+func DbCounter(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) (bytengine.Response, error) {
 	act := cmd.Args["action"].(string)
 	db := cmd.Database
 	if act != "list" {
@@ -125,19 +125,19 @@ func DbCounter(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) byt
 }
 
 // handler for: database.select
-func DbSelect(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) bytengine.Response {
+func DbSelect(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) (bytengine.Response, error) {
 	db := cmd.Database
 	return eng.FileSystemPlugin.BQLSearch(db, cmd.Args)
 }
 
 // handler for: database.set
-func DbSet(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) bytengine.Response {
+func DbSet(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) (bytengine.Response, error) {
 	db := cmd.Database
 	return eng.FileSystemPlugin.BQLSet(db, cmd.Args)
 }
 
 // handler for: database.unset
-func DbUnset(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) bytengine.Response {
+func DbUnset(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) (bytengine.Response, error) {
 	db := cmd.Database
 	return eng.FileSystemPlugin.BQLUnset(db, cmd.Args)
 }

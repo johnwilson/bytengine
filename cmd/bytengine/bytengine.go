@@ -49,7 +49,7 @@ func runScriptHandler(ctx *gin.Context) {
 	r, err := engine.ExecuteScript(form.Token, form.Query)
 	if err != nil {
 		data := bytengine.ErrorResponse(err).JSON()
-		ctx.Data(500, "application/json", data)
+		ctx.Data(400, "application/json", data)
 		return
 	}
 
@@ -75,7 +75,7 @@ func getTokenHandler(ctx *gin.Context) {
 	duration, err := Configuration.Get("timeout").Get("authtoken").Int64() // in minutes
 	if err != nil {
 		data := bytengine.ErrorResponse(fmt.Errorf("Token creation error.")).JSON()
-		ctx.Data(500, "application/json", data)
+		ctx.Data(400, "application/json", data)
 		return
 	}
 	cmd.Args["duration"] = duration
@@ -83,7 +83,7 @@ func getTokenHandler(ctx *gin.Context) {
 	r, err := engine.ExecuteCommand("", cmd)
 	if err != nil {
 		data := bytengine.ErrorResponse(err).JSON()
-		ctx.Data(500, "application/json", data)
+		ctx.Data(400, "application/json", data)
 		return
 	}
 
@@ -110,7 +110,7 @@ func getUploadTicketHandler(ctx *gin.Context) {
 	duration, err := Configuration.Get("timeout").Get("uploadticket").Int64() // in minutes
 	if err != nil {
 		data := bytengine.ErrorResponse(fmt.Errorf("Token creation error.")).JSON()
-		ctx.Data(500, "application/json", data)
+		ctx.Data(400, "application/json", data)
 		return
 	}
 	cmd.Args["duration"] = duration
@@ -118,7 +118,7 @@ func getUploadTicketHandler(ctx *gin.Context) {
 	r, err := engine.ExecuteCommand(form.Token, cmd)
 	if err != nil {
 		data := bytengine.ErrorResponse(err).JSON()
-		ctx.Data(500, "application/json", data)
+		ctx.Data(400, "application/json", data)
 		return
 	}
 
@@ -181,7 +181,7 @@ func uploadFileHandler(ctx *gin.Context) {
 	filename, _, err := uploadFileHelper(300, ctx)
 	if err != nil {
 		data := bytengine.ErrorResponse(fmt.Errorf("upload failed: %s", err.Error())).JSON()
-		ctx.Data(500, "application/json", data)
+		ctx.Data(400, "application/json", data)
 		return
 	}
 
@@ -192,7 +192,7 @@ func uploadFileHandler(ctx *gin.Context) {
 	r, err := engine.ExecuteCommand("", cmd)
 	if err != nil {
 		data := bytengine.ErrorResponse(err).JSON()
-		ctx.Data(500, "application/json", data)
+		ctx.Data(400, "application/json", data)
 		return
 	}
 
@@ -221,7 +221,7 @@ func downloadFileHandler(ctx *gin.Context) {
 	_, err := engine.ExecuteCommand(form.Token, cmd)
 	if err != nil {
 		data := bytengine.ErrorResponse(err).String()
-		ctx.String(500, data)
+		ctx.String(400, data)
 		return
 	}
 }
