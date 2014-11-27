@@ -19,7 +19,7 @@ Some of the server's features are:
 * HTTP based API
 * Bytengine Query language (BQL)
 * Pluggable data storage backends (currently supports Mongodb, Diskv, Redis)
-* Command line interface **[bshell](http://github.com/johnwilson/bshell/ "bshell")**
+* Command line interface **[bshell](https://github.com/johnwilson/bytengine/tree/master/cmd/bshell "bshell")**
 
 ## Installation
 
