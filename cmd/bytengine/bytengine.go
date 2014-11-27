@@ -12,12 +12,54 @@ import (
 	"github.com/johnwilson/bytengine/dsl"
 )
 
-var Configuration *simplejson.Json
-var engine *bytengine.Engine
+var (
+	EngineRequestChan chan *EngineRequest
+	Configuration     *simplejson.Json
+)
 
 const (
 	VERSION = "0.2.0"
 )
+
+type EngineRequest struct {
+	Token        string
+	Script       string
+	Command      *dsl.Command
+	ResponseChan chan EngineResponse
+}
+
+type EngineResponse struct {
+	Response *bytengine.Response
+	Error    error
+}
+
+func Worker(config *simplejson.Json, requests chan *EngineRequest) {
+	// create engine and start
+	engine := bytengine.NewEngine()
+	engine.Start(config.Get("bytengine"))
+
+	for req := range requests {
+		// check if script request or command request
+		if req.Command != nil {
+			r, err := engine.ExecuteCommand(req.Token, *req.Command)
+			rep := EngineResponse{r, err}
+			req.ResponseChan <- rep
+		} else {
+			r, err := engine.ExecuteScript(req.Token, req.Script)
+			rep := EngineResponse{r, err}
+			req.ResponseChan <- rep
+		}
+	}
+}
+
+func WorkerPool(workers int, config *simplejson.Json) chan *EngineRequest {
+	requests := make(chan *EngineRequest)
+	for i := 0; i < workers; i++ {
+		go Worker(config, requests)
+	}
+
+	return requests
+}
 
 func welcomeHandler(ctx *gin.Context) {
 	msg := simplejson.New()
@@ -46,14 +88,20 @@ func runScriptHandler(ctx *gin.Context) {
 		return
 	}
 
-	r, err := engine.ExecuteScript(form.Token, form.Query)
-	if err != nil {
-		data := bytengine.ErrorResponse(err).JSON()
+	req := EngineRequest{
+		Token:        form.Token,
+		Script:       form.Query,
+		ResponseChan: make(chan EngineResponse),
+	}
+	EngineRequestChan <- &req
+	rep := <-req.ResponseChan
+	if rep.Error != nil {
+		data := bytengine.ErrorResponse(rep.Error).JSON()
 		ctx.Data(400, "application/json", data)
 		return
 	}
 
-	ctx.Data(200, "application/json", r.JSON())
+	ctx.Data(200, "application/json", rep.Response.JSON())
 }
 
 func getTokenHandler(ctx *gin.Context) {
@@ -80,14 +128,20 @@ func getTokenHandler(ctx *gin.Context) {
 	}
 	cmd.Args["duration"] = duration
 
-	r, err := engine.ExecuteCommand("", cmd)
-	if err != nil {
-		data := bytengine.ErrorResponse(err).JSON()
+	req := EngineRequest{
+		Token:        "",
+		Command:      &cmd,
+		ResponseChan: make(chan EngineResponse),
+	}
+	EngineRequestChan <- &req
+	rep := <-req.ResponseChan
+	if rep.Error != nil {
+		data := bytengine.ErrorResponse(rep.Error).JSON()
 		ctx.Data(400, "application/json", data)
 		return
 	}
 
-	ctx.Data(200, "application/json", r.JSON())
+	ctx.Data(200, "application/json", rep.Response.JSON())
 }
 
 func getUploadTicketHandler(ctx *gin.Context) {
@@ -115,14 +169,20 @@ func getUploadTicketHandler(ctx *gin.Context) {
 	}
 	cmd.Args["duration"] = duration
 
-	r, err := engine.ExecuteCommand(form.Token, cmd)
-	if err != nil {
-		data := bytengine.ErrorResponse(err).JSON()
+	req := EngineRequest{
+		Token:        form.Token,
+		Command:      &cmd,
+		ResponseChan: make(chan EngineResponse),
+	}
+	EngineRequestChan <- &req
+	rep := <-req.ResponseChan
+	if rep.Error != nil {
+		data := bytengine.ErrorResponse(rep.Error).JSON()
 		ctx.Data(400, "application/json", data)
 		return
 	}
 
-	ctx.Data(200, "application/json", r.JSON())
+	ctx.Data(200, "application/json", rep.Response.JSON())
 }
 
 func uploadFileHelper(max int, ctx *gin.Context) (string, int, error) {
@@ -189,14 +249,20 @@ func uploadFileHandler(ctx *gin.Context) {
 	cmd.Args["ticket"] = ticket
 	cmd.Args["tmpfile"] = filename
 
-	r, err := engine.ExecuteCommand("", cmd)
-	if err != nil {
-		data := bytengine.ErrorResponse(err).JSON()
+	req := EngineRequest{
+		Token:        "",
+		Command:      &cmd,
+		ResponseChan: make(chan EngineResponse),
+	}
+	EngineRequestChan <- &req
+	rep := <-req.ResponseChan
+	if rep.Error != nil {
+		data := bytengine.ErrorResponse(rep.Error).JSON()
 		ctx.Data(400, "application/json", data)
 		return
 	}
 
-	ctx.Data(200, "application/json", r.JSON())
+	ctx.Data(200, "application/json", rep.Response.JSON())
 }
 
 func downloadFileHandler(ctx *gin.Context) {
@@ -218,9 +284,15 @@ func downloadFileHandler(ctx *gin.Context) {
 	cmd.Args["writer"] = ctx.Writer
 
 	ctx.Writer.Header().Set("Content-Type", "application/octet-stream")
-	_, err := engine.ExecuteCommand(form.Token, cmd)
-	if err != nil {
-		data := bytengine.ErrorResponse(err).String()
+	req := EngineRequest{
+		Token:        form.Token,
+		Command:      &cmd,
+		ResponseChan: make(chan EngineResponse),
+	}
+	EngineRequestChan <- &req
+	rep := <-req.ResponseChan
+	if rep.Error != nil {
+		data := bytengine.ErrorResponse(rep.Error).String()
 		ctx.String(400, data)
 		return
 	}
@@ -243,9 +315,15 @@ func directaccessHandler(ctx *gin.Context) {
 		ctx.Writer.Header().Set("Content-Type", "application/octet-stream")
 	}
 
-	_, err := engine.ExecuteCommand("", cmd)
-	if err != nil {
-		data := bytengine.ErrorResponse(err).String()
+	req := EngineRequest{
+		Token:        "",
+		Command:      &cmd,
+		ResponseChan: make(chan EngineResponse),
+	}
+	EngineRequestChan <- &req
+	rep := <-req.ResponseChan
+	if rep.Error != nil {
+		data := bytengine.ErrorResponse(rep.Error).String()
 		ctx.String(404, data)
 		return
 	}
@@ -253,7 +331,6 @@ func directaccessHandler(ctx *gin.Context) {
 
 func main() {
 	app := cli.NewApp()
-	engine = bytengine.NewEngine()
 
 	createadminCmd := cli.Command{
 		Name: "createadmin",
@@ -274,7 +351,8 @@ func main() {
 			}
 			Configuration, err = simplejson.NewFromReader(rdr)
 
-			// start bytengine
+			// create and start bytengine
+			engine := bytengine.NewEngine()
 			engine.Start(Configuration.Get("bytengine"))
 
 			err = engine.CreateAdminUser(usr, pw)
@@ -285,6 +363,7 @@ func main() {
 			fmt.Println("...done")
 		},
 	}
+
 	run := cli.Command{
 		Name: "run",
 		Flags: []cli.Flag{
@@ -301,9 +380,10 @@ func main() {
 			Configuration, err = simplejson.NewFromReader(rdr)
 			addr := Configuration.Get("address").MustString()
 			port := Configuration.Get("port").MustInt()
+			workers := Configuration.Get("workers").MustInt()
 
-			// start bytengine
-			engine.Start(Configuration.Get("bytengine"))
+			// start worker pool
+			EngineRequestChan = WorkerPool(workers, Configuration)
 
 			// setup routes
 			router := gin.Default()
