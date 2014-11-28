@@ -7,7 +7,12 @@ import (
 	"os"
 
 	"github.com/johnwilson/bytengine"
+	"github.com/johnwilson/bytengine/auth"
 	"github.com/johnwilson/bytengine/dsl"
+)
+
+const (
+	KeyStrength = 16 // random key strength
 )
 
 // handler for: login
@@ -16,20 +21,20 @@ func LoginHandler(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) 
 	pw := cmd.Args["password"].(string)
 	duration := cmd.Args["duration"].(int64)
 
-	ok := eng.AuthPlugin.Authenticate(usr, pw)
+	ok := eng.Authentication.Authenticate(usr, pw)
 	if !ok {
 		err := fmt.Errorf("Authentication failed")
 		return bytengine.ErrorResponse(err), err
 	}
 
-	key := bytengine.GenerateRandomKey(16)
+	key := auth.GenerateRandomKey(KeyStrength)
 	if len(key) == 0 {
 		err := fmt.Errorf("Token creation failed")
 		return bytengine.ErrorResponse(err), err
 	}
 
 	token := fmt.Sprintf("%x", key)
-	err := eng.StateStorePlugin.TokenSet(token, usr, 60*duration)
+	err := eng.StateStore.TokenSet(token, usr, 60*duration)
 	if err != nil {
 		err := fmt.Errorf("Token creation failed")
 		return bytengine.ErrorResponse(err), err
@@ -50,12 +55,12 @@ func UploadTicketHandler(cmd dsl.Command, user *bytengine.User, eng *bytengine.E
 	path := cmd.Args["path"].(string)
 	duration := cmd.Args["duration"].(int64)
 	// check if path exists
-	r, err := eng.FileSystemPlugin.Info(path, db)
+	r, err := eng.FileSystem.Info(path, db)
 	if err != nil {
 		return r, err
 	}
 	// create ticket
-	key := bytengine.GenerateRandomKey(16)
+	key := auth.GenerateRandomKey(KeyStrength)
 	if len(key) == 0 {
 		err := fmt.Errorf("Ticket creation failed")
 		return bytengine.ErrorResponse(err), err
@@ -71,7 +76,7 @@ func UploadTicketHandler(cmd dsl.Command, user *bytengine.User, eng *bytengine.E
 		err := fmt.Errorf("Ticket creation failed")
 		return bytengine.ErrorResponse(err), err
 	}
-	err = eng.StateStorePlugin.CacheSet(ticket, string(b), 60*duration)
+	err = eng.StateStore.CacheSet(ticket, string(b), 60*duration)
 	if err != nil {
 		err := fmt.Errorf("Ticket creation failed")
 		return bytengine.ErrorResponse(err), err
@@ -85,7 +90,7 @@ func WritebytesHandler(cmd dsl.Command, user *bytengine.User, eng *bytengine.Eng
 	ticket := cmd.Args["ticket"].(string)
 	tmpfile := cmd.Args["tmpfile"].(string)
 	// get ticket
-	content, err := eng.StateStorePlugin.CacheGet(ticket)
+	content, err := eng.StateStore.CacheGet(ticket)
 	if err != nil {
 		os.Remove(tmpfile)
 		err := fmt.Errorf("Invalid ticket")
@@ -104,7 +109,7 @@ func WritebytesHandler(cmd dsl.Command, user *bytengine.User, eng *bytengine.Eng
 		return bytengine.ErrorResponse(err), err
 	}
 
-	r, err := eng.FileSystemPlugin.WriteBytes(val.Path, tmpfile, val.Database)
+	r, err := eng.FileSystem.WriteBytes(val.Path, tmpfile, val.Database)
 	os.Remove(tmpfile)
 	return r, err
 }
@@ -120,14 +125,14 @@ func ReadbytesHandler(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engi
 	db := cmd.Database
 	w := cmd.Args["writer"].(io.Writer)
 	path := cmd.Args["path"].(string)
-	r, err := eng.FileSystemPlugin.ReadBytes(path, db)
+	r, err := eng.FileSystem.ReadBytes(path, db)
 	if err != nil {
 		return r, err
 	}
 
 	// get file pointer
 	bstoreid := r.Data.(string)
-	err = eng.ByteStorePlugin.Read(db, bstoreid, w)
+	err = eng.ByteStore.Read(db, bstoreid, w)
 	if err != nil {
 		return bytengine.ErrorResponse(err), err
 	}
@@ -141,7 +146,7 @@ func DirecaccessHandler(cmd dsl.Command, user *bytengine.User, eng *bytengine.En
 	w := cmd.Args["writer"].(io.Writer)
 	path := cmd.Args["path"].(string)
 	layer := cmd.Args["layer"].(string)
-	r, err := eng.FileSystemPlugin.DirectAccess(path, db, layer)
+	r, err := eng.FileSystem.DirectAccess(path, db, layer)
 	if err != nil {
 		return r, err
 	}
@@ -156,7 +161,7 @@ func DirecaccessHandler(cmd dsl.Command, user *bytengine.User, eng *bytengine.En
 	case "bytes":
 		// get file pointer
 		bstoreid := r.Data.(string)
-		err := eng.ByteStorePlugin.Read(db, bstoreid, w)
+		err := eng.ByteStore.Read(db, bstoreid, w)
 		if err != nil {
 			return bytengine.ErrorResponse(err), err
 		}

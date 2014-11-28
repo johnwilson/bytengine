@@ -12,24 +12,24 @@ func ServerListDb(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) 
 	if ok {
 		filter = val.(string)
 	}
-	return eng.FileSystemPlugin.ListDatabase(filter)
+	return eng.FileSystem.ListDatabase(filter)
 }
 
 // handler for: server.newdb
 func ServerNewDb(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) (bytengine.Response, error) {
 	db := cmd.Args["database"].(string)
-	return eng.FileSystemPlugin.CreateDatabase(db)
+	return eng.FileSystem.CreateDatabase(db)
 }
 
 // handler for: server.init
 func ServerInit(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) (bytengine.Response, error) {
-	return eng.FileSystemPlugin.ClearAll()
+	return eng.FileSystem.ClearAll()
 }
 
 // handler for: server.dropdb
 func ServerDropDb(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) (bytengine.Response, error) {
 	db := cmd.Args["database"].(string)
-	return eng.FileSystemPlugin.DropDatabase(db)
+	return eng.FileSystem.DropDatabase(db)
 }
 
 func init() {

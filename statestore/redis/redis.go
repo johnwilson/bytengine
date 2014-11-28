@@ -17,8 +17,8 @@ type Config struct {
 }
 
 const (
-	TOKEN_PREFIX = "token"
-	CACHE_PREFIX = "cache"
+	TokenPrefix = "token"
+	CachePrefix = "cache"
 )
 
 type StateStore struct {
@@ -26,7 +26,7 @@ type StateStore struct {
 }
 
 func (s *StateStore) TokenSet(token, user string, timeout int64) error {
-	key := fmt.Sprintf("%s:%s", TOKEN_PREFIX, token)
+	key := fmt.Sprintf("%s:%s", TokenPrefix, token)
 	r := s.client.Cmd("SETEX", key, timeout, user)
 	if r.Err != nil {
 		return r.Err
@@ -35,7 +35,7 @@ func (s *StateStore) TokenSet(token, user string, timeout int64) error {
 }
 
 func (s *StateStore) TokenGet(token string) (string, error) {
-	key := fmt.Sprintf("%s:%s", TOKEN_PREFIX, token)
+	key := fmt.Sprintf("%s:%s", TokenPrefix, token)
 	r := s.client.Cmd("GET", key)
 	if r.Err != nil {
 		return "", r.Err
@@ -44,7 +44,7 @@ func (s *StateStore) TokenGet(token string) (string, error) {
 }
 
 func (s *StateStore) CacheSet(id, value string, timeout int64) error {
-	key := fmt.Sprintf("%s:%s", CACHE_PREFIX, id)
+	key := fmt.Sprintf("%s:%s", CachePrefix, id)
 	r := s.client.Cmd("SETEX", key, timeout, value)
 	if r.Err != nil {
 		return r.Err
@@ -53,7 +53,7 @@ func (s *StateStore) CacheSet(id, value string, timeout int64) error {
 }
 
 func (s *StateStore) CacheGet(id string) (string, error) {
-	key := fmt.Sprintf("%s:%s", CACHE_PREFIX, id)
+	key := fmt.Sprintf("%s:%s", CachePrefix, id)
 	r := s.client.Cmd("GET", key)
 	if r.Err != nil {
 		return "", r.Err

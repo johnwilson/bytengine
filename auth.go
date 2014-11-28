@@ -1,12 +1,11 @@
 package bytengine
 
 import (
-	"code.google.com/p/go.crypto/bcrypt"
-	"crypto/rand"
-	"errors"
-	"io"
-	"regexp"
+	"fmt"
+	"log"
 )
+
+var authPlugins = make(map[string]Authentication)
 
 type User struct {
 	Username  string   `json:"username"`
@@ -14,16 +13,6 @@ type User struct {
 	Databases []string `json:"databases"`
 	Root      bool     `json:"root"`
 }
-
-type ReqMode string
-
-const (
-	MROOT  ReqMode = "root"
-	MUSER  ReqMode = "user"
-	MGUEST ReqMode = "guest"
-
-	PASSWORD_COST = 10 // for bcrypt
-)
 
 type Authentication interface {
 	Start(config string) error
@@ -39,62 +28,26 @@ type Authentication interface {
 	UserInfo(u string) (*User, error)
 }
 
-func CheckPassword(pw string) error {
-	// disallow whitespace
-	r, err := regexp.Compile("\\s")
-	if err != nil {
-		return err
-	}
-	if r.MatchString(pw) {
-		return errors.New("password cannot contain whitespace")
-	}
-	// minimum length 8 chars
-	if len(pw) < 8 {
-		return errors.New("password must be at least 8 chars")
+func RegisterAuthentication(name string, plugin Authentication) {
+	if plugin == nil {
+		log.Fatal("Authentication Plugin Registration: plugin is nil")
 	}
 
-	return nil
+	if _, exists := authPlugins[name]; exists {
+		log.Printf("Authentication Plugin Registration: plugin '%s' already registered", name)
+	}
+	authPlugins[name] = plugin
 }
 
-func CheckUsername(usr string) error {
-	if usr == "guest" {
-		return errors.New("username guest already taken")
+func NewAuthentication(pluginName, config string) (plugin Authentication, err error) {
+	plugin, ok := authPlugins[pluginName]
+	if !ok {
+		err = fmt.Errorf("Authentication Plugin Creation: unknown plugin name %q (forgot to import?)", pluginName)
+		return
 	}
-
-	// regex verification
-	r, err := regexp.Compile("^[a-z]{1}([_]{0,1}[a-zA-Z0-9]{1,})+$")
+	err = plugin.Start(config)
 	if err != nil {
-		return err
+		plugin = nil
 	}
-	if r.MatchString(usr) {
-		return nil
-	}
-	msg := "username isn't valid."
-	return errors.New(msg)
-}
-
-func ValidatePassword(pwh, pw []byte) bool {
-	err := bcrypt.CompareHashAndPassword(pwh, pw)
-	if err != nil {
-		return false
-	}
-	return true
-}
-
-func PasswordEncrypt(pw string) ([]byte, error) {
-	pw_bytes := []byte(pw)
-	pw_encrypt, err := bcrypt.GenerateFromPassword(pw_bytes, PASSWORD_COST)
-	if err != nil {
-		return nil, err
-	}
-	return pw_encrypt, nil
-}
-
-// Taken from 'gorilla toolkit secure cookie'
-func GenerateRandomKey(strength int) []byte {
-	buffer := make([]byte, strength)
-	if _, err := io.ReadFull(rand.Reader, buffer); err != nil {
-		return nil
-	}
-	return buffer
+	return
 }

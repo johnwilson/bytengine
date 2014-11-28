@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/johnwilson/bytengine"
+	"github.com/johnwilson/bytengine/auth"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 	"strings"
@@ -25,8 +26,8 @@ func NewAuthentication() *Authentication {
 }
 
 const (
-	AUTH_DATABASE   = "bytengine_auth"
-	AUTH_COLLECTION = "users"
+	AuthenticationDatabase   = "bytengine_auth"
+	AuthenticationCollection = "users"
 )
 
 type Authentication struct {
@@ -49,7 +50,7 @@ type authToken struct {
 */
 
 func (m *Authentication) getCollection() *mgo.Collection {
-	return m.session.DB(AUTH_DATABASE).C(AUTH_COLLECTION)
+	return m.session.DB(AuthenticationDatabase).C(AuthenticationCollection)
 }
 
 /*
@@ -77,7 +78,7 @@ func (m *Authentication) Start(config string) error {
 		return err
 	}
 	m.session = session
-	m.database = AUTH_DATABASE
+	m.database = AuthenticationDatabase
 	return nil
 }
 
@@ -88,7 +89,7 @@ func (m *Authentication) ClearAll() error {
 	}
 	exists := false // database exists
 	for _, i := range names {
-		if i == AUTH_DATABASE {
+		if i == AuthenticationDatabase {
 			exists = true
 			break
 		}
@@ -118,7 +119,7 @@ func (m *Authentication) Authenticate(usr, pw string) bool {
 		return false
 	}
 
-	if ok := bytengine.ValidatePassword([]byte(_token.Password), []byte(pw)); ok {
+	if ok := auth.ValidatePassword([]byte(_token.Password), []byte(pw)); ok {
 		return true
 	}
 
@@ -130,11 +131,11 @@ func (m *Authentication) NewUser(usr, pw string, root bool) error {
 	usr = strings.ToLower(usr)
 
 	// check username and password
-	err := bytengine.CheckUsername(usr)
+	err := auth.CheckUsername(usr)
 	if err != nil {
 		return err
 	}
-	err = bytengine.CheckPassword(pw)
+	err = auth.CheckPassword(pw)
 	if err != nil {
 		return err
 	}
@@ -155,7 +156,7 @@ func (m *Authentication) NewUser(usr, pw string, root bool) error {
 		return errors.New(msg)
 	}
 
-	encrypt_pw, err := bytengine.PasswordEncrypt(pw)
+	encrypt_pw, err := auth.PasswordEncrypt(pw)
 	if err != nil {
 		msg := fmt.Sprintf("user %s couldn't be created:\n%s", usr, err)
 		return errors.New(msg)
@@ -180,7 +181,7 @@ func (m *Authentication) NewUser(usr, pw string, root bool) error {
 
 func (m *Authentication) ChangeUserPassword(usr, pw string) error {
 	// validate password
-	err := bytengine.CheckPassword(pw)
+	err := auth.CheckPassword(pw)
 	if err != nil {
 		return err
 	}
@@ -188,7 +189,7 @@ func (m *Authentication) ChangeUserPassword(usr, pw string) error {
 	// get collection
 	col := m.getCollection()
 
-	encrypt_pw, err := bytengine.PasswordEncrypt(pw)
+	encrypt_pw, err := auth.PasswordEncrypt(pw)
 	if err != nil {
 		msg := fmt.Sprintf("user %s couldn't be created:\n%s", usr, err)
 		return errors.New(msg)

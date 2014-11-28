@@ -2,13 +2,8 @@ package bytengine
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
-	"regexp"
-	"strings"
-	"time"
-
-	"github.com/nu7hatch/gouuid"
+	"log"
 )
 
 type Status string
@@ -17,6 +12,8 @@ const (
 	OK    Status = "ok"
 	ERROR Status = "error"
 )
+
+var bfsPlugins = make(map[string]FileSystem)
 
 type Response struct {
 	Status        Status
@@ -55,7 +52,7 @@ func (r Response) String() string {
 	return string(r.JSON())
 }
 
-type BFS interface {
+type FileSystem interface {
 	Start(config string, b *ByteStore) error
 	ClearAll() (Response, error)
 	ListDatabase(filter string) (Response, error)
@@ -83,80 +80,6 @@ type BFS interface {
 	BQLUnset(db string, query map[string]interface{}) (Response, error)
 }
 
-func ValidateDbName(d string) error {
-	d = strings.ToLower(d)
-
-	// regex verification
-	r, err := regexp.Compile("^[a-z][a-z0-9_]{1,20}$")
-	if err != nil {
-		return err
-	}
-	if r.MatchString(d) {
-		return nil
-	}
-	msg := fmt.Sprintf("database name '%s' isn't valid.", d)
-	return errors.New(msg)
-}
-
-func ValidateDirName(d string) error {
-	msg := fmt.Sprintf("directory name '%s' isn't valid.", d)
-	r, err := regexp.Compile("^[a-zA-Z0-9][a-zA-Z0-9_\\-]{0,}$")
-	if err != nil {
-		return errors.New(msg)
-	}
-	if r.MatchString(d) {
-		return nil
-	}
-	return errors.New(msg)
-}
-
-func ValidateCounterName(c string) error {
-	msg := fmt.Sprintf("counter name '%s' isn't valid.", c)
-	r, err := regexp.Compile("[a-zA-Z0-9_\\.\\-]+")
-	if err != nil {
-		return errors.New(msg)
-	}
-	match := r.FindString(c)
-	if match != c {
-		return errors.New(msg)
-	}
-	return nil
-}
-
-func ValidateFileName(f string) error {
-	msg := fmt.Sprintf("file name '%s' isn't valid.", f)
-	r, err := regexp.Compile("^\\w[\\w\\-]{0,}(\\.[a-zA-Z0-9]+)*$")
-	if err != nil {
-		return errors.New(msg)
-	}
-	if r.MatchString(f) {
-		return nil
-	}
-	return errors.New(msg)
-}
-
-func FormatDatetime(t time.Time) string {
-	f := "%d:%02d:%02d-%02d:%02d:%02d.%03d"
-	dt := fmt.Sprintf(f,
-		t.Year(),
-		t.Month(),
-		t.Day(),
-		t.Hour(),
-		t.Minute(),
-		t.Second(),
-		t.Nanosecond()/100000)
-	return dt
-}
-
-func NewNodeID() (string, error) {
-	tmp, err := uuid.NewV4()
-	if err != nil {
-		return "", err
-	}
-	id := strings.Replace(tmp.String(), "-", "", -1) // remove dashes
-	return id, nil
-}
-
 func ErrorResponse(err error) Response {
 	return Response{
 		Status:        ERROR,
@@ -171,4 +94,28 @@ func OKResponse(d interface{}) Response {
 		StatusMessage: "",
 		Data:          d,
 	}
+}
+
+func RegisterFileSystem(name string, plugin FileSystem) {
+	if plugin == nil {
+		log.Fatal("File System Plugin Registration: plugin is nil")
+	}
+
+	if _, exists := bfsPlugins[name]; exists {
+		log.Printf("File System Plugin Registration: plugin '%s' already registered", name)
+	}
+	bfsPlugins[name] = plugin
+}
+
+func NewFileSystem(pluginName, config string, b *ByteStore) (plugin FileSystem, err error) {
+	plugin, ok := bfsPlugins[pluginName]
+	if !ok {
+		err = fmt.Errorf("File System Plugin Creation: unknown plugin name %q (forgot to import?)", pluginName)
+		return
+	}
+	err = plugin.Start(config, b)
+	if err != nil {
+		plugin = nil
+	}
+	return
 }

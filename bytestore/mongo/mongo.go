@@ -8,12 +8,13 @@ import (
 	"time"
 
 	"github.com/johnwilson/bytengine"
+	"github.com/johnwilson/bytengine/bytestore"
 	"github.com/nu7hatch/gouuid"
 	"gopkg.in/mgo.v2"
 )
 
 const (
-	BLOB_DATABASE = "bytengine_bst"
+	BlobDatabase = "bytengine_bst"
 )
 
 type Config struct {
@@ -43,7 +44,7 @@ func (m *ByteStore) save(db, filename string, file *os.File) (map[string]interfa
 	if err != nil {
 		return nil, err
 	}
-	info, err := bytengine.GetFileInfo(file.Name())
+	info, err := bytestore.GetFileInfo(file.Name())
 	if err != nil {
 		return nil, err
 	}
@@ -70,7 +71,7 @@ func (m *ByteStore) Start(config string) error {
 		return err
 	}
 	m.session = session
-	m.database = BLOB_DATABASE
+	m.database = BlobDatabase
 	return nil
 }
 

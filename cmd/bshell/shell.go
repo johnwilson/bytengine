@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/johnwilson/bytengine"
+	"github.com/johnwilson/bytengine/client"
 	"github.com/peterh/liner"
 	"github.com/robertkrimen/otto"
 )
@@ -18,10 +19,10 @@ type stateFn func(*Shell) stateFn
 
 // meta-commands constants
 const (
-	OPEN_BQL_EDITOR string = "\\e"
-	OPEN_JS_EDITOR  string = "\\es"
-	RUN_JS          string = "\\s"
-	QUIT            string = "\\q"
+	OpenBQLEditor        string = "\\e"
+	OpenJavascriptEditor string = "\\es"
+	RunJavascript        string = "\\s"
+	Quit                 string = "\\q"
 )
 
 // BShell
@@ -29,7 +30,7 @@ type Shell struct {
 	historyFile   string
 	editorFileBQL string
 	editorFileJS  string
-	BEClient      *bytengine.BytengineClient
+	BEClient      *client.Client
 	state         stateFn
 	line          *liner.State
 	jsengine      *otto.Otto // javascript engine
@@ -125,7 +126,7 @@ func (sh *Shell) execScript(editor bool) stateFn {
 	var err error
 
 	if !editor {
-		tmp := strings.TrimPrefix(sh.input, RUN_JS) // remove script meta-command
+		tmp := strings.TrimPrefix(sh.input, RunJavascript) // remove script meta-command
 		value, err = sh.jsengine.Run(tmp)
 	} else {
 		value, err = sh.jsengine.Run(sh.input)
@@ -210,14 +211,14 @@ func bqlPrompt(sh *Shell) stateFn {
 	}
 	input = strings.Trim(input, " ")
 	switch {
-	case input == QUIT:
+	case input == Quit:
 		sh.write("\nbye")
 		return bqlQuit
-	case input == OPEN_BQL_EDITOR:
+	case input == OpenBQLEditor:
 		return bqlEditor
-	case input == OPEN_JS_EDITOR:
+	case input == OpenJavascriptEditor:
 		return scriptEditor
-	case strings.HasPrefix(input, RUN_JS) == true:
+	case strings.HasPrefix(input, RunJavascript) == true:
 		sh.input = input
 		return sh.execScript(false)
 	default:
@@ -285,7 +286,7 @@ func (sh *Shell) Init(editorName string) error {
 
 // Create a new shell
 func NewShell() *Shell {
-	bclient := bytengine.NewBytengineClient()
+	bclient := client.NewClient()
 	sh := Shell{
 		BEClient: bclient,
 		state:    bqlPrompt,

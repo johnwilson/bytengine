@@ -9,10 +9,10 @@ import (
 )
 
 type Engine struct {
-	AuthPlugin       Authentication
-	FileSystemPlugin BFS
-	ByteStorePlugin  ByteStore
-	StateStorePlugin StateStore
+	Authentication Authentication
+	FileSystem     FileSystem
+	ByteStore      ByteStore
+	StateStore     StateStore
 }
 
 func NewEngine() *Engine {
@@ -27,12 +27,12 @@ func (eng *Engine) checkUser(token string) (*User, error) {
 		return nil, nil
 	}
 
-	uname, err := eng.StateStorePlugin.TokenGet(token)
+	uname, err := eng.StateStore.TokenGet(token)
 	if err != nil {
 		return nil, errors.New("invalid auth token")
 	}
 
-	return eng.AuthPlugin.UserInfo(uname)
+	return eng.Authentication.UserInfo(uname)
 }
 
 func (eng *Engine) parseScript(script string) ([]dsl.Command, error) {
@@ -78,7 +78,7 @@ func createBSTManager(config *simplejson.Json) ByteStore {
 	return bstM
 }
 
-func createBFSManager(bstore *ByteStore, config *simplejson.Json) BFS {
+func createBFSManager(bstore *ByteStore, config *simplejson.Json) FileSystem {
 	plugin := config.Get("bfs").Get("plugin").MustString("")
 	b, err := config.Get("bfs").MarshalJSON()
 	if err != nil {
@@ -106,10 +106,10 @@ func createStateManager(config *simplejson.Json) StateStore {
 
 // start engine and configure plugins with 'config'
 func (eng *Engine) Start(config *simplejson.Json) {
-	eng.AuthPlugin = createAuthManager(config)
-	eng.ByteStorePlugin = createBSTManager(config)
-	eng.FileSystemPlugin = createBFSManager(&eng.ByteStorePlugin, config)
-	eng.StateStorePlugin = createStateManager(config)
+	eng.Authentication = createAuthManager(config)
+	eng.ByteStore = createBSTManager(config)
+	eng.FileSystem = createBFSManager(&eng.ByteStore, config)
+	eng.StateStore = createStateManager(config)
 }
 
 func (eng *Engine) ExecuteScript(token, script string) (*Response, error) {
@@ -159,6 +159,6 @@ func (eng *Engine) ExecuteCommand(token string, cmd dsl.Command) (*Response, err
 }
 
 func (eng *Engine) CreateAdminUser(usr, pw string) error {
-	err := eng.AuthPlugin.NewUser(usr, pw, true)
+	err := eng.Authentication.NewUser(usr, pw, true)
 	return err
 }

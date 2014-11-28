@@ -18,7 +18,7 @@ var (
 )
 
 const (
-	VERSION = "0.2.0"
+	Version = "0.2.0"
 )
 
 type EngineRequest struct {
@@ -64,7 +64,7 @@ func WorkerPool(workers int, config *simplejson.Json) chan *EngineRequest {
 func welcomeHandler(ctx *gin.Context) {
 	msg := simplejson.New()
 	msg.Set("bytengine", "Welcome")
-	msg.Set("version", VERSION)
+	msg.Set("version", Version)
 	b, err := msg.MarshalJSON()
 	if err != nil {
 		fmt.Println(err)

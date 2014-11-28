@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/johnwilson/bytengine"
+	"github.com/johnwilson/bytengine/bytestore"
 	"github.com/nu7hatch/gouuid"
 	"github.com/peterbourgon/diskv"
 )
@@ -17,7 +18,7 @@ type Config struct {
 	CacheSize uint64 `json:"cachesize"`
 }
 
-const SEP_CHAR = "-"
+const SeparationCharacter = "-"
 
 type ByteStore struct {
 	RootDir   string
@@ -27,7 +28,7 @@ type ByteStore struct {
 }
 
 func (m *ByteStore) getKey(db, filename string) string {
-	return db + SEP_CHAR + filename
+	return db + SeparationCharacter + filename
 }
 
 func (m *ByteStore) newKey(db string) (key string, id string) {
@@ -36,7 +37,7 @@ func (m *ByteStore) newKey(db string) (key string, id string) {
 		return "", ""
 	}
 	id = strings.Replace(tmp.String(), "-", "", -1)
-	key = db + SEP_CHAR + id
+	key = db + SeparationCharacter + id
 	return
 }
 
@@ -47,7 +48,7 @@ func (m *ByteStore) save(key string, file *os.File) (map[string]interface{}, err
 		return nil, err
 	}
 
-	info, err := bytengine.GetFileInfo(file.Name())
+	info, err := bytestore.GetFileInfo(file.Name())
 	if err != nil {
 		return nil, err
 	}
@@ -63,7 +64,7 @@ func (m *ByteStore) Start(config string) error {
 	}
 
 	transformFunc := func(s string) []string {
-		return strings.Split(s, SEP_CHAR)
+		return strings.Split(s, SeparationCharacter)
 	}
 	m.DB = diskv.New(diskv.Options{
 		BasePath:     c.RootDir,
@@ -134,7 +135,7 @@ func (m *ByteStore) Read(db, filename string, file io.Writer) error {
 
 func (m *ByteStore) DropDatabase(db string) error {
 	for key := range m.DB.Keys() {
-		prefix := db + SEP_CHAR
+		prefix := db + SeparationCharacter
 		if strings.HasPrefix(key, prefix) {
 			err := m.DB.Erase(key)
 			if err != nil {

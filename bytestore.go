@@ -1,11 +1,10 @@
 package bytengine
 
 import (
+	"fmt"
 	"io"
-	"net/http"
+	"log"
 	"os"
-	"path"
-	"strings"
 )
 
 var (
@@ -14,6 +13,8 @@ var (
 		".js":  "text/javascript",
 		".css": "text/css",
 	}
+
+	bstPlugins = make(map[string]ByteStore)
 )
 
 type ByteStore interface {
@@ -25,38 +26,26 @@ type ByteStore interface {
 	DropDatabase(db string) error
 }
 
-func GetFileInfo(fpath string) (map[string]interface{}, error) {
-	// try and get uploaded file mime type
-	tmpfile, err := os.Open(fpath)
+func RegisterByteStore(name string, plugin ByteStore) {
+	if plugin == nil {
+		log.Fatal("Byte Store Plugin Registration: plugin is nil")
+	}
+
+	if _, exists := bstPlugins[name]; exists {
+		log.Printf("Byte Store Plugin Registration: plugin '%s' already registered", name)
+	}
+	bstPlugins[name] = plugin
+}
+
+func NewByteStore(pluginName, config string) (plugin ByteStore, err error) {
+	plugin, ok := bstPlugins[pluginName]
+	if !ok {
+		err = fmt.Errorf("Byte Store Plugin Creation: unknown plugin name %q (forgot to import?)", pluginName)
+		return
+	}
+	err = plugin.Start(config)
 	if err != nil {
-		return nil, err
+		plugin = nil
 	}
-	defer tmpfile.Close()
-
-	// read 1024 bytes to enable mime type retrieval
-	mimebuffer := make([]byte, 1024)
-	_, err = tmpfile.Read(mimebuffer)
-	if err != nil {
-		return nil, err
-	}
-	mime := http.DetectContentType(mimebuffer)
-
-	// if mime is 'text/plain' try and get exact mime from file extension
-	prefix := "text/plain;"
-	if strings.HasPrefix(mime, prefix) {
-		ext := path.Ext(fpath)
-		mval, exists := MimeList[ext]
-		if exists {
-			mime = strings.Replace(mime, prefix, mval, 1)
-		}
-	}
-
-	// get total file size
-	f_info, _ := tmpfile.Stat()
-	size := f_info.Size()
-
-	val := make(map[string]interface{})
-	val["mime"] = mime
-	val["size"] = size
-	return val, nil
+	return
 }

@@ -1,4 +1,4 @@
-package bytengine
+package client
 
 import (
 	"bytes"
@@ -16,7 +16,7 @@ import (
 	"github.com/bitly/go-simplejson"
 )
 
-type BytengineClient struct {
+type Client struct {
 	Username string
 	Password string
 	Host     string
@@ -24,7 +24,7 @@ type BytengineClient struct {
 	token    string
 }
 
-func (bc *BytengineClient) Exec(cmd string, retry int) (string, error) {
+func (bc *Client) Exec(cmd string, retry int) (string, error) {
 	_url := fmt.Sprintf("http://%s:%d/bfs/query", bc.Host, bc.Port)
 	v := url.Values{}
 	v.Set("token", bc.token)
@@ -69,7 +69,7 @@ func (bc *BytengineClient) Exec(cmd string, retry int) (string, error) {
 	return string(pretty), nil
 }
 
-func (bc *BytengineClient) Connect(host string, port int) error {
+func (bc *Client) Connect(host string, port int) error {
 	_url := fmt.Sprintf("http://%s:%d/", host, port)
 	rep, err := http.Get(_url)
 	if err != nil {
@@ -85,7 +85,7 @@ func (bc *BytengineClient) Connect(host string, port int) error {
 	return nil
 }
 
-func (bc *BytengineClient) Login(username, password string) error {
+func (bc *Client) Login(username, password string) error {
 	bc.Username = username
 	bc.Password = password
 	err := bc.newToken()
@@ -98,7 +98,7 @@ func (bc *BytengineClient) Login(username, password string) error {
 	return nil
 }
 
-func (bc *BytengineClient) newToken() error {
+func (bc *Client) newToken() error {
 	_url := fmt.Sprintf("http://%s:%d/bfs/token", bc.Host, bc.Port)
 	v := url.Values{}
 	v.Set("username", bc.Username)
@@ -126,7 +126,7 @@ func (bc *BytengineClient) newToken() error {
 	return nil
 }
 
-func (bc BytengineClient) WriteBytes(db, remotefile, localfile string) error {
+func (bc Client) WriteBytes(db, remotefile, localfile string) error {
 	// get upload ticket
 	_url := fmt.Sprintf("http://%s:%d/bfs/uploadticket", bc.Host, bc.Port)
 	v := url.Values{}
@@ -196,7 +196,7 @@ func (bc BytengineClient) WriteBytes(db, remotefile, localfile string) error {
 	return nil
 }
 
-func (bc BytengineClient) ReadBytes(db, remotefile, localfile string) error {
+func (bc Client) ReadBytes(db, remotefile, localfile string) error {
 	_url := fmt.Sprintf("http://%s:%d/bfs/readbytes", bc.Host, bc.Port)
 	v := url.Values{}
 	v.Set("token", bc.token)
@@ -232,8 +232,8 @@ func (bc BytengineClient) ReadBytes(db, remotefile, localfile string) error {
 	return nil
 }
 
-func NewBytengineClient() *BytengineClient {
-	return &BytengineClient{
+func NewClient() *Client {
+	return &Client{
 		Host: "localhost",
 		Port: 8080,
 	}

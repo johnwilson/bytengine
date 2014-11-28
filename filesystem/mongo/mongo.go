@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/johnwilson/bytengine"
+	"github.com/johnwilson/bytengine/filesystem"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
@@ -60,9 +61,9 @@ func NewFileSystem() *FileSystem {
 }
 
 const (
-	DB_PREFIX          = "bfs_"
-	BFS_COLLECTION     = "bfs"
-	COUNTER_COLLECTION = "bytengine.counters"
+	DatabasePrefix       = "bfs_"
+	FileSystemCollection = "bfs"
+	CounterCollection    = "bytengine.counters"
 )
 
 type FileSystem struct {
@@ -88,11 +89,11 @@ type CounterItem struct {
 */
 
 func makeRootDir() (*Directory, error) {
-	id, err := bytengine.NewNodeID()
+	id, err := filesystem.NewNodeID()
 	if err != nil {
 		return nil, err
 	}
-	dt := bytengine.FormatDatetime(time.Now())
+	dt := filesystem.FormatDatetime(time.Now())
 	h := NodeHeader{"/", "Directory", true, dt, ""}
 	r := &Directory{h, id}
 	return r, nil
@@ -115,20 +116,20 @@ func (m *FileSystem) copyDirectoryDocument(d *Directory, newprefix, oldprefix, n
 	_parent_path = strings.Replace(_parent_path, oldprefix, newprefix, 1)
 
 	// update header info
-	id, err := bytengine.NewNodeID()
+	id, err := filesystem.NewNodeID()
 	if err != nil {
 		return err
 	}
 
 	d.Header.Parent = _parent_path
 	if newname != "" {
-		err = bytengine.ValidateDirName(newname)
+		err = filesystem.ValidateDirName(newname)
 		if err != nil {
 			return err
 		}
 		d.Header.Name = newname
 	}
-	d.Header.Created = bytengine.FormatDatetime(time.Now())
+	d.Header.Created = filesystem.FormatDatetime(time.Now())
 	d.Id = id
 	// save to mongodb
 	err = c.Insert(&d)
@@ -147,14 +148,14 @@ func (m *FileSystem) copyFileDocument(f *File, newprefix, oldprefix, newname str
 	// update header info
 	// both the original and copy will point to the same attachment id
 	// in the bst
-	id, err := bytengine.NewNodeID()
+	id, err := filesystem.NewNodeID()
 	if err != nil {
 		return err
 	}
 	f.Header.Parent = _parent_path
-	f.Header.Created = bytengine.FormatDatetime(time.Now())
+	f.Header.Created = filesystem.FormatDatetime(time.Now())
 	if newname != "" {
-		err = bytengine.ValidateFileName(newname)
+		err = filesystem.ValidateFileName(newname)
 		if err != nil {
 			return err
 		}
@@ -204,13 +205,13 @@ func (m *FileSystem) findAllChildrenQuery(p string) bson.M {
 }
 
 func (m *FileSystem) getBFSCollection(db string) *mgo.Collection {
-	actual_db := DB_PREFIX + db
-	return m.session.DB(actual_db).C(BFS_COLLECTION)
+	actual_db := DatabasePrefix + db
+	return m.session.DB(actual_db).C(FileSystemCollection)
 }
 
 func (m *FileSystem) getCounterCollection(db string) *mgo.Collection {
-	actual_db := DB_PREFIX + db
-	return m.session.DB(actual_db).C(COUNTER_COLLECTION)
+	actual_db := DatabasePrefix + db
+	return m.session.DB(actual_db).C(CounterCollection)
 }
 
 /*
@@ -251,7 +252,7 @@ func (m *FileSystem) ClearAll() (bytengine.Response, error) {
 
 	found := make([]string, 0)
 	for _, db := range dbs {
-		if strings.HasPrefix(db, DB_PREFIX) {
+		if strings.HasPrefix(db, DatabasePrefix) {
 			err = m.session.DB(db).DropDatabase()
 			if err != nil {
 				return bytengine.ErrorResponse(errors.New(msg)), err
@@ -261,7 +262,7 @@ func (m *FileSystem) ClearAll() (bytengine.Response, error) {
 			if err != nil {
 				return bytengine.ErrorResponse(errors.New(msg)), err
 			}
-			found = append(found, strings.TrimPrefix(db, DB_PREFIX))
+			found = append(found, strings.TrimPrefix(db, DatabasePrefix))
 		}
 	}
 
@@ -282,8 +283,8 @@ func (m *FileSystem) ListDatabase(filter string) (bytengine.Response, error) {
 
 	found := make([]string, 0)
 	for _, db := range dbs {
-		if strings.HasPrefix(db, DB_PREFIX) {
-			db = strings.Replace(db, DB_PREFIX, "", 1) // remove prefix
+		if strings.HasPrefix(db, DatabasePrefix) {
+			db = strings.Replace(db, DatabasePrefix, "", 1) // remove prefix
 			if r.MatchString(db) {
 				found = append(found, db)
 			}
@@ -294,7 +295,7 @@ func (m *FileSystem) ListDatabase(filter string) (bytengine.Response, error) {
 }
 
 func (m *FileSystem) CreateDatabase(db string) (bytengine.Response, error) {
-	err := bytengine.ValidateDbName(db)
+	err := filesystem.ValidateDbName(db)
 	if err != nil {
 		return bytengine.ErrorResponse(errors.New("invalid database name")), err
 	}
@@ -318,7 +319,7 @@ func (m *FileSystem) CreateDatabase(db string) (bytengine.Response, error) {
 }
 
 func (m *FileSystem) DropDatabase(db string) (bytengine.Response, error) {
-	actual_db := DB_PREFIX + db
+	actual_db := DatabasePrefix + db
 	msg := "database deletion failed" // general error message
 
 	// check if db to be deleted exists
@@ -363,7 +364,7 @@ func (m *FileSystem) NewDir(p, db string) (bytengine.Response, error) {
 	}
 	_name := path.Base(p)
 	_parent := path.Dir(p)
-	err := bytengine.ValidateDirName(_name)
+	err := filesystem.ValidateDirName(_name)
 	if err != nil {
 		return bytengine.ErrorResponse(errors.New("invalid directory name")), err
 	}
@@ -396,11 +397,11 @@ func (m *FileSystem) NewDir(p, db string) (bytengine.Response, error) {
 	}
 
 	// create directory
-	id, err := bytengine.NewNodeID()
+	id, err := filesystem.NewNodeID()
 	if err != nil {
 		return bytengine.ErrorResponse(errors.New(errMsg)), err
 	}
-	dt := bytengine.FormatDatetime(time.Now())
+	dt := filesystem.FormatDatetime(time.Now())
 	h := NodeHeader{_name, "Directory", false, dt, _parent}
 	_dir := Directory{h, id}
 	// insert node into mongodb
@@ -418,7 +419,7 @@ func (m *FileSystem) NewFile(p, db string, j map[string]interface{}) (bytengine.
 	p = path.Clean(p)
 	_name := path.Base(p)
 	_parent := path.Dir(p)
-	err := bytengine.ValidateFileName(_name)
+	err := filesystem.ValidateFileName(_name)
 	if err != nil {
 		return bytengine.ErrorResponse(errors.New("invalid file name")), err
 	}
@@ -449,11 +450,11 @@ func (m *FileSystem) NewFile(p, db string, j map[string]interface{}) (bytengine.
 	}
 
 	// create file
-	id, err := bytengine.NewNodeID()
+	id, err := filesystem.NewNodeID()
 	if err != nil {
 		return bytengine.ErrorResponse(errors.New(errMsg)), err
 	}
-	dt := bytengine.FormatDatetime(time.Now())
+	dt := filesystem.FormatDatetime(time.Now())
 	h := NodeHeader{_name, "File", false, dt, _parent}
 	a := BytesHeader{"", "", 0}
 	_file := File{h, a, id, j}
@@ -643,7 +644,7 @@ func (m *FileSystem) Rename(p, newname, db string) (bytengine.Response, error) {
 
 	if ri.Header.Type == "Directory" {
 		// check if name is valid
-		if err = bytengine.ValidateDirName(newname); err != nil {
+		if err = filesystem.ValidateDirName(newname); err != nil {
 			return bytengine.ErrorResponse(errors.New("invalid directory name")), err
 		}
 		// check if name isn't already in use
@@ -682,7 +683,7 @@ func (m *FileSystem) Rename(p, newname, db string) (bytengine.Response, error) {
 
 	} else {
 		// check if name is valid
-		if err = bytengine.ValidateFileName(newname); err != nil {
+		if err = filesystem.ValidateFileName(newname); err != nil {
 			return bytengine.ErrorResponse(errors.New("invalid file name")), err
 		}
 		// check if name isn't already in use
@@ -1020,7 +1021,7 @@ func (m *FileSystem) SetCounter(counter, action string, value int64, db string) 
 	}
 	// if not exists create new counter
 	if num < 1 {
-		err = bytengine.ValidateCounterName(counter)
+		err = filesystem.ValidateCounterName(counter)
 		if err != nil {
 			return bytengine.ErrorResponse(errors.New(errMsg)), err
 		}
