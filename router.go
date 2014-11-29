@@ -3,11 +3,9 @@ package bytengine
 import (
 	"errors"
 	"fmt"
-
-	"github.com/johnwilson/bytengine/dsl"
 )
 
-type CommandHandler func(cmd dsl.Command, user *User, eng *Engine) (Response, error)
+type CommandHandler func(cmd Command, user *User, eng *Engine) (Response, error)
 type DataFilter func(r *Response, eng *Engine) (Response, error)
 
 var cmdHandlerRegistry = make(map[string]CommandHandler)
@@ -35,7 +33,7 @@ func RegisterDataFilter(name string, fn DataFilter) {
 	dataFilterRegistry[name] = fn
 }
 
-func (eng *Engine) execute(cmd dsl.Command, user *User) (Response, error) {
+func (eng *Engine) execute(cmd Command, user *User) (Response, error) {
 	// check if command in cmdHandlerRegistry
 	fn, ok := cmdHandlerRegistry[cmd.Name]
 	if !ok {
@@ -45,7 +43,7 @@ func (eng *Engine) execute(cmd dsl.Command, user *User) (Response, error) {
 
 	err := errors.New("User not authorized to execute command")
 	// check id admin command
-	if cmd.IsAdmin() && !user.Root {
+	if cmd.IsAdmin && !user.Root {
 		return ErrorResponse(err), err
 	}
 

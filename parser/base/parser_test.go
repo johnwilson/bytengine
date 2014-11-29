@@ -1,4 +1,4 @@
-package dsl
+package base
 
 import (
 	"fmt"
@@ -28,12 +28,20 @@ func TestLexer(t *testing.T) {
 }
 
 func TestServerCommands(t *testing.T) {
-	s := `server.listdb --regex="^\\w"`
 	p := NewParser()
+
+	s := `server.listdb --regex="^\\w"`
 	cmdlist, err := p.Parse(s)
 	assert.Nil(t, err, fmt.Sprintf("parsing failed: %s", err))
 	assert.Len(t, cmdlist, 1, "wrong number of commands parsed")
 	cmd := cmdlist[0]
 	assert.Equal(t, cmd.Name, "server.listdb", "wrong command name")
 	assert.Equal(t, cmd.Options["regex"].(string), `^\w`, "wrong regex value")
+
+	s = `server.init; server.listdb;`
+	cmdlist, err = p.Parse(s)
+	assert.Nil(t, err, fmt.Sprintf("parsing failed: %s", err))
+	assert.Len(t, cmdlist, 2, "wrong number of commands parsed")
+	assert.Equal(t, cmdlist[0].Name, "server.init", "wrong command name")
+	assert.Equal(t, cmdlist[1].Name, "server.listdb", "wrong command name")
 }

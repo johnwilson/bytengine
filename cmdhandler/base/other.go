@@ -8,7 +8,6 @@ import (
 
 	"github.com/johnwilson/bytengine"
 	"github.com/johnwilson/bytengine/auth"
-	"github.com/johnwilson/bytengine/dsl"
 )
 
 const (
@@ -16,7 +15,7 @@ const (
 )
 
 // handler for: login
-func LoginHandler(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) (bytengine.Response, error) {
+func LoginHandler(cmd bytengine.Command, user *bytengine.User, eng *bytengine.Engine) (bytengine.Response, error) {
 	usr := cmd.Args["username"].(string)
 	pw := cmd.Args["password"].(string)
 	duration := cmd.Args["duration"].(int64)
@@ -44,7 +43,7 @@ func LoginHandler(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) 
 }
 
 // handler for: upload ticket
-func UploadTicketHandler(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) (bytengine.Response, error) {
+func UploadTicketHandler(cmd bytengine.Command, user *bytengine.User, eng *bytengine.Engine) (bytengine.Response, error) {
 	// check if user is anonymous
 	if user == nil {
 		err := fmt.Errorf("Authorization required")
@@ -86,7 +85,7 @@ func UploadTicketHandler(cmd dsl.Command, user *bytengine.User, eng *bytengine.E
 }
 
 // handler for: writebytes
-func WritebytesHandler(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) (bytengine.Response, error) {
+func WritebytesHandler(cmd bytengine.Command, user *bytengine.User, eng *bytengine.Engine) (bytengine.Response, error) {
 	ticket := cmd.Args["ticket"].(string)
 	tmpfile := cmd.Args["tmpfile"].(string)
 	// get ticket
@@ -115,7 +114,7 @@ func WritebytesHandler(cmd dsl.Command, user *bytengine.User, eng *bytengine.Eng
 }
 
 // handler for: readbytes
-func ReadbytesHandler(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) (bytengine.Response, error) {
+func ReadbytesHandler(cmd bytengine.Command, user *bytengine.User, eng *bytengine.Engine) (bytengine.Response, error) {
 	// check if user is anonymous
 	if user == nil {
 		err := fmt.Errorf("Authorization required")
@@ -141,7 +140,7 @@ func ReadbytesHandler(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engi
 }
 
 // handler for: direct access
-func DirecaccessHandler(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) (bytengine.Response, error) {
+func DirecaccessHandler(cmd bytengine.Command, user *bytengine.User, eng *bytengine.Engine) (bytengine.Response, error) {
 	db := cmd.Args["database"].(string)
 	w := cmd.Args["writer"].(io.Writer)
 	path := cmd.Args["path"].(string)

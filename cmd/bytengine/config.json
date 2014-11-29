@@ -30,6 +30,9 @@
         },
         "datafilter": {
             "plugin": "core"
+        },
+        "parser": {
+            "plugin": "base"
         }
     },
     "workers": 2,

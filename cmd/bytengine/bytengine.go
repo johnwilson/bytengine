@@ -9,7 +9,6 @@ import (
 	"github.com/codegangsta/cli"
 	"github.com/gin-gonic/gin"
 	"github.com/johnwilson/bytengine"
-	"github.com/johnwilson/bytengine/dsl"
 )
 
 var (
@@ -24,7 +23,7 @@ const (
 type EngineRequest struct {
 	Token        string
 	Script       string
-	Command      *dsl.Command
+	Command      *bytengine.Command
 	ResponseChan chan EngineResponse
 }
 
@@ -116,7 +115,12 @@ func getTokenHandler(ctx *gin.Context) {
 		return
 	}
 
-	cmd := dsl.NewCommand("login", false)
+	cmd := bytengine.Command{
+		Name:    "login",
+		IsAdmin: false,
+		Args:    make(map[string]interface{}),
+		Options: make(map[string]interface{}),
+	}
 	cmd.Args["username"] = form.Username
 	cmd.Args["password"] = form.Password
 
@@ -157,7 +161,12 @@ func getUploadTicketHandler(ctx *gin.Context) {
 		return
 	}
 
-	cmd := dsl.NewCommand("uploadticket", false)
+	cmd := bytengine.Command{
+		Name:    "uploadticket",
+		IsAdmin: false,
+		Args:    make(map[string]interface{}),
+		Options: make(map[string]interface{}),
+	}
 	cmd.Database = form.Database
 	cmd.Args["path"] = form.Path
 
@@ -245,7 +254,12 @@ func uploadFileHandler(ctx *gin.Context) {
 		return
 	}
 
-	cmd := dsl.NewCommand("writebytes", false)
+	cmd := bytengine.Command{
+		Name:    "writebytes",
+		IsAdmin: false,
+		Args:    make(map[string]interface{}),
+		Options: make(map[string]interface{}),
+	}
 	cmd.Args["ticket"] = ticket
 	cmd.Args["tmpfile"] = filename
 
@@ -278,7 +292,12 @@ func downloadFileHandler(ctx *gin.Context) {
 		return
 	}
 
-	cmd := dsl.NewCommand("readbytes", false)
+	cmd := bytengine.Command{
+		Name:    "readbytes",
+		IsAdmin: false,
+		Args:    make(map[string]interface{}),
+		Options: make(map[string]interface{}),
+	}
 	cmd.Database = form.Database
 	cmd.Args["path"] = form.Path
 	cmd.Args["writer"] = ctx.Writer
@@ -303,7 +322,12 @@ func directaccessHandler(ctx *gin.Context) {
 	path := ctx.Params.ByName("path")
 	layer := ctx.Params.ByName("layer")
 
-	cmd := dsl.NewCommand("directaccess", false)
+	cmd := bytengine.Command{
+		Name:    "directaccess",
+		IsAdmin: false,
+		Args:    make(map[string]interface{}),
+		Options: make(map[string]interface{}),
+	}
 	cmd.Args["database"] = db
 	cmd.Args["path"] = path
 	cmd.Args["layer"] = layer

@@ -7,5 +7,6 @@ import (
 	_ "github.com/johnwilson/bytengine/cmdhandler/base"
 	_ "github.com/johnwilson/bytengine/datafilter/builtin"
 	_ "github.com/johnwilson/bytengine/filesystem/mongo"
+	_ "github.com/johnwilson/bytengine/parser/base"
 	_ "github.com/johnwilson/bytengine/statestore/redis"
 )

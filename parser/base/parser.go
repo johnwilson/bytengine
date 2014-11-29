@@ -1,4 +1,4 @@
-package dsl
+package base
 
 import (
 	"encoding/json"
@@ -9,11 +9,13 @@ import (
 	"strconv"
 	"strings"
 	"unicode/utf8"
+
+	"github.com/johnwilson/bytengine"
 )
 
 // Parser scans job.Request.Script for commands and adds them to job.CommandQueue.
 type Parser struct {
-	commands  []Command
+	commands  []bytengine.Command
 	cmdlookup map[string]map[string]interface{}
 	// Parsing only; cleared after parse.
 	lex       *lexer
@@ -113,13 +115,15 @@ func (p *Parser) recover(errp *error) {
 
 // startParse initializes the parser, using the lexer.
 func (p *Parser) startParse(lex *lexer) {
-	p.commands = make([]Command, 0)
+	p.commands = make([]bytengine.Command, 0)
 	p.lex = lex
 }
 
 // stopParse terminates parsing.
 func (p *Parser) stopParse() {
 	p.lex = nil
+	p.token = [2]item{}
+	p.peekCount = 0
 }
 
 // atEOF returns true if, possibly after spaces, we're at EOF.
@@ -135,7 +139,7 @@ func (p *Parser) atEOF() bool {
 	return false
 }
 
-func (p *Parser) Parse(s string) (c []Command, err error) {
+func (p *Parser) Parse(s string) (c []bytengine.Command, err error) {
 	defer p.recover(&err)
 	p.startParse(lex(s))
 	p.parse()
@@ -278,9 +282,9 @@ func formatString(s string) (string, error) {
 // field prefix: this is necessary because a BFS file format is as follows
 // {"__header__":{...}, "__bytes__":{...}, "content": {...}}
 // hence mongodb queries would require the 'content.' prefix
-const FIELD_PREFIX string = "content."
-const HEADER_PREFIX string = "__header__."
-const BYTES_PREFIX string = "__bytes__."
+const FieldPrefix string = "content."
+const HeaderPrefix string = "__header__."
+const BytesPrefix string = "__bytes__."
 
 // send to filter function parser
 func (p *Parser) parseFilterResult() string {
@@ -339,7 +343,12 @@ func (p *Parser) parseLoginCmd(ctx string) {
 		p.errorf("Improperly quoted password in %s", ctx)
 	}
 	_filter := p.parseEndofCommand(ctx)
-	cmd := NewCommand(ctx, false)
+	cmd := bytengine.Command{
+		Name:    ctx,
+		IsAdmin: false,
+		Args:    make(map[string]interface{}),
+		Options: make(map[string]interface{}),
+	}
 	cmd.Args["username"] = _usr
 	cmd.Args["password"] = _pw
 	cmd.Filter = _filter
@@ -348,8 +357,12 @@ func (p *Parser) parseLoginCmd(ctx string) {
 
 // list databases parser
 func (p *Parser) parseListDatabasesCmd(ctx string) {
-	cmd := NewCommand(ctx, true)
-	// check if regex option has been added
+	cmd := bytengine.Command{
+		Name:    ctx,
+		IsAdmin: true,
+
+		Args:    make(map[string]interface{}),
+		Options: make(map[string]interface{})} // check if regex option has been added
 	if p.peek().typ == itemArgument {
 		name, val := p.parseCommandOption(ctx)
 		if name != "regex" || len(val) == 0 {
@@ -370,7 +383,12 @@ func (p *Parser) parseNewDatabaseCmd(ctx string) {
 		p.errorf("Improperly quoted database name in %s", ctx)
 	}
 	_filter := p.parseEndofCommand(ctx)
-	cmd := NewCommand(ctx, true)
+	cmd := bytengine.Command{
+		Name:    ctx,
+		IsAdmin: true,
+		Args:    make(map[string]interface{}),
+		Options: make(map[string]interface{}),
+	}
 	cmd.Args["database"] = _db
 	cmd.Filter = _filter
 	p.commands = append(p.commands, cmd)
@@ -384,7 +402,12 @@ func (p *Parser) parseDropDatabaseCmd(ctx string) {
 		p.errorf("Improperly quoted database name in %s", ctx)
 	}
 	_filter := p.parseEndofCommand(ctx)
-	cmd := NewCommand(ctx, true)
+	cmd := bytengine.Command{
+		Name:    ctx,
+		IsAdmin: true,
+		Args:    make(map[string]interface{}),
+		Options: make(map[string]interface{}),
+	}
 	cmd.Args["database"] = _db
 	cmd.Filter = _filter
 	p.commands = append(p.commands, cmd)
@@ -393,7 +416,12 @@ func (p *Parser) parseDropDatabaseCmd(ctx string) {
 // current user info parser
 func (p *Parser) parseWhoamiCmd(ctx string) {
 	_filter := p.parseEndofCommand(ctx)
-	cmd := NewCommand(ctx, false)
+	cmd := bytengine.Command{
+		Name:    ctx,
+		IsAdmin: false,
+		Args:    make(map[string]interface{}),
+		Options: make(map[string]interface{}),
+	}
 	cmd.Filter = _filter
 	p.commands = append(p.commands, cmd)
 }
@@ -411,7 +439,12 @@ func (p *Parser) parseNewUserCmd(ctx string) {
 		p.errorf("Improperly quoted password in %s", ctx)
 	}
 	_filter := p.parseEndofCommand(ctx)
-	cmd := NewCommand(ctx, true)
+	cmd := bytengine.Command{
+		Name:    ctx,
+		IsAdmin: true,
+		Args:    make(map[string]interface{}),
+		Options: make(map[string]interface{}),
+	}
 	cmd.Args["username"] = _user
 	cmd.Args["password"] = _pw
 	cmd.Filter = _filter
@@ -420,8 +453,12 @@ func (p *Parser) parseNewUserCmd(ctx string) {
 
 // list users parser
 func (p *Parser) parseListUsersCmd(ctx string) {
-	cmd := NewCommand(ctx, true)
-	// check if regex option has been added
+	cmd := bytengine.Command{
+		Name:    ctx,
+		IsAdmin: true,
+
+		Args:    make(map[string]interface{}),
+		Options: make(map[string]interface{})} // check if regex option has been added
 	if p.peek().typ == itemArgument {
 		name, val := p.parseCommandOption(ctx)
 		if name != "regex" || len(val) == 0 {
@@ -442,7 +479,12 @@ func (p *Parser) parseUserInfoCmd(ctx string) {
 		p.errorf("Improperly quoted username in %s", ctx)
 	}
 	_filter := p.parseEndofCommand(ctx)
-	cmd := NewCommand(ctx, true)
+	cmd := bytengine.Command{
+		Name:    ctx,
+		IsAdmin: true,
+		Args:    make(map[string]interface{}),
+		Options: make(map[string]interface{}),
+	}
 	cmd.Args["username"] = _user
 	cmd.Filter = _filter
 	p.commands = append(p.commands, cmd)
@@ -456,7 +498,12 @@ func (p *Parser) parseDropUserCmd(ctx string) {
 		p.errorf("Improperly quoted username in %s", ctx)
 	}
 	_filter := p.parseEndofCommand(ctx)
-	cmd := NewCommand(ctx, true)
+	cmd := bytengine.Command{
+		Name:    ctx,
+		IsAdmin: true,
+		Args:    make(map[string]interface{}),
+		Options: make(map[string]interface{}),
+	}
 	cmd.Args["username"] = _user
 	cmd.Filter = _filter
 	p.commands = append(p.commands, cmd)
@@ -475,7 +522,12 @@ func (p *Parser) parseNewPasswordCmd(ctx string) {
 		p.errorf("Improperly quoted password in %s", ctx)
 	}
 	_filter := p.parseEndofCommand(ctx)
-	cmd := NewCommand(ctx, true)
+	cmd := bytengine.Command{
+		Name:    ctx,
+		IsAdmin: true,
+		Args:    make(map[string]interface{}),
+		Options: make(map[string]interface{}),
+	}
 	cmd.Args["username"] = _user
 	cmd.Args["password"] = _pw
 	cmd.Filter = _filter
@@ -501,7 +553,12 @@ func (p *Parser) parseUserSystemAccessCmd(ctx string) {
 		p.errorf("Invalid indentifier "+_token.val+" in %s", ctx)
 	}
 	_filter := p.parseEndofCommand(ctx)
-	cmd := NewCommand(ctx, true)
+	cmd := bytengine.Command{
+		Name:    ctx,
+		IsAdmin: true,
+		Args:    make(map[string]interface{}),
+		Options: make(map[string]interface{}),
+	}
 	cmd.Args["username"] = _user
 	cmd.Args["grant"] = _grant
 	cmd.Filter = _filter
@@ -532,7 +589,12 @@ func (p *Parser) parseUserDatabaseAccessCmd(ctx string) {
 		p.errorf("Invalid indentifier "+_token.val+" in %s", ctx)
 	}
 	_filter := p.parseEndofCommand(ctx)
-	cmd := NewCommand(ctx, true)
+	cmd := bytengine.Command{
+		Name:    ctx,
+		IsAdmin: true,
+		Args:    make(map[string]interface{}),
+		Options: make(map[string]interface{}),
+	}
 	cmd.Args["username"] = _user
 	cmd.Args["database"] = _db
 	cmd.Args["grant"] = _grant
@@ -543,7 +605,12 @@ func (p *Parser) parseUserDatabaseAccessCmd(ctx string) {
 // initialize bytengine parser
 func (p *Parser) parseServerInitCmd(ctx string) {
 	_filter := p.parseEndofCommand(ctx)
-	cmd := NewCommand(ctx, true)
+	cmd := bytengine.Command{
+		Name:    ctx,
+		IsAdmin: true,
+		Args:    make(map[string]interface{}),
+		Options: make(map[string]interface{}),
+	}
 	cmd.Filter = _filter
 	p.commands = append(p.commands, cmd)
 }
@@ -553,7 +620,12 @@ func (p *Parser) parseNewDirectoryCmd(db, ctx string) {
 	_token := p.expect(itemPath, ctx)
 	_path := _token.val
 	_filter := p.parseEndofCommand(ctx)
-	cmd := NewCommand(ctx, false)
+	cmd := bytengine.Command{
+		Name:    ctx,
+		IsAdmin: false,
+		Args:    make(map[string]interface{}),
+		Options: make(map[string]interface{}),
+	}
 	cmd.Database = db
 	cmd.Args["path"] = _path
 	cmd.Filter = _filter
@@ -573,7 +645,12 @@ func (p *Parser) parseNewFileCmd(db, ctx string) {
 		p.errorf("Expecting a JSON object in %s", ctx)
 	}
 	_filter := p.parseEndofCommand(ctx)
-	cmd := NewCommand(ctx, false)
+	cmd := bytengine.Command{
+		Name:    ctx,
+		IsAdmin: false,
+		Args:    make(map[string]interface{}),
+		Options: make(map[string]interface{}),
+	}
 	cmd.Database = db
 	cmd.Args["path"] = _path
 	cmd.Args["data"] = _json
@@ -585,7 +662,12 @@ func (p *Parser) parseNewFileCmd(db, ctx string) {
 func (p *Parser) parseListDirectoryCmd(db, ctx string) {
 	_token := p.expect(itemPath, ctx)
 	_path := _token.val
-	cmd := NewCommand(ctx, false)
+	cmd := bytengine.Command{
+		Name:    ctx,
+		IsAdmin: false,
+		Args:    make(map[string]interface{}),
+		Options: make(map[string]interface{}),
+	}
 	cmd.Database = db
 	cmd.Args["path"] = _path
 
@@ -612,7 +694,12 @@ func (p *Parser) parseRenameContentCmd(db, ctx string) {
 		p.errorf("Improperly quoted new name in %s", ctx)
 	}
 	_filter := p.parseEndofCommand(ctx)
-	cmd := NewCommand(ctx, false)
+	cmd := bytengine.Command{
+		Name:    ctx,
+		IsAdmin: false,
+		Args:    make(map[string]interface{}),
+		Options: make(map[string]interface{}),
+	}
 	cmd.Database = db
 	cmd.Args["path"] = _path
 	cmd.Args["name"] = _name
@@ -632,7 +719,12 @@ func (p *Parser) parseMoveContentCmd(db, ctx string) {
 		_rename = _nxt.val
 	}
 	_filter := p.parseEndofCommand(ctx)
-	cmd := NewCommand(ctx, false)
+	cmd := bytengine.Command{
+		Name:    ctx,
+		IsAdmin: false,
+		Args:    make(map[string]interface{}),
+		Options: make(map[string]interface{}),
+	}
 	cmd.Database = db
 	cmd.Args["path"] = _path
 	cmd.Args["to"] = _path2
@@ -653,7 +745,12 @@ func (p *Parser) parseCopyContentCmd(db, ctx string) {
 		_rename = _nxt.val
 	}
 	_filter := p.parseEndofCommand(ctx)
-	cmd := NewCommand(ctx, false)
+	cmd := bytengine.Command{
+		Name:    ctx,
+		IsAdmin: false,
+		Args:    make(map[string]interface{}),
+		Options: make(map[string]interface{}),
+	}
 	cmd.Database = db
 	cmd.Args["path"] = _path
 	cmd.Args["to"] = _path2
@@ -667,7 +764,12 @@ func (p *Parser) parseDeleteContentCmd(db, ctx string) {
 	_token := p.expect(itemPath, ctx)
 	_path := _token.val
 	_filter := p.parseEndofCommand(ctx)
-	cmd := NewCommand(ctx, false)
+	cmd := bytengine.Command{
+		Name:    ctx,
+		IsAdmin: false,
+		Args:    make(map[string]interface{}),
+		Options: make(map[string]interface{}),
+	}
 	cmd.Database = db
 	cmd.Args["path"] = _path
 	cmd.Filter = _filter
@@ -679,7 +781,12 @@ func (p *Parser) parseContentInfoCmd(db, ctx string) {
 	_token := p.expect(itemPath, ctx)
 	_path := _token.val
 	_filter := p.parseEndofCommand(ctx)
-	cmd := NewCommand(ctx, false)
+	cmd := bytengine.Command{
+		Name:    ctx,
+		IsAdmin: false,
+		Args:    make(map[string]interface{}),
+		Options: make(map[string]interface{}),
+	}
 	cmd.Database = db
 	cmd.Args["path"] = _path
 	cmd.Filter = _filter
@@ -691,7 +798,12 @@ func (p *Parser) parseMakeContentPublicCmd(db, ctx string) {
 	_token := p.expect(itemPath, ctx)
 	_path := _token.val
 	_filter := p.parseEndofCommand(ctx)
-	cmd := NewCommand(ctx, false)
+	cmd := bytengine.Command{
+		Name:    ctx,
+		IsAdmin: false,
+		Args:    make(map[string]interface{}),
+		Options: make(map[string]interface{}),
+	}
 	cmd.Database = db
 	cmd.Args["path"] = _path
 	cmd.Filter = _filter
@@ -703,7 +815,12 @@ func (p *Parser) parseMakeContentPrivateCmd(db, ctx string) {
 	_token := p.expect(itemPath, ctx)
 	_path := _token.val
 	_filter := p.parseEndofCommand(ctx)
-	cmd := NewCommand(ctx, false)
+	cmd := bytengine.Command{
+		Name:    ctx,
+		IsAdmin: false,
+		Args:    make(map[string]interface{}),
+		Options: make(map[string]interface{}),
+	}
 	cmd.Database = db
 	cmd.Args["path"] = _path
 	cmd.Filter = _filter
@@ -750,7 +867,12 @@ func (p *Parser) parseReadFileCmd(db, ctx string) {
 	}
 
 	_filter := p.parseEndofCommand(ctx)
-	cmd := NewCommand(ctx, false)
+	cmd := bytengine.Command{
+		Name:    ctx,
+		IsAdmin: false,
+		Args:    make(map[string]interface{}),
+		Options: make(map[string]interface{}),
+	}
 	cmd.Database = db
 	cmd.Args["path"] = _path
 	cmd.Args["fields"] = _list
@@ -771,7 +893,12 @@ func (p *Parser) parseModifyFileCmd(db, ctx string) {
 		p.errorf("Expecting a JSON object in %s", ctx)
 	}
 	_filter := p.parseEndofCommand(ctx)
-	cmd := NewCommand(ctx, false)
+	cmd := bytengine.Command{
+		Name:    ctx,
+		IsAdmin: false,
+		Args:    make(map[string]interface{}),
+		Options: make(map[string]interface{}),
+	}
 	cmd.Database = db
 	cmd.Args["path"] = _path
 	cmd.Args["data"] = _json
@@ -784,7 +911,12 @@ func (p *Parser) parseDeleteAttachmentCmd(db, ctx string) {
 	_token := p.expect(itemPath, ctx)
 	_path := _token.val
 	_filter := p.parseEndofCommand(ctx)
-	cmd := NewCommand(ctx, false)
+	cmd := bytengine.Command{
+		Name:    ctx,
+		IsAdmin: false,
+		Args:    make(map[string]interface{}),
+		Options: make(map[string]interface{}),
+	}
 	cmd.Database = db
 	cmd.Args["path"] = _path
 	cmd.Filter = _filter
@@ -796,7 +928,12 @@ func (p *Parser) parseCounterCmd(db, ctx string) {
 	_token := p.expectOneOf(itemString, itemIdentifier, ctx)
 	if _token.typ == itemIdentifier {
 		if _token.val == "list" {
-			cmd := NewCommand(ctx, false)
+			cmd := bytengine.Command{
+				Name:    ctx,
+				IsAdmin: false,
+				Args:    make(map[string]interface{}),
+				Options: make(map[string]interface{}),
+			}
 			cmd.Database = db
 			cmd.Args["action"] = "list"
 
@@ -842,7 +979,12 @@ func (p *Parser) parseCounterCmd(db, ctx string) {
 	}
 
 	_filter := p.parseEndofCommand(ctx)
-	cmd := NewCommand(ctx, false)
+	cmd := bytengine.Command{
+		Name:    ctx,
+		IsAdmin: false,
+		Args:    make(map[string]interface{}),
+		Options: make(map[string]interface{}),
+	}
 	cmd.Database = db
 	cmd.Args["name"] = _counter
 	cmd.Args["action"] = _action
@@ -861,7 +1003,7 @@ func (p *Parser) parseSelectCmd(db, ctx string) {
 		if err != nil {
 			p.errorf("Improperly quoted field name in %s", ctx)
 		}
-		_fields = append(_fields, FIELD_PREFIX+_field)
+		_fields = append(_fields, FieldPrefix+_field)
 		continue
 	}
 	// get directories
@@ -875,7 +1017,12 @@ func (p *Parser) parseSelectCmd(db, ctx string) {
 		_paths = append(_paths, _path)
 		continue
 	}
-	cmd := NewCommand(ctx, false)
+	cmd := bytengine.Command{
+		Name:    ctx,
+		IsAdmin: false,
+		Args:    make(map[string]interface{}),
+		Options: make(map[string]interface{}),
+	}
 	cmd.Database = db
 	cmd.Args["fields"] = _fields
 	cmd.Args["dirs"] = _paths
@@ -1003,7 +1150,12 @@ Loop:
 		_paths = append(_paths, _path)
 		continue
 	}
-	cmd := NewCommand(ctx, false)
+	cmd := bytengine.Command{
+		Name:    ctx,
+		IsAdmin: false,
+		Args:    make(map[string]interface{}),
+		Options: make(map[string]interface{}),
+	}
 	cmd.Database = db
 	cmd.Args["fields"] = _fields
 	if len(_incr) > 0 {
@@ -1049,7 +1201,7 @@ func (p *Parser) parseUnsetCmd(db, ctx string) {
 		if err != nil {
 			p.errorf("Improperly quoted field name in %s", ctx)
 		}
-		_field = FIELD_PREFIX + _field
+		_field = FieldPrefix + _field
 		_fields[_field] = 1
 		continue
 	}
@@ -1068,7 +1220,12 @@ func (p *Parser) parseUnsetCmd(db, ctx string) {
 		_paths = append(_paths, _path)
 		continue
 	}
-	cmd := NewCommand(ctx, false)
+	cmd := bytengine.Command{
+		Name:    ctx,
+		IsAdmin: false,
+		Args:    make(map[string]interface{}),
+		Options: make(map[string]interface{}),
+	}
 	cmd.Database = db
 	cmd.Args["fields"] = _fields
 	cmd.Args["dirs"] = _paths
@@ -1118,7 +1275,7 @@ func (p *Parser) parseSortCmd() []string {
 	for p.peek().typ == itemString {
 		field, err := formatString(p.next().val)
 		// add sort prefix
-		field = prefix + FIELD_PREFIX + field
+		field = prefix + FieldPrefix + field
 		if err != nil {
 			p.errorf("Improperly quoted field name in %s", context)
 		}
@@ -1148,7 +1305,7 @@ func (p *Parser) parseDistinctCmd() string {
 	if err != nil {
 		p.errorf("Improperly quoted field name in %s", context)
 	}
-	field = FIELD_PREFIX + field
+	field = FieldPrefix + field
 	return field
 }
 
@@ -1307,7 +1464,7 @@ func (p *Parser) parseValueAssignment() (string, interface{}) {
 	if err != nil {
 		p.errorf("Improperly quoted field name in %s", context)
 	}
-	_field = FIELD_PREFIX + _field
+	_field = FieldPrefix + _field
 	//absorb equals
 	p.expect(itemEqual, context)
 	// get value string, array, json, number
@@ -1340,7 +1497,7 @@ func (p *Parser) parseIncrDecrValue() (string, interface{}) {
 	if err != nil {
 		p.errorf("Improperly quoted field name in %s", context)
 	}
-	_field = FIELD_PREFIX + _field
+	_field = FieldPrefix + _field
 	// get operator
 	_next = p.expectOneOf(itemPlusEqual, itemMinusEqual, context)
 	var _incr bool
@@ -1363,13 +1520,13 @@ func (p *Parser) parseIncrDecrValue() (string, interface{}) {
 func fileMetaToField(meta string) string {
 	switch meta {
 	case "file_name":
-		return HEADER_PREFIX + "name"
+		return HeaderPrefix + "name"
 	case "file_mime":
-		return BYTES_PREFIX + "mime"
+		return BytesPrefix + "mime"
 	case "file_size":
-		return BYTES_PREFIX + "size"
+		return BytesPrefix + "size"
 	case "file_ispublic":
-		return HEADER_PREFIX + "ispublic"
+		return HeaderPrefix + "ispublic"
 	default:
 		return ""
 	}
@@ -1387,7 +1544,7 @@ func (p *Parser) parseSimpleWhereCondition() map[string]interface{} {
 		if err != nil {
 			p.errorf("Improperly quoted field value in %s", context)
 		}
-		_field = FIELD_PREFIX + v
+		_field = FieldPrefix + v
 	}
 
 	// parse operator
@@ -1463,7 +1620,7 @@ func (p *Parser) parseTypeofWhereCondition() map[string]interface{} {
 	if err != nil {
 		p.errorf("Improperly quoted field value in %s", context)
 	}
-	_field = FIELD_PREFIX + _field
+	_field = FieldPrefix + _field
 	// right parenthesis
 	p.expect(itemRightParenthesis, context)
 	// operator == or !=
@@ -1506,7 +1663,7 @@ func (p *Parser) parseExistsWhereCondition() map[string]interface{} {
 	if err != nil {
 		p.errorf("Improperly quoted field value in %s", context)
 	}
-	_field = FIELD_PREFIX + _field
+	_field = FieldPrefix + _field
 	// right parenthesis
 	p.expect(itemRightParenthesis, context)
 	// operator == or !=
@@ -1555,7 +1712,7 @@ func (p *Parser) parseRegexWhereCondition() map[string]interface{} {
 		if err != nil {
 			p.errorf("Improperly quoted field value in %s", context)
 		}
-		_field = FIELD_PREFIX + v
+		_field = FieldPrefix + v
 	}
 	// absorb comma
 	p.expect(itemComma, context)

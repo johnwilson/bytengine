@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/bitly/go-simplejson"
-	"github.com/johnwilson/bytengine/dsl"
 )
 
 type Engine struct {
@@ -13,6 +12,7 @@ type Engine struct {
 	FileSystem     FileSystem
 	ByteStore      ByteStore
 	StateStore     StateStore
+	Parser         Parser
 }
 
 func NewEngine() *Engine {
@@ -35,13 +35,12 @@ func (eng *Engine) checkUser(token string) (*User, error) {
 	return eng.Authentication.UserInfo(uname)
 }
 
-func (eng *Engine) parseScript(script string) ([]dsl.Command, error) {
-	var cmds []dsl.Command
+func (eng *Engine) parseScript(script string) ([]Command, error) {
+	var cmds []Command
 	if len(script) == 0 {
 		return cmds, errors.New("empty script")
 	}
-	p := dsl.NewParser()
-	cmds, err := p.Parse(script)
+	cmds, err := eng.Parser.Parse(script)
 	if err != nil {
 		return cmds, fmt.Errorf("script parse error:\n%s", err.Error())
 	}
@@ -104,12 +103,26 @@ func createStateManager(config *simplejson.Json) StateStore {
 	return stateM
 }
 
+func createParser(config *simplejson.Json) Parser {
+	plugin := config.Get("parser").Get("plugin").MustString("")
+	b, err := config.Get("parser").MarshalJSON()
+	if err != nil {
+		panic(err)
+	}
+	parser, err := NewParser(plugin, string(b))
+	if err != nil {
+		panic(err)
+	}
+	return parser
+}
+
 // start engine and configure plugins with 'config'
 func (eng *Engine) Start(config *simplejson.Json) {
 	eng.Authentication = createAuthManager(config)
 	eng.ByteStore = createBSTManager(config)
 	eng.FileSystem = createBFSManager(&eng.ByteStore, config)
 	eng.StateStore = createStateManager(config)
+	eng.Parser = createParser(config)
 }
 
 func (eng *Engine) ExecuteScript(token, script string) (*Response, error) {
@@ -148,7 +161,7 @@ func (eng *Engine) ExecuteScript(token, script string) (*Response, error) {
 	return &r, nil
 }
 
-func (eng *Engine) ExecuteCommand(token string, cmd dsl.Command) (*Response, error) {
+func (eng *Engine) ExecuteCommand(token string, cmd Command) (*Response, error) {
 	user, err := eng.checkUser(token)
 	if err != nil {
 		return nil, err

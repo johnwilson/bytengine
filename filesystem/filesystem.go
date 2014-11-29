@@ -63,16 +63,7 @@ func ValidateFileName(f string) error {
 }
 
 func FormatDatetime(t time.Time) string {
-	f := "%d:%02d:%02d-%02d:%02d:%02d.%03d"
-	dt := fmt.Sprintf(f,
-		t.Year(),
-		t.Month(),
-		t.Day(),
-		t.Hour(),
-		t.Minute(),
-		t.Second(),
-		t.Nanosecond()/100000)
-	return dt
+	return t.Format(time.RFC3339)
 }
 
 func NewNodeID() (string, error) {

@@ -7,7 +7,7 @@ import (
 
 	"github.com/johnwilson/bytengine"
 	_ "github.com/johnwilson/bytengine/bytestore/diskv"
-	"github.com/johnwilson/bytengine/dsl"
+	_ "github.com/johnwilson/bytengine/parser/base"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/mgo.v2/bson"
 )
@@ -256,8 +256,10 @@ func TestSearch(t *testing.T) {
 	assert.Equal(t, bytengine.OK, rep.Status, rep.StatusMessage)
 
 	// parse script and run
+	parser, err := bytengine.NewParser("base", "")
+	assert.Nil(t, err, "parser not created")
 	script := `@test.select "name" "age" in /users where "country" in ["ghana"]`
-	cmd, err := dsl.NewParser().Parse(script)
+	cmd, err := parser.Parse(script)
 	assert.Nil(t, err, "couldn't parse script")
 	rep, _ = mfs.BQLSearch(db, cmd[0].Args)
 	assert.Equal(t, bytengine.OK, rep.Status, rep.StatusMessage)
@@ -268,7 +270,7 @@ func TestSearch(t *testing.T) {
 	script = `
     @test.select "name" "age" in /users
     where regex("name","i") == "^j\\w*n$"`
-	cmd, err = dsl.NewParser().Parse(script)
+	cmd, err = parser.Parse(script)
 	assert.Nil(t, err, "couldn't parse script")
 	rep, _ = mfs.BQLSearch(db, cmd[0].Args)
 	assert.Equal(t, bytengine.OK, rep.Status, rep.StatusMessage)
@@ -279,7 +281,7 @@ func TestSearch(t *testing.T) {
 	script = `
     @test.select "name" "age" in /users
     where exists("country") == true`
-	cmd, err = dsl.NewParser().Parse(script)
+	cmd, err = parser.Parse(script)
 	assert.Nil(t, err, "couldn't parse script")
 	rep, _ = mfs.BQLSearch(db, cmd[0].Args)
 	assert.Equal(t, bytengine.OK, rep.Status, rep.StatusMessage)
@@ -300,12 +302,14 @@ func TestSetUnset(t *testing.T) {
 	db := "db1"
 
 	// parse script and run
+	parser, err := bytengine.NewParser("base", "")
+	assert.Nil(t, err, "parser not created")
 	script := `
     @test.set "country"={"name":"ghana","major_cities":["kumasi","accra"]}
     in /users
     where "country" == "ghana"
     `
-	cmd, err := dsl.NewParser().Parse(script)
+	cmd, err := parser.Parse(script)
 	assert.Nil(t, err, "couldn't parse script")
 	rep, _ := mfs.BQLSet(db, cmd[0].Args)
 	assert.Equal(t, bytengine.OK, rep.Status, rep.StatusMessage)
@@ -326,7 +330,7 @@ func TestSetUnset(t *testing.T) {
     in /users
     where exists("country") == true
     `
-	cmd, err = dsl.NewParser().Parse(script)
+	cmd, err = parser.Parse(script)
 	assert.Nil(t, err, "couldn't parse script")
 	rep, _ = mfs.BQLUnset(db, cmd[0].Args)
 	assert.Equal(t, bytengine.OK, rep.Status, rep.StatusMessage)
@@ -335,7 +339,7 @@ func TestSetUnset(t *testing.T) {
 	assert.Equal(t, val, 4, "unset data failed")
 
 	script = `@test.select "name" in /users where exists("country") == false`
-	cmd, err = dsl.NewParser().Parse(script)
+	cmd, err = parser.Parse(script)
 	assert.Nil(t, err, "couldn't parse script")
 	rep, _ = mfs.BQLSearch(db, cmd[0].Args)
 	assert.Equal(t, bytengine.OK, rep.Status, rep.StatusMessage)

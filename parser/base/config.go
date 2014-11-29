@@ -1,4 +1,8 @@
-package dsl
+package base
+
+import (
+	"github.com/johnwilson/bytengine"
+)
 
 func (p *Parser) initRegistry() {
 	p.cmdlookup = map[string]map[string]interface{}{
@@ -39,4 +43,8 @@ func (p *Parser) initRegistry() {
 			"unset":       p.parseUnsetCmd,
 		},
 	}
+}
+
+func init() {
+	bytengine.RegisterParser("base", NewParser())
 }

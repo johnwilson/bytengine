@@ -2,11 +2,10 @@ package base
 
 import (
 	"github.com/johnwilson/bytengine"
-	"github.com/johnwilson/bytengine/dsl"
 )
 
 // handler for: user.new
-func UserNew(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) (bytengine.Response, error) {
+func UserNew(cmd bytengine.Command, user *bytengine.User, eng *bytengine.Engine) (bytengine.Response, error) {
 	usr := cmd.Args["username"].(string)
 	pw := cmd.Args["password"].(string)
 	err := eng.Authentication.NewUser(usr, pw, false)
@@ -17,7 +16,7 @@ func UserNew(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) (byte
 }
 
 // handler for: user.all
-func UserAll(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) (bytengine.Response, error) {
+func UserAll(cmd bytengine.Command, user *bytengine.User, eng *bytengine.Engine) (bytengine.Response, error) {
 	rgx := "."
 	val, ok := cmd.Options["regex"]
 	if ok {
@@ -31,7 +30,7 @@ func UserAll(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) (byte
 }
 
 // handler for: user.about
-func UserAbout(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) (bytengine.Response, error) {
+func UserAbout(cmd bytengine.Command, user *bytengine.User, eng *bytengine.Engine) (bytengine.Response, error) {
 	usr := cmd.Args["username"].(string)
 	info, err := eng.Authentication.UserInfo(usr)
 	if err != nil {
@@ -41,7 +40,7 @@ func UserAbout(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) (by
 }
 
 // handler for: user.delete
-func UserDelete(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) (bytengine.Response, error) {
+func UserDelete(cmd bytengine.Command, user *bytengine.User, eng *bytengine.Engine) (bytengine.Response, error) {
 	usr := cmd.Args["username"].(string)
 	err := eng.Authentication.RemoveUser(usr)
 	if err != nil {
@@ -51,7 +50,7 @@ func UserDelete(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) (b
 }
 
 // handler for: user.passw
-func UserPassw(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) (bytengine.Response, error) {
+func UserPassw(cmd bytengine.Command, user *bytengine.User, eng *bytengine.Engine) (bytengine.Response, error) {
 	usr := cmd.Args["username"].(string)
 	pw := cmd.Args["password"].(string)
 	err := eng.Authentication.ChangeUserPassword(usr, pw)
@@ -62,7 +61,7 @@ func UserPassw(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) (by
 }
 
 // handler for: user.access
-func UserAccess(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) (bytengine.Response, error) {
+func UserAccess(cmd bytengine.Command, user *bytengine.User, eng *bytengine.Engine) (bytengine.Response, error) {
 	usr := cmd.Args["username"].(string)
 	grant := cmd.Args["grant"].(bool)
 	err := eng.Authentication.ChangeUserStatus(usr, grant)
@@ -73,7 +72,7 @@ func UserAccess(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) (b
 }
 
 // handler for: user.db
-func UserDb(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) (bytengine.Response, error) {
+func UserDb(cmd bytengine.Command, user *bytengine.User, eng *bytengine.Engine) (bytengine.Response, error) {
 	usr := cmd.Args["username"].(string)
 	grant := cmd.Args["grant"].(bool)
 	db := cmd.Args["database"].(string)
@@ -85,7 +84,7 @@ func UserDb(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) (byten
 }
 
 // handler for: user.whoami
-func UserWhoami(cmd dsl.Command, user *bytengine.User, eng *bytengine.Engine) (bytengine.Response, error) {
+func UserWhoami(cmd bytengine.Command, user *bytengine.User, eng *bytengine.Engine) (bytengine.Response, error) {
 	val := map[string]interface{}{
 		"username":  user.Username,
 		"databases": user.Databases,
