@@ -5,7 +5,7 @@ import (
 )
 
 // handler for: server.listdb
-func ServerListDb(cmd bytengine.Command, user *bytengine.User, eng *bytengine.Engine) (bytengine.Response, error) {
+func ServerListDb(cmd bytengine.Command, user *bytengine.User, eng *bytengine.Engine) (interface{}, error) {
 	filter := "."
 	val, ok := cmd.Options["regex"]
 	if ok {
@@ -15,20 +15,26 @@ func ServerListDb(cmd bytengine.Command, user *bytengine.User, eng *bytengine.En
 }
 
 // handler for: server.newdb
-func ServerNewDb(cmd bytengine.Command, user *bytengine.User, eng *bytengine.Engine) (bytengine.Response, error) {
+func ServerNewDb(cmd bytengine.Command, user *bytengine.User, eng *bytengine.Engine) (interface{}, error) {
 	db := cmd.Args["database"].(string)
-	return eng.FileSystem.CreateDatabase(db)
+	if err := eng.FileSystem.CreateDatabase(db); err != nil {
+		return nil, err
+	}
+	return true, nil
 }
 
 // handler for: server.init
-func ServerInit(cmd bytengine.Command, user *bytengine.User, eng *bytengine.Engine) (bytengine.Response, error) {
+func ServerInit(cmd bytengine.Command, user *bytengine.User, eng *bytengine.Engine) (interface{}, error) {
 	return eng.FileSystem.ClearAll()
 }
 
 // handler for: server.dropdb
-func ServerDropDb(cmd bytengine.Command, user *bytengine.User, eng *bytengine.Engine) (bytengine.Response, error) {
+func ServerDropDb(cmd bytengine.Command, user *bytengine.User, eng *bytengine.Engine) (interface{}, error) {
 	db := cmd.Args["database"].(string)
-	return eng.FileSystem.DropDatabase(db)
+	if err := eng.FileSystem.DropDatabase(db); err != nil {
+		return nil, err
+	}
+	return true, nil
 }
 
 func init() {

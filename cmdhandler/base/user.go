@@ -5,18 +5,18 @@ import (
 )
 
 // handler for: user.new
-func UserNew(cmd bytengine.Command, user *bytengine.User, eng *bytengine.Engine) (bytengine.Response, error) {
+func UserNew(cmd bytengine.Command, user *bytengine.User, eng *bytengine.Engine) (interface{}, error) {
 	usr := cmd.Args["username"].(string)
 	pw := cmd.Args["password"].(string)
 	err := eng.Authentication.NewUser(usr, pw, false)
 	if err != nil {
-		return bytengine.ErrorResponse(err), err
+		return nil, err
 	}
-	return bytengine.OKResponse(true), nil
+	return true, nil
 }
 
 // handler for: user.all
-func UserAll(cmd bytengine.Command, user *bytengine.User, eng *bytengine.Engine) (bytengine.Response, error) {
+func UserAll(cmd bytengine.Command, user *bytengine.User, eng *bytengine.Engine) (interface{}, error) {
 	rgx := "."
 	val, ok := cmd.Options["regex"]
 	if ok {
@@ -24,73 +24,73 @@ func UserAll(cmd bytengine.Command, user *bytengine.User, eng *bytengine.Engine)
 	}
 	users, err := eng.Authentication.ListUser(rgx)
 	if err != nil {
-		return bytengine.ErrorResponse(err), err
+		return nil, err
 	}
-	return bytengine.OKResponse(users), nil
+	return users, nil
 }
 
 // handler for: user.about
-func UserAbout(cmd bytengine.Command, user *bytengine.User, eng *bytengine.Engine) (bytengine.Response, error) {
+func UserAbout(cmd bytengine.Command, user *bytengine.User, eng *bytengine.Engine) (interface{}, error) {
 	usr := cmd.Args["username"].(string)
 	info, err := eng.Authentication.UserInfo(usr)
 	if err != nil {
-		return bytengine.ErrorResponse(err), err
+		return nil, err
 	}
-	return bytengine.OKResponse(info), nil
+	return info, nil
 }
 
 // handler for: user.delete
-func UserDelete(cmd bytengine.Command, user *bytengine.User, eng *bytengine.Engine) (bytengine.Response, error) {
+func UserDelete(cmd bytengine.Command, user *bytengine.User, eng *bytengine.Engine) (interface{}, error) {
 	usr := cmd.Args["username"].(string)
 	err := eng.Authentication.RemoveUser(usr)
 	if err != nil {
-		return bytengine.ErrorResponse(err), err
+		return nil, err
 	}
-	return bytengine.OKResponse(true), nil
+	return true, nil
 }
 
 // handler for: user.passw
-func UserPassw(cmd bytengine.Command, user *bytengine.User, eng *bytengine.Engine) (bytengine.Response, error) {
+func UserPassw(cmd bytengine.Command, user *bytengine.User, eng *bytengine.Engine) (interface{}, error) {
 	usr := cmd.Args["username"].(string)
 	pw := cmd.Args["password"].(string)
 	err := eng.Authentication.ChangeUserPassword(usr, pw)
 	if err != nil {
-		return bytengine.ErrorResponse(err), err
+		return nil, err
 	}
-	return bytengine.OKResponse(true), nil
+	return true, nil
 }
 
 // handler for: user.access
-func UserAccess(cmd bytengine.Command, user *bytengine.User, eng *bytengine.Engine) (bytengine.Response, error) {
+func UserAccess(cmd bytengine.Command, user *bytengine.User, eng *bytengine.Engine) (interface{}, error) {
 	usr := cmd.Args["username"].(string)
 	grant := cmd.Args["grant"].(bool)
 	err := eng.Authentication.ChangeUserStatus(usr, grant)
 	if err != nil {
-		return bytengine.ErrorResponse(err), err
+		return nil, err
 	}
-	return bytengine.OKResponse(true), nil
+	return true, nil
 }
 
 // handler for: user.db
-func UserDb(cmd bytengine.Command, user *bytengine.User, eng *bytengine.Engine) (bytengine.Response, error) {
+func UserDb(cmd bytengine.Command, user *bytengine.User, eng *bytengine.Engine) (interface{}, error) {
 	usr := cmd.Args["username"].(string)
 	grant := cmd.Args["grant"].(bool)
 	db := cmd.Args["database"].(string)
 	err := eng.Authentication.ChangeUserDbAccess(usr, db, grant)
 	if err != nil {
-		return bytengine.ErrorResponse(err), err
+		return nil, err
 	}
-	return bytengine.OKResponse(true), nil
+	return true, nil
 }
 
 // handler for: user.whoami
-func UserWhoami(cmd bytengine.Command, user *bytengine.User, eng *bytengine.Engine) (bytengine.Response, error) {
+func UserWhoami(cmd bytengine.Command, user *bytengine.User, eng *bytengine.Engine) (interface{}, error) {
 	val := map[string]interface{}{
 		"username":  user.Username,
 		"databases": user.Databases,
 		"root":      user.Root,
 	}
-	return bytengine.OKResponse(val), nil
+	return val, nil
 }
 
 func init() {

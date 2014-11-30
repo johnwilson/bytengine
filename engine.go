@@ -125,7 +125,7 @@ func (eng *Engine) Start(config *simplejson.Json) {
 	eng.Parser = createParser(config)
 }
 
-func (eng *Engine) ExecuteScript(token, script string) (*Response, error) {
+func (eng *Engine) ExecuteScript(token, script string) (interface{}, error) {
 	// check user
 	user, err := eng.checkUser(token)
 	// check anonymous login
@@ -149,26 +149,25 @@ func (eng *Engine) ExecuteScript(token, script string) (*Response, error) {
 		if err != nil {
 			return nil, err
 		}
-		resultset = append(resultset, r.Data)
+		resultset = append(resultset, r)
 	}
 
 	if len(resultset) > 1 {
-		r := OKResponse(resultset)
+		r := resultset
 		return &r, nil
 	}
 
-	r := OKResponse(resultset[0])
-	return &r, nil
+	return resultset[0], nil
 }
 
-func (eng *Engine) ExecuteCommand(token string, cmd Command) (*Response, error) {
+func (eng *Engine) ExecuteCommand(token string, cmd Command) (interface{}, error) {
 	user, err := eng.checkUser(token)
 	if err != nil {
 		return nil, err
 	}
 	// exec command
 	r, err := eng.execute(cmd, user)
-	return &r, err
+	return r, err
 }
 
 func (eng *Engine) CreateAdminUser(usr, pw string) error {

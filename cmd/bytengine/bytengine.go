@@ -1,6 +1,8 @@
 package main
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -28,8 +30,34 @@ type EngineRequest struct {
 }
 
 type EngineResponse struct {
-	Response *bytengine.Response
+	Response interface{}
 	Error    error
+}
+
+func errorResponse(err error) []byte {
+	val := map[string]string{
+		"status": "error",
+		"msg":    err.Error(),
+	}
+
+	b, e := json.Marshal(val)
+	if e != nil {
+		return []byte{}
+	}
+	return b
+}
+
+func okResponse(data interface{}) []byte {
+	val := map[string]interface{}{
+		"status": "ok",
+		"data":   data,
+	}
+
+	b, e := json.Marshal(val)
+	if e != nil {
+		return []byte{}
+	}
+	return b
 }
 
 func Worker(config *simplejson.Json, requests chan *EngineRequest) {
@@ -66,8 +94,8 @@ func welcomeHandler(ctx *gin.Context) {
 	msg.Set("version", Version)
 	b, err := msg.MarshalJSON()
 	if err != nil {
-		fmt.Println(err)
-		data := bytengine.ErrorResponse(fmt.Errorf("Error creating welcome message")).JSON()
+		fmt.Println(err) // improve logging
+		data := errorResponse(errors.New("Error creating welcome message"))
 		ctx.Data(500, "application/json", data)
 		return
 	}
@@ -82,7 +110,7 @@ func runScriptHandler(ctx *gin.Context) {
 
 	ok := ctx.Bind(&form)
 	if !ok {
-		data := bytengine.ErrorResponse(fmt.Errorf("Missing parameters")).JSON()
+		data := errorResponse(errors.New("Missing parameters"))
 		ctx.Data(400, "application/json", data)
 		return
 	}
@@ -95,12 +123,12 @@ func runScriptHandler(ctx *gin.Context) {
 	EngineRequestChan <- &req
 	rep := <-req.ResponseChan
 	if rep.Error != nil {
-		data := bytengine.ErrorResponse(rep.Error).JSON()
+		data := errorResponse(rep.Error)
 		ctx.Data(400, "application/json", data)
 		return
 	}
 
-	ctx.Data(200, "application/json", rep.Response.JSON())
+	ctx.Data(200, "application/json", okResponse(rep.Response))
 }
 
 func getTokenHandler(ctx *gin.Context) {
@@ -110,7 +138,7 @@ func getTokenHandler(ctx *gin.Context) {
 	}
 	ok := ctx.Bind(&form)
 	if !ok {
-		data := bytengine.ErrorResponse(fmt.Errorf("Missing parameters")).JSON()
+		data := errorResponse(errors.New("Missing parameters"))
 		ctx.Data(400, "application/json", data)
 		return
 	}
@@ -126,7 +154,7 @@ func getTokenHandler(ctx *gin.Context) {
 
 	duration, err := Configuration.Get("timeout").Get("authtoken").Int64() // in minutes
 	if err != nil {
-		data := bytengine.ErrorResponse(fmt.Errorf("Token creation error.")).JSON()
+		data := errorResponse(errors.New("Token creation error"))
 		ctx.Data(400, "application/json", data)
 		return
 	}
@@ -140,12 +168,12 @@ func getTokenHandler(ctx *gin.Context) {
 	EngineRequestChan <- &req
 	rep := <-req.ResponseChan
 	if rep.Error != nil {
-		data := bytengine.ErrorResponse(rep.Error).JSON()
+		data := errorResponse(rep.Error)
 		ctx.Data(400, "application/json", data)
 		return
 	}
 
-	ctx.Data(200, "application/json", rep.Response.JSON())
+	ctx.Data(200, "application/json", okResponse(rep.Response))
 }
 
 func getUploadTicketHandler(ctx *gin.Context) {
@@ -156,7 +184,7 @@ func getUploadTicketHandler(ctx *gin.Context) {
 	}
 	ok := ctx.Bind(&form)
 	if !ok {
-		data := bytengine.ErrorResponse(fmt.Errorf("Missing parameters")).JSON()
+		data := errorResponse(errors.New("Missing parameters"))
 		ctx.Data(400, "application/json", data)
 		return
 	}
@@ -172,7 +200,7 @@ func getUploadTicketHandler(ctx *gin.Context) {
 
 	duration, err := Configuration.Get("timeout").Get("uploadticket").Int64() // in minutes
 	if err != nil {
-		data := bytengine.ErrorResponse(fmt.Errorf("Token creation error.")).JSON()
+		data := errorResponse(errors.New("Ticket creation error"))
 		ctx.Data(400, "application/json", data)
 		return
 	}
@@ -186,12 +214,12 @@ func getUploadTicketHandler(ctx *gin.Context) {
 	EngineRequestChan <- &req
 	rep := <-req.ResponseChan
 	if rep.Error != nil {
-		data := bytengine.ErrorResponse(rep.Error).JSON()
+		data := errorResponse(rep.Error)
 		ctx.Data(400, "application/json", data)
 		return
 	}
 
-	ctx.Data(200, "application/json", rep.Response.JSON())
+	ctx.Data(200, "application/json", okResponse(rep.Response))
 }
 
 func uploadFileHelper(max int, ctx *gin.Context) (string, int, error) {
@@ -249,7 +277,7 @@ func uploadFileHandler(ctx *gin.Context) {
 	ticket := ctx.Params.ByName("ticket")
 	filename, _, err := uploadFileHelper(300, ctx)
 	if err != nil {
-		data := bytengine.ErrorResponse(fmt.Errorf("upload failed: %s", err.Error())).JSON()
+		data := errorResponse(fmt.Errorf("upload failed: %s", err.Error()))
 		ctx.Data(400, "application/json", data)
 		return
 	}
@@ -271,12 +299,12 @@ func uploadFileHandler(ctx *gin.Context) {
 	EngineRequestChan <- &req
 	rep := <-req.ResponseChan
 	if rep.Error != nil {
-		data := bytengine.ErrorResponse(rep.Error).JSON()
+		data := errorResponse(rep.Error)
 		ctx.Data(400, "application/json", data)
 		return
 	}
 
-	ctx.Data(200, "application/json", rep.Response.JSON())
+	ctx.Data(200, "application/json", okResponse(rep.Response))
 }
 
 func downloadFileHandler(ctx *gin.Context) {
@@ -287,7 +315,7 @@ func downloadFileHandler(ctx *gin.Context) {
 	}
 	ok := ctx.Bind(&form)
 	if !ok {
-		data := bytengine.ErrorResponse(fmt.Errorf("Missing parameters")).JSON()
+		data := errorResponse(errors.New("Missing parameters"))
 		ctx.Data(400, "application/json", data)
 		return
 	}
@@ -311,8 +339,8 @@ func downloadFileHandler(ctx *gin.Context) {
 	EngineRequestChan <- &req
 	rep := <-req.ResponseChan
 	if rep.Error != nil {
-		data := bytengine.ErrorResponse(rep.Error).String()
-		ctx.String(400, data)
+		data := errorResponse(rep.Error)
+		ctx.String(400, string(data))
 		return
 	}
 }
@@ -347,8 +375,8 @@ func directaccessHandler(ctx *gin.Context) {
 	EngineRequestChan <- &req
 	rep := <-req.ResponseChan
 	if rep.Error != nil {
-		data := bytengine.ErrorResponse(rep.Error).String()
-		ctx.String(404, data)
+		data := errorResponse(rep.Error)
+		ctx.String(404, string(data))
 		return
 	}
 }

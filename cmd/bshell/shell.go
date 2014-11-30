@@ -9,7 +9,6 @@ import (
 	"path"
 	"strings"
 
-	"github.com/johnwilson/bytengine"
 	"github.com/johnwilson/bytengine/client"
 	"github.com/peterh/liner"
 	"github.com/robertkrimen/otto"
@@ -108,7 +107,7 @@ func (sh *Shell) launchEditor(fpath string) (bool, error) {
 func (sh *Shell) execBQL(editor bool) stateFn {
 	out, err := sh.BEClient.Exec(sh.input, 0)
 	if err != nil {
-		out = bytengine.ErrorResponse(err).String()
+		out = err.Error()
 	}
 
 	sh.write(out)

@@ -2,21 +2,16 @@ package builtin
 
 import (
 	"encoding/json"
-	"errors"
-	"fmt"
 
 	"github.com/johnwilson/bytengine"
 )
 
-func pretty(r *bytengine.Response, eng *bytengine.Engine) (bytengine.Response, error) {
-	if r.Status != bytengine.OK {
-		return *r, errors.New("Filter function can only be applied to OK responses")
-	}
-	b, err := json.MarshalIndent(r.Map(), "", "  ")
+func pretty(r interface{}, eng *bytengine.Engine) (interface{}, error) {
+	b, err := json.MarshalIndent(r, "", "  ")
 	if err != nil {
-		return bytengine.ErrorResponse(fmt.Errorf("Pretty print error")), err
+		return nil, err
 	}
-	return bytengine.OKResponse(string(b)), nil
+	return string(b), nil
 }
 
 func init() {
