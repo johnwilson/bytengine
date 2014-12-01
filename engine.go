@@ -1,11 +1,28 @@
 package bytengine
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
-
-	"github.com/bitly/go-simplejson"
 )
+
+type Config struct {
+	Authentication struct{ Plugin string }
+	ByteStore      struct{ Plugin string }
+	FileSystem     struct{ Plugin string }
+	StateStore     struct{ Plugin string }
+	DataFilter     struct{ Plugin string }
+	Parser         struct{ Plugin string }
+}
+
+type ConfigData struct {
+	Authentication json.RawMessage
+	ByteStore      json.RawMessage
+	FileSystem     json.RawMessage
+	StateStore     json.RawMessage
+	DataFilter     json.RawMessage
+	Parser         json.RawMessage
+}
 
 type Engine struct {
 	Authentication Authentication
@@ -51,80 +68,73 @@ func (eng *Engine) parseScript(script string) ([]Command, error) {
 	return cmds, nil
 }
 
-func createAuthManager(config *simplejson.Json) Authentication {
-	plugin := config.Get("auth").Get("plugin").MustString("")
-	b, err := config.Get("auth").MarshalJSON()
-	if err != nil {
-		panic(err)
-	}
-	authM, err := NewAuthentication(plugin, string(b))
-	if err != nil {
-		panic(err)
-	}
-	return authM
+func createAuthentication(plugin string, config []byte) (Authentication, error) {
+	return NewAuthentication(plugin, string(config))
 }
 
-func createBSTManager(config *simplejson.Json) ByteStore {
-	plugin := config.Get("bst").Get("plugin").MustString("")
-	b, err := config.Get("bst").MarshalJSON()
-	if err != nil {
-		panic(err)
-	}
-	bstM, err := NewByteStore(plugin, string(b))
-	if err != nil {
-		panic(err)
-	}
-	return bstM
+func createByteStore(plugin string, config []byte) (ByteStore, error) {
+	return NewByteStore(plugin, string(config))
 }
 
-func createBFSManager(bstore *ByteStore, config *simplejson.Json) FileSystem {
-	plugin := config.Get("bfs").Get("plugin").MustString("")
-	b, err := config.Get("bfs").MarshalJSON()
-	if err != nil {
-		panic(err)
-	}
-	bfsM, err := NewFileSystem(plugin, string(b), bstore)
-	if err != nil {
-		panic(err)
-	}
-	return bfsM
+func createFileSystem(bstore *ByteStore, plugin string, config []byte) (FileSystem, error) {
+	return NewFileSystem(plugin, string(config), bstore)
 }
 
-func createStateManager(config *simplejson.Json) StateStore {
-	plugin := config.Get("state").Get("plugin").MustString("")
-	b, err := config.Get("state").MarshalJSON()
-	if err != nil {
-		panic(err)
-	}
-	stateM, err := NewStateStore(plugin, string(b))
-	if err != nil {
-		panic(err)
-	}
-	return stateM
+func createStateStore(plugin string, config []byte) (StateStore, error) {
+	return NewStateStore(plugin, string(config))
 }
 
-func createParser(config *simplejson.Json) Parser {
-	plugin := config.Get("parser").Get("plugin").MustString("")
-	b, err := config.Get("parser").MarshalJSON()
-	if err != nil {
-		panic(err)
-	}
-	parser, err := NewParser(plugin, string(b))
-	if err != nil {
-		panic(err)
-	}
-	return parser
+func createParser(plugin string, config []byte) (Parser, error) {
+	return NewParser(plugin, string(config))
 }
 
-// start engine and configure plugins with 'config'
-func (eng *Engine) Start(config *simplejson.Json) {
-	eng.Authentication = createAuthManager(config)
-	eng.ByteStore = createBSTManager(config)
-	eng.FileSystem = createBFSManager(&eng.ByteStore, config)
-	eng.StateStore = createStateManager(config)
-	eng.Parser = createParser(config)
+// start engine and configure plugins
+func (eng *Engine) Start(b []byte) error {
+	// read configuration
+	config := Config{}
+	err := json.Unmarshal(b, &config)
+	if err != nil {
+		return err
+	}
+	configdata := ConfigData{}
+	err = json.Unmarshal(b, &configdata)
+	if err != nil {
+		return err
+	}
+
+	// get plugins from configuration
+	auth, err := createAuthentication(config.Authentication.Plugin, configdata.Authentication)
+	if err != nil {
+		return err
+	}
+	bytestore, err := createByteStore(config.ByteStore.Plugin, configdata.ByteStore)
+	if err != nil {
+		return err
+	}
+	filesystem, err := createFileSystem(&bytestore, config.FileSystem.Plugin, configdata.FileSystem)
+	if err != nil {
+		return err
+	}
+	statestore, err := createStateStore(config.StateStore.Plugin, configdata.StateStore)
+	if err != nil {
+		return err
+	}
+	parser, err := createParser(config.Parser.Plugin, configdata.Parser)
+	if err != nil {
+		return err
+	}
+
+	// setup engine
+	eng.Authentication = auth
+	eng.ByteStore = bytestore
+	eng.FileSystem = filesystem
+	eng.StateStore = statestore
+	eng.Parser = parser
+
+	return nil
 }
 
+// script is parsed into commands before execution
 func (eng *Engine) ExecuteScript(token, script string) (interface{}, error) {
 	// check user
 	user, err := eng.checkUser(token)
@@ -160,6 +170,7 @@ func (eng *Engine) ExecuteScript(token, script string) (interface{}, error) {
 	return resultset[0], nil
 }
 
+// command is sent directly for execution
 func (eng *Engine) ExecuteCommand(token string, cmd Command) (interface{}, error) {
 	user, err := eng.checkUser(token)
 	if err != nil {

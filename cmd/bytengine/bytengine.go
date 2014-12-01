@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/bitly/go-simplejson"
 	"github.com/codegangsta/cli"
 	"github.com/gin-gonic/gin"
 	"github.com/johnwilson/bytengine"
@@ -15,7 +14,7 @@ import (
 
 var (
 	EngineRequestChan chan *EngineRequest
-	Configuration     *simplejson.Json
+	Configuration     *Config
 )
 
 const (
@@ -32,6 +31,19 @@ type EngineRequest struct {
 type EngineResponse struct {
 	Response interface{}
 	Error    error
+}
+
+type Config struct {
+	Bytengine json.RawMessage
+	Workers   int
+	Port      int
+	Address   string
+	Timeout   ConfigTimeout
+}
+
+type ConfigTimeout struct {
+	AuthToken    int64
+	UploadTicket int64
 }
 
 func errorResponse(err error) []byte {
@@ -60,10 +72,14 @@ func okResponse(data interface{}) []byte {
 	return b
 }
 
-func Worker(config *simplejson.Json, requests chan *EngineRequest) {
+func Worker(config *Config, requests chan *EngineRequest) {
 	// create engine and start
 	engine := bytengine.NewEngine()
-	engine.Start(config.Get("bytengine"))
+	err := engine.Start(config.Bytengine)
+	if err != nil {
+		fmt.Println("Error: ", err)
+		os.Exit(1)
+	}
 
 	for req := range requests {
 		// check if script request or command request
@@ -79,7 +95,7 @@ func Worker(config *simplejson.Json, requests chan *EngineRequest) {
 	}
 }
 
-func WorkerPool(workers int, config *simplejson.Json) chan *EngineRequest {
+func WorkerPool(workers int, config *Config) chan *EngineRequest {
 	requests := make(chan *EngineRequest)
 	for i := 0; i < workers; i++ {
 		go Worker(config, requests)
@@ -89,17 +105,8 @@ func WorkerPool(workers int, config *simplejson.Json) chan *EngineRequest {
 }
 
 func welcomeHandler(ctx *gin.Context) {
-	msg := simplejson.New()
-	msg.Set("bytengine", "Welcome")
-	msg.Set("version", Version)
-	b, err := msg.MarshalJSON()
-	if err != nil {
-		fmt.Println(err) // improve logging
-		data := errorResponse(errors.New("Error creating welcome message"))
-		ctx.Data(500, "application/json", data)
-		return
-	}
-	ctx.Data(200, "application/json", b)
+	msg := fmt.Sprintf(`{"bytengine":"welcome","version":"%s"}`, Version)
+	ctx.Data(200, "application/json", []byte(msg))
 }
 
 func runScriptHandler(ctx *gin.Context) {
@@ -152,12 +159,7 @@ func getTokenHandler(ctx *gin.Context) {
 	cmd.Args["username"] = form.Username
 	cmd.Args["password"] = form.Password
 
-	duration, err := Configuration.Get("timeout").Get("authtoken").Int64() // in minutes
-	if err != nil {
-		data := errorResponse(errors.New("Token creation error"))
-		ctx.Data(400, "application/json", data)
-		return
-	}
+	duration := Configuration.Timeout.AuthToken // in minutes
 	cmd.Args["duration"] = duration
 
 	req := EngineRequest{
@@ -198,12 +200,7 @@ func getUploadTicketHandler(ctx *gin.Context) {
 	cmd.Database = form.Database
 	cmd.Args["path"] = form.Path
 
-	duration, err := Configuration.Get("timeout").Get("uploadticket").Int64() // in minutes
-	if err != nil {
-		data := errorResponse(errors.New("Ticket creation error"))
-		ctx.Data(400, "application/json", data)
-		return
-	}
+	duration := Configuration.Timeout.UploadTicket // in minutes
 	cmd.Args["duration"] = duration
 
 	req := EngineRequest{
@@ -381,6 +378,16 @@ func directaccessHandler(ctx *gin.Context) {
 	}
 }
 
+func readConfigFile(pth string) error {
+	b, err := ioutil.ReadFile(pth)
+	if err != nil {
+		return err
+	}
+
+	Configuration = &Config{}
+	return json.Unmarshal(b, Configuration)
+}
+
 func main() {
 	app := cli.NewApp()
 
@@ -396,16 +403,19 @@ func main() {
 			pw := c.String("p")
 			pth := c.String("c")
 
-			rdr, err := os.Open(pth)
+			err := readConfigFile(pth)
 			if err != nil {
 				fmt.Println("Error: ", err)
 				os.Exit(1)
 			}
-			Configuration, err = simplejson.NewFromReader(rdr)
 
 			// create and start bytengine
 			engine := bytengine.NewEngine()
-			engine.Start(Configuration.Get("bytengine"))
+			err = engine.Start(Configuration.Bytengine)
+			if err != nil {
+				fmt.Println("Error: ", err)
+				os.Exit(1)
+			}
 
 			err = engine.CreateAdminUser(usr, pw)
 			if err != nil {
@@ -424,15 +434,15 @@ func main() {
 		Action: func(c *cli.Context) {
 			// get configuration file/info
 			pth := c.String("c")
-			rdr, err := os.Open(pth)
+			err := readConfigFile(pth)
 			if err != nil {
 				fmt.Println("Error: ", err)
 				os.Exit(1)
 			}
-			Configuration, err = simplejson.NewFromReader(rdr)
-			addr := Configuration.Get("address").MustString()
-			port := Configuration.Get("port").MustInt()
-			workers := Configuration.Get("workers").MustInt()
+
+			addr := Configuration.Address
+			port := Configuration.Port
+			workers := Configuration.Workers
 
 			// start worker pool
 			EngineRequestChan = WorkerPool(workers, Configuration)

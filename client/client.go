@@ -12,8 +12,6 @@ import (
 	"net/url"
 	"os"
 	"path"
-
-	"github.com/bitly/go-simplejson"
 )
 
 type Client struct {
@@ -22,6 +20,12 @@ type Client struct {
 	Host     string
 	Port     int
 	token    string
+}
+
+type Response struct {
+	Status  string
+	Message string `json:"msg"`
+	Data    json.RawMessage
 }
 
 func (bc *Client) Exec(cmd string, retry int) (string, error) {
@@ -39,12 +43,13 @@ func (bc *Client) Exec(cmd string, retry int) (string, error) {
 		return "", err
 	}
 
-	j, err := simplejson.NewJson(b)
+	j := &Response{}
+	err = json.Unmarshal(b, j)
 	if err != nil {
 		return "", err
 	}
-	if j.Get("status").MustString("") != "ok" {
-		msg := j.Get("msg").MustString("")
+	if j.Status != "ok" {
+		msg := j.Message
 		if msg == "invalid auth token" && retry < 4 {
 			retry += 1
 			err = bc.newToken()
@@ -57,11 +62,15 @@ func (bc *Client) Exec(cmd string, retry int) (string, error) {
 		}
 	}
 
-	data, err := j.Map()
+	// get data
+	tmp := make(map[string]interface{})
+	err = json.Unmarshal(b, &tmp)
 	if err != nil {
 		return "", err
 	}
-	pretty, err := json.MarshalIndent(data, "", "  ")
+
+	// convert back to json string with indentation
+	pretty, err := json.MarshalIndent(tmp, "", "  ")
 	if err != nil {
 		return "", err
 	}
@@ -113,16 +122,21 @@ func (bc *Client) newToken() error {
 		return err
 	}
 
-	j, err := simplejson.NewJson(b)
+	j := &Response{}
+	err = json.Unmarshal(b, j)
 	if err != nil {
 		return err
 	}
-	if j.Get("status").MustString("") != "ok" {
-		msg := j.Get("msg").MustString("")
-		return fmt.Errorf(msg)
+
+	if j.Status != "ok" {
+		return fmt.Errorf(j.Message)
 	}
 
-	bc.token = j.Get("data").MustString("")
+	err = json.Unmarshal(j.Data, &bc.token)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -143,15 +157,21 @@ func (bc Client) WriteBytes(db, remotefile, localfile string) error {
 		return err
 	}
 
-	j, err := simplejson.NewJson(b)
+	j := &Response{}
+	err = json.Unmarshal(b, j)
 	if err != nil {
 		return err
 	}
-	if j.Get("status").MustString("") != "ok" {
-		msg := j.Get("msg").MustString("")
-		return errors.New(msg)
+	if j.Status != "ok" {
+		return errors.New(j.Message)
 	}
-	ticket := j.Get("data").MustString("")
+
+	var ticket string
+	err = json.Unmarshal(j.Data, &ticket)
+	fmt.Println(ticket)
+	if err != nil {
+		return err
+	}
 
 	// upload file
 	buffer := &bytes.Buffer{}
@@ -185,13 +205,13 @@ func (bc Client) WriteBytes(db, remotefile, localfile string) error {
 		return err
 	}
 
-	j2, err := simplejson.NewJson(b2)
+	j2 := &Response{}
+	err = json.Unmarshal(b2, j2)
 	if err != nil {
 		return err
 	}
-	if j2.Get("status").MustString("") != "ok" {
-		msg := j2.Get("msg").MustString("")
-		return errors.New(msg)
+	if j2.Status != "ok" {
+		return errors.New(j2.Message)
 	}
 	return nil
 }
@@ -212,12 +232,12 @@ func (bc Client) ReadBytes(db, remotefile, localfile string) error {
 		if err != nil {
 			return err
 		}
-		j, err := simplejson.NewJson(b)
+		j := &Response{}
+		err = json.Unmarshal(b, j)
 		if err != nil {
 			return err
 		}
-		msg := j.Get("msg").MustString("")
-		return fmt.Errorf(msg)
+		return fmt.Errorf(j.Message)
 	}
 	fp, err := os.Create(localfile)
 	defer fp.Close()
