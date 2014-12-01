@@ -3,6 +3,7 @@ package bytengine
 import (
 	"errors"
 	"fmt"
+	"log"
 )
 
 type CommandHandler func(cmd Command, user *User, eng *Engine) (interface{}, error)
@@ -13,22 +14,22 @@ var dataFilterRegistry = make(map[string]DataFilter)
 
 func RegisterCommandHandler(name string, fn CommandHandler) {
 	if fn == nil {
-		panic("Command Handler registration: handler is nil")
+		log.Fatal("Command Handler registration: handler is nil")
 	}
 
 	if _, exists := cmdHandlerRegistry[name]; exists {
-		panic(fmt.Sprintf("Command Handler registration: handler '%s' already added", name))
+		log.Printf("Command Handler registration: handler '%s' already added", name)
 	}
 	cmdHandlerRegistry[name] = fn
 }
 
 func RegisterDataFilter(name string, fn DataFilter) {
 	if fn == nil {
-		panic("Data Filter registration: filter is nil")
+		log.Fatal("Data Filter registration: filter is nil")
 	}
 
 	if _, exists := dataFilterRegistry[name]; exists {
-		panic(fmt.Sprintf("Data Filter registration: filter '%s' already added", name))
+		log.Printf("Data Filter registration: filter '%s' already added", name)
 	}
 	dataFilterRegistry[name] = fn
 }
