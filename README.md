@@ -118,3 +118,9 @@ Enter commands:
 [Documentation](https://bytengine.readthedocs.org/en/latest/) - Bytengine Docs
 
 [Twitter](https://twitter.com/bytengine) - Follow Bytengine
+
+## Thanks
+
+[Go project](https://golang.org/project/ "Go project")
+[golang-nuts](https://groups.google.com/forum/#!forum/golang-nuts "golang-nuts") [community](https://groups.google.com/forum/#!topic/golang-nuts/grLcPuPyAyU "community")
+Third-party libraries/framework developers
