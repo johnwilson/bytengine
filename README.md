@@ -122,5 +122,8 @@ Enter commands:
 ## Thanks
 
 [Go project](https://golang.org/project/ "Go project")
-[golang-nuts](https://groups.google.com/forum/#!forum/golang-nuts "golang-nuts") [community](https://groups.google.com/forum/#!topic/golang-nuts/grLcPuPyAyU "community")
+
+[golang-nuts](https://groups.google.com/forum/#!forum/golang-nuts "golang-nuts")
+[community](https://groups.google.com/forum/#!topic/golang-nuts/grLcPuPyAyU "community")
+
 Third-party libraries/framework developers
