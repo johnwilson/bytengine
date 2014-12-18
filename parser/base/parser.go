@@ -297,29 +297,6 @@ func (p *Parser) parseFilterResult() string {
 	return ""
 }
 
-// command option parser
-func (p *Parser) parseCommandOption(ctx string) (name, val string) {
-	// absorb option symbol
-	p.next()
-	_token := p.expect(itemIdentifier, ctx)
-	name = _token.val
-	if p.peek().typ == itemEqual {
-		// absorb equal
-		p.next()
-		optval := p.expectOneOf(itemString, itemNumber, ctx)
-		if optval.typ == itemNumber {
-			val = optval.val
-		} else {
-			var err error
-			val, err = formatString(optval.val)
-			if err != nil {
-				p.errorf("Improperly quoted string value in %s", ctx)
-			}
-		}
-	}
-	return
-}
-
 // end of command statement parser
 func (p *Parser) parseEndofCommand(ctx string) string {
 	filter := p.parseFilterResult()
@@ -363,13 +340,17 @@ func (p *Parser) parseListDatabasesCmd(ctx string) {
 
 		Args:    make(map[string]interface{}),
 		Options: make(map[string]interface{})} // check if regex option has been added
-	if p.peek().typ == itemArgument {
-		name, val := p.parseCommandOption(ctx)
-		if name != "regex" || len(val) == 0 {
-			p.errorf("Invalid option %s in %s", name, ctx)
-		}
-		cmd.Options[name] = val
+
+	// parse arguments
+	ac := newArgList()
+	ac.Add("regex", argString)
+	p.parseArgs(ctx, ac)
+	// get arguments
+	arg := ac.Get("regex")
+	if arg != nil {
+		cmd.Options["regex"] = arg
 	}
+
 	_filter := p.parseEndofCommand(ctx)
 	cmd.Filter = _filter
 	p.commands = append(p.commands, cmd)
@@ -459,13 +440,17 @@ func (p *Parser) parseListUsersCmd(ctx string) {
 
 		Args:    make(map[string]interface{}),
 		Options: make(map[string]interface{})} // check if regex option has been added
-	if p.peek().typ == itemArgument {
-		name, val := p.parseCommandOption(ctx)
-		if name != "regex" || len(val) == 0 {
-			p.errorf("Invalid option %s in %s", name, ctx)
-		}
-		cmd.Options[name] = val
+
+	// parse arguments
+	ac := newArgList()
+	ac.Add("regex", argString)
+	p.parseArgs(ctx, ac)
+	// get arguments
+	arg := ac.Get("regex")
+	if arg != nil {
+		cmd.Options["regex"] = arg
 	}
+
 	_filter := p.parseEndofCommand(ctx)
 	cmd.Filter = _filter
 	p.commands = append(p.commands, cmd)
@@ -671,14 +656,16 @@ func (p *Parser) parseListDirectoryCmd(db, ctx string) {
 	cmd.Database = db
 	cmd.Args["path"] = _path
 
-	// check if regex option has been added
-	if p.peek().typ == itemArgument {
-		name, val := p.parseCommandOption(ctx)
-		if name != "regex" || len(val) == 0 {
-			p.errorf("Invalid option %s in %s", name, ctx)
-		}
-		cmd.Options[name] = val
+	// parse arguments
+	ac := newArgList()
+	ac.Add("regex", argString)
+	p.parseArgs(ctx, ac)
+	// get arguments
+	arg := ac.Get("regex")
+	if arg != nil {
+		cmd.Options["regex"] = arg
 	}
+
 	_filter := p.parseEndofCommand(ctx)
 	cmd.Filter = _filter
 	p.commands = append(p.commands, cmd)
@@ -937,14 +924,16 @@ func (p *Parser) parseCounterCmd(db, ctx string) {
 			cmd.Database = db
 			cmd.Args["action"] = "list"
 
-			// check if regex option has been added
-			if p.peek().typ == itemArgument {
-				name, val := p.parseCommandOption(ctx)
-				if name != "regex" || len(val) == 0 {
-					p.errorf("Invalid option %s in %s", name, ctx)
-				}
-				cmd.Options[name] = val
+			// parse arguments
+			ac := newArgList()
+			ac.Add("regex", argString)
+			p.parseArgs(ctx, ac)
+			// get arguments
+			arg := ac.Get("regex")
+			if arg != nil {
+				cmd.Options["regex"] = arg
 			}
+
 			_filter := p.parseEndofCommand(ctx)
 			cmd.Filter = _filter
 			p.commands = append(p.commands, cmd)
