@@ -35,7 +35,7 @@ func init() {
 	p.registry.NewDatabaseItem("makepublic", "public", p.parseMakeContentPublicCmd)
 	p.registry.NewDatabaseItem("makeprivate", "private", p.parseMakeContentPrivateCmd)
 	p.registry.NewDatabaseItem("readfile", "read", p.parseReadFileCmd)
-	p.registry.NewDatabaseItem("modfile", "update", p.parseModifyFileCmd)
+	p.registry.NewDatabaseItem("updatefile", "update", p.parseModifyFileCmd)
 	p.registry.NewDatabaseItem("deletebytes", "", p.parseDeleteAttachmentCmd)
 	p.registry.NewDatabaseItem("counter", "", p.parseCounterCmd)
 	p.registry.NewDatabaseItem("select", "", p.parseSelectCmd)

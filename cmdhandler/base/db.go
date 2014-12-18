@@ -183,7 +183,7 @@ func init() {
 	bytengine.RegisterCommandHandler("database.makepublic", DbMakePublic)
 	bytengine.RegisterCommandHandler("database.makeprivate", DbMakePrivate)
 	bytengine.RegisterCommandHandler("database.readfile", DbReadFile)
-	bytengine.RegisterCommandHandler("database.modfile", DbModFile)
+	bytengine.RegisterCommandHandler("database.updatefile", DbModFile)
 	bytengine.RegisterCommandHandler("database.deletebytes", DbDeleteBytes)
 	bytengine.RegisterCommandHandler("database.counter", DbCounter)
 	bytengine.RegisterCommandHandler("database.select", DbSelect)
