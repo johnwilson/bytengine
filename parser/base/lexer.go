@@ -60,7 +60,7 @@ const (
 	itemNumber            // simple number
 	itemString            // quoted string (includes quotes)
 	itemPath              // unix type file path
-	itemArgument          // --argument
+	itemOption            // --option
 	// Keywords appear after all the rest.
 	itemKeyword // used only to delimit the keywords
 	itemNull
@@ -96,7 +96,7 @@ var itemName = map[itemType]string{
 	itemNumber:            "number",
 	itemString:            "string",
 	itemPath:              "path",
-	itemArgument:          "--",
+	itemOption:            "--",
 	itemNull:              "null",
 }
 
@@ -348,7 +348,7 @@ func lexInsideScript(l *lexer) stateFn {
 		} else if pk == '-' {
 			// absorbe minus
 			l.next()
-			l.emit(itemArgument)
+			l.emit(itemOption)
 			return lexInsideScript
 		}
 

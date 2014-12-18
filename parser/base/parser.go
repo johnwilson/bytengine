@@ -342,9 +342,9 @@ func (p *Parser) parseListDatabasesCmd(ctx string) {
 		Options: make(map[string]interface{})} // check if regex option has been added
 
 	// parse arguments
-	ac := newArgList()
-	ac.Add("regex", argString)
-	p.parseArgs(ctx, ac)
+	ac := newOptList()
+	ac.Add("regex", optString)
+	p.parseOptions(ctx, ac)
 	// get arguments
 	arg := ac.Get("regex")
 	if arg != nil {
@@ -442,9 +442,9 @@ func (p *Parser) parseListUsersCmd(ctx string) {
 		Options: make(map[string]interface{})} // check if regex option has been added
 
 	// parse arguments
-	ac := newArgList()
-	ac.Add("regex", argString)
-	p.parseArgs(ctx, ac)
+	ac := newOptList()
+	ac.Add("regex", optString)
+	p.parseOptions(ctx, ac)
 	// get arguments
 	arg := ac.Get("regex")
 	if arg != nil {
@@ -657,9 +657,9 @@ func (p *Parser) parseListDirectoryCmd(db, ctx string) {
 	cmd.Args["path"] = _path
 
 	// parse arguments
-	ac := newArgList()
-	ac.Add("regex", argString)
-	p.parseArgs(ctx, ac)
+	ac := newOptList()
+	ac.Add("regex", optString)
+	p.parseOptions(ctx, ac)
 	// get arguments
 	arg := ac.Get("regex")
 	if arg != nil {
@@ -925,9 +925,9 @@ func (p *Parser) parseCounterCmd(db, ctx string) {
 			cmd.Args["action"] = "list"
 
 			// parse arguments
-			ac := newArgList()
-			ac.Add("regex", argString)
-			p.parseArgs(ctx, ac)
+			ac := newOptList()
+			ac.Add("regex", optString)
+			p.parseOptions(ctx, ac)
 			// get arguments
 			arg := ac.Get("regex")
 			if arg != nil {
