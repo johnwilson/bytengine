@@ -29,6 +29,8 @@ func TestLexer(t *testing.T) {
 
 func TestServerCommands(t *testing.T) {
 	p := NewParser()
+	p.registry.NewServerItem("listdb", "dbs", p.parseListDatabasesCmd)
+	p.registry.NewServerItem("init", "", p.parseServerInitCmd)
 
 	s := `server.listdb --regex="^\\w"`
 	cmdlist, err := p.Parse(s)
@@ -37,6 +39,13 @@ func TestServerCommands(t *testing.T) {
 	cmd := cmdlist[0]
 	assert.Equal(t, cmd.Name, "server.listdb", "wrong command name")
 	assert.Equal(t, cmd.Options["regex"].(string), `^\w`, "wrong regex value")
+
+	s = `server.dbs`
+	cmdlist, err = p.Parse(s)
+	assert.Nil(t, err, fmt.Sprintf("parsing failed: %s", err))
+	assert.Len(t, cmdlist, 1, "wrong number of commands parsed")
+	cmd = cmdlist[0]
+	assert.Equal(t, cmd.Name, "server.listdb", "wrong command name")
 
 	s = `server.init; server.listdb;`
 	cmdlist, err = p.Parse(s)

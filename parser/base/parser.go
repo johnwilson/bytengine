@@ -17,11 +17,17 @@ import (
 type Parser struct {
 	commands  []bytengine.Command
 	cmdlookup map[string]map[string]interface{}
+	registry  *FunctionRegistry
 	// Parsing only; cleared after parse.
 	lex       *lexer
 	token     [2]item // two-token lookahead for parser.
 	peekCount int
 }
+
+// parser handler functions
+type ServerFunction func(ctx string)
+type UserFunction func(ctx string)
+type DatabaseFunction func(db, ctx string)
 
 // next returns the next token.
 func (p *Parser) next() item {
@@ -59,7 +65,7 @@ func (p *Parser) peek() item {
 // Create a new parser pointer.
 func NewParser() *Parser {
 	p := &Parser{}
-	p.initRegistry()
+	p.registry = NewFunctionRegistry()
 	return p
 }
 
@@ -156,25 +162,32 @@ func (p *Parser) parse() map[string]interface{} {
 			p.errorf("Parsing error: %s", p.peek().val)
 		case _next.typ == itemIdentifier:
 			switch cmdprefix := strings.ToLower(_next.val); {
-			case cmdprefix == "server", cmdprefix == "user":
-				context := cmdprefix
+			case cmdprefix == "server":
 				// absorb keyword
 				p.next()
-				p.expect(itemDot, context)
-				item := p.expect(itemIdentifier, context)
+				p.expect(itemDot, cmdprefix)
+				item := p.expect(itemIdentifier, cmdprefix)
 				key := strings.ToLower(item.val)
-				// update context
-				context = cmdprefix + "." + key
 				// lookup key
-				if val, ok := p.cmdlookup[cmdprefix][key]; ok {
-					if fn, ok := val.(func(ctx string)); ok {
-						fn(context)
-					} else {
-						p.errorf("Invalid %s function type", context)
-					}
-				} else {
-					p.errorf("%s parse function not found", context)
+				fn, name := p.registry.GetServerItem(key)
+				if fn == nil {
+					p.errorf("%s.%s not found", cmdprefix, key)
 				}
+				ctx := fmt.Sprintf("%s.%s", cmdprefix, name)
+				fn(ctx)
+			case cmdprefix == "user":
+				// absorb keyword
+				p.next()
+				p.expect(itemDot, cmdprefix)
+				item := p.expect(itemIdentifier, cmdprefix)
+				key := strings.ToLower(item.val)
+				// lookup key
+				fn, name := p.registry.GetUserItem(key)
+				if fn == nil {
+					p.errorf("%s.%s not found", cmdprefix, key)
+				}
+				ctx := fmt.Sprintf("%s.%s", cmdprefix, name)
+				fn(ctx)
 			default:
 				p.errorf("Invalid command prefix '%s'", cmdprefix)
 			}
@@ -184,16 +197,13 @@ func (p *Parser) parse() map[string]interface{} {
 			p.expect(itemDot, cmdprefix)
 			item := p.expect(itemIdentifier, cmdprefix)
 			key := strings.ToLower(item.val)
-			context := cmdprefix + "." + key
-			if val, ok := p.cmdlookup[cmdprefix][key]; ok {
-				if fn, ok := val.(func(db, ctx string)); ok {
-					fn(db, context)
-				} else {
-					p.errorf("Invalid %s function type", context)
-				}
-			} else {
-				p.errorf("Invalid command database command '%s'", key)
+			// lookup key
+			fn, name := p.registry.GetDatabaseItem(key)
+			if fn == nil {
+				p.errorf("%s.%s not found", cmdprefix, key)
 			}
+			ctx := fmt.Sprintf("%s.%s", cmdprefix, name)
+			fn(db, ctx)
 		default:
 			//absorb unknown token
 			p.next()
