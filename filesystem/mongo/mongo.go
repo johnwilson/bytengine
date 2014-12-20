@@ -936,7 +936,10 @@ func (m *FileSystem) Info(p, db string) (map[string]interface{}, error) {
 		_type := "file"
 		_info["type"] = _type
 		if ri.AHeader.Filepointer != "" {
-			_info["attachment"] = true
+			_info["bytes"] = map[string]interface{}{
+				"mime": ri.AHeader.Mime,
+				"size": ri.AHeader.Size,
+			}
 		}
 	}
 
