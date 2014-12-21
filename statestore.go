@@ -23,7 +23,8 @@ func RegisterStateStore(name string, plugin StateStore) {
 	}
 
 	if _, exists := stsPlugins[name]; exists {
-		log.Printf("State Store Plugin Registration: plugin '%s' already registered", name)
+		log.Printf("State Store Plugin Registration: plugin %q already registered", name)
+		return
 	}
 	stsPlugins[name] = plugin
 }

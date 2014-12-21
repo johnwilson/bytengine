@@ -18,7 +18,8 @@ func RegisterCommandHandler(name string, fn CommandHandler) {
 	}
 
 	if _, exists := cmdHandlerRegistry[name]; exists {
-		log.Printf("Command Handler registration: handler '%s' already added", name)
+		log.Printf("Command Handler registration: handler %q already added", name)
+		return
 	}
 	cmdHandlerRegistry[name] = fn
 }
@@ -29,7 +30,8 @@ func RegisterDataFilter(name string, fn DataFilter) {
 	}
 
 	if _, exists := dataFilterRegistry[name]; exists {
-		log.Printf("Data Filter registration: filter '%s' already added", name)
+		log.Printf("Data Filter registration: filter %q already added", name)
+		return
 	}
 	dataFilterRegistry[name] = fn
 }

@@ -32,7 +32,8 @@ func RegisterByteStore(name string, plugin ByteStore) {
 	}
 
 	if _, exists := bstPlugins[name]; exists {
-		log.Printf("Byte Store Plugin Registration: plugin '%s' already registered", name)
+		log.Printf("Byte Store Plugin Registration: plugin %q already registered", name)
+		return
 	}
 	bstPlugins[name] = plugin
 }

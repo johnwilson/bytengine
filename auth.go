@@ -34,7 +34,8 @@ func RegisterAuthentication(name string, plugin Authentication) {
 	}
 
 	if _, exists := authPlugins[name]; exists {
-		log.Printf("Authentication Plugin Registration: plugin '%s' already registered", name)
+		log.Printf("Authentication Plugin Registration: plugin %q already registered", name)
+		return
 	}
 	authPlugins[name] = plugin
 }

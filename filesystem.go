@@ -41,7 +41,8 @@ func RegisterFileSystem(name string, plugin FileSystem) {
 	}
 
 	if _, exists := bfsPlugins[name]; exists {
-		log.Printf("File System Plugin Registration: plugin '%s' already registered", name)
+		log.Printf("File System Plugin Registration: plugin %q already registered", name)
+		return
 	}
 	bfsPlugins[name] = plugin
 }

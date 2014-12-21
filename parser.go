@@ -42,7 +42,8 @@ func RegisterParser(name string, plugin Parser) {
 	}
 
 	if _, exists := parserPlugins[name]; exists {
-		log.Printf("Parser Plugin Registration: plugin '%s' already registered", name)
+		log.Printf("Parser Plugin Registration: plugin %q already registered", name)
+		return
 	}
 	parserPlugins[name] = plugin
 }
