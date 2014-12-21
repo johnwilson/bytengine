@@ -1,13 +1,31 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
+	"os/signal"
 
 	"github.com/codegangsta/cli"
 )
 
+var sh *Shell
+
 func main() {
+	// handle SIGINT
+	done := make(chan os.Signal, 1)
+	signal.Notify(done, os.Interrupt)
+
+	go func() {
+		for _ = range done {
+			if sh != nil {
+				sh.Close()
+			}
+			fmt.Print("\nbye\n")
+			os.Exit(0)
+		}
+	}()
+
 	app := cli.NewApp()
 	run := cli.Command{
 		Name: "run",
@@ -19,7 +37,7 @@ func main() {
 			cli.StringFlag{Name: "editor", Value: "vim"},
 		},
 		Action: func(c *cli.Context) {
-			sh := NewShell()
+			sh = NewShell()
 			defer sh.Close()
 			// get options
 			username := c.String("u")

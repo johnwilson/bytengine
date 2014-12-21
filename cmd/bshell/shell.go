@@ -211,7 +211,7 @@ func bqlPrompt(sh *Shell) stateFn {
 	input = strings.Trim(input, " ")
 	switch {
 	case input == Quit:
-		sh.write("\nbye")
+		sh.write("bye")
 		return bqlQuit
 	case input == OpenBQLEditor:
 		return bqlEditor
