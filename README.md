@@ -57,7 +57,9 @@ Current Build Prerequisites:
 
 3. Build Bytengine `go build`
 
-4. Running Bytengine
+4. Rename `config.json.sample` to `config.json`
+
+5. Running Bytengine
 ```
 	./bytengine createadmin -u="admin" -p"yourpassword"
 	./bytengine run
