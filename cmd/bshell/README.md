@@ -13,9 +13,17 @@ Build Prerequisites:
 Assuming you have set up $GOPATH properly and added $GOPATH/bin to $PATH do the
 following:
 
-1. Get bshell `go get github.com/johnwilson/bytengine/cmd/bshell`
+1. Get bshell `go get -d github.com/johnwilson/bytengine/cmd/bshell`
 
-2. Running bshell `bshell run -h`
+2. Get Godep `go get github.com/tools/godep`
+
+3. `cd $GOPATH/src/github.com/johnwilson/bytengine/cmd/bshell`
+
+4. Restore dependency versions `godep restore`
+
+5. Install bshell `go install`
+
+6. Running bshell `bshell run -h`
 
 ## Quick Guide
 

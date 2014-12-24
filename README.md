@@ -53,13 +53,17 @@ Current Build Prerequisites:
 
 1. Get Bytengine `go get -d github.com/johnwilson/bytengine/cmd/bytengine`
 
-2. `cd $GOPATH/src/github.com/johnwilson/bytengine/cmd/bytengine`
+2. Get Godep `go get github.com/tools/godep`
 
-3. Build Bytengine `go build`
+3. `cd $GOPATH/src/github.com/johnwilson/bytengine/cmd/bytengine`
 
-4. Rename `config.json.sample` to `config.json`
+4. Restore dependency versions `godep restore`
 
-5. Running Bytengine
+5. Build Bytengine `go build`
+
+6. Rename `config.json.sample` to `config.json`
+
+7. Running Bytengine
 ```
 	./bytengine createadmin -u="admin" -p"yourpassword"
 	./bytengine run
