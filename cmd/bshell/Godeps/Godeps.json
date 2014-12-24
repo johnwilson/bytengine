@@ -1,0 +1,19 @@
+{
+	"ImportPath": "github.com/johnwilson/bytengine/cmd/bshell",
+	"GoVersion": "go1.3.3",
+	"Deps": [
+		{
+			"ImportPath": "github.com/codegangsta/cli",
+			"Comment": "1.2.0-38-g9908e96",
+			"Rev": "9908e96513e5a94de37004098a3974a567f18111"
+		},
+		{
+			"ImportPath": "github.com/peterh/liner",
+			"Rev": "37a71f945bf85f3c4ab3d96d4eef3e5554719df8"
+		},
+		{
+			"ImportPath": "github.com/robertkrimen/otto",
+			"Rev": "dea31a3d392779af358ec41f77a07fcc7e9d04ba"
+		}
+	]
+}
