@@ -1,6 +1,9 @@
 {
-	"ImportPath": "github.com/johnwilson/bytengine/cmd/bytengine",
+	"ImportPath": "github.com/johnwilson/bytengine",
 	"GoVersion": "go1.3.3",
+	"Packages": [
+		"./..."
+	],
 	"Deps": [
 		{
 			"ImportPath": "code.google.com/p/go.crypto/bcrypt",
@@ -42,6 +45,18 @@
 		{
 			"ImportPath": "github.com/peterbourgon/diskv",
 			"Rev": "508f5671a72eeaef05cf8c24abe7fbc1c07faf69"
+		},
+		{
+			"ImportPath": "github.com/peterh/liner",
+			"Rev": "37a71f945bf85f3c4ab3d96d4eef3e5554719df8"
+		},
+		{
+			"ImportPath": "github.com/robertkrimen/otto",
+			"Rev": "dea31a3d392779af358ec41f77a07fcc7e9d04ba"
+		},
+		{
+			"ImportPath": "github.com/stretchr/testify/assert",
+			"Rev": "c910098884990ce5727e495cc34184f6d6f6df5a"
 		},
 		{
 			"ImportPath": "gopkg.in/mgo.v2",
