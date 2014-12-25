@@ -134,7 +134,7 @@ func (m *ByteStore) Read(db, filename string, file io.Writer) error {
 }
 
 func (m *ByteStore) DropDatabase(db string) error {
-	for key := range m.DB.Keys() {
+	for key := range m.DB.Keys(nil) {
 		prefix := db + SeparationCharacter
 		if strings.HasPrefix(key, prefix) {
 			err := m.DB.Erase(key)
