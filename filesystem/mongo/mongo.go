@@ -309,6 +309,17 @@ func (m *FileSystem) CreateDatabase(db string) error {
 	// create mongodb database and collection and insert record
 	col := m.getBFSCollection(db)
 
+	// add index to file name and path
+	index := mgo.Index{
+		Key:        []string{"__header__.name", "__header__.parent", "__header__.type"},
+		Background: true,
+		Sparse:     true,
+	}
+	err = col.EnsureIndex(index)
+	if err != nil {
+		return err
+	}
+
 	err = col.Insert(&rn)
 	if err != nil {
 		return err
@@ -581,8 +592,25 @@ func (m *FileSystem) Delete(p, db string) error {
 		if err != nil {
 			return err
 		}
+
+		// check if any documents make reference to attachment
+		q = bson.M{
+			"__bytes__.filepointer": bson.M{"$in": _attchs},
+		}
+		i = c.Find(q).Iter()
+		var ri3 SimpleResultItem
+		_keep := map[string]bool{}
+		for i.Next(&ri3) {
+			if ri3.Header.Type == "File" {
+				_keep[ri3.AHeader.Filepointer] = true
+			}
+		}
+
 		// delete attachments from bst
 		for _, item := range _attchs {
+			if _, found := _keep[item]; found {
+				continue
+			}
 			err = m.bstore.Delete(db, item)
 			if err != nil {
 				return err
@@ -596,10 +624,20 @@ func (m *FileSystem) Delete(p, db string) error {
 
 	} else {
 		if ri.AHeader.Filepointer != "" {
-			// delete attachment from bst
-			err = m.bstore.Delete(db, ri.AHeader.Filepointer)
+			// check if any documents make reference to attachment
+			q = bson.M{
+				"__bytes__.filepointer": ri.AHeader.Filepointer,
+			}
+			n, err := c.Find(q).Count()
 			if err != nil {
 				return err
+			}
+			if n < 2 {
+				// delete attachment from bst
+				err = m.bstore.Delete(db, ri.AHeader.Filepointer)
+				if err != nil {
+					return err
+				}
 			}
 		}
 		// delete file
