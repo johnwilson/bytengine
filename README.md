@@ -30,8 +30,9 @@ Current Build Prerequisites:
 
 You can download Bytengine binaries for:
 
-* **[Linux amd64](https://github.com/johnwilson/bytengine/releases/download/v0.2/bytengine-server-linux64-0.2.zip "Linux amd64")**
-* **[Mac OS X 10.6/10.7 amd64](https://github.com/johnwilson/bytengine/releases/download/v0.2/bytengine-server-osx64-0.2.zip "Mac OS X 10.6/10.7 amd64")**
+* **[Linux amd64](https://github.com/johnwilson/bytengine/releases/download/v0.2.2/bytengine-linux64-0.2.2.zip "Linux amd64")**
+* **[Mac OS X 10.6/10.7 amd64](https://github.com/johnwilson/bytengine/releases/download/v0.2.2/bytengine-osx64-0.2.2.zip "Mac OS X 10.6/10.7 amd64")**
+* **[Raspberry Pi](https://github.com/johnwilson/bytengine/releases/download/v0.2.2/bytengine-raspberry_pi-0.2.2.zip "Raspberry Pi")**
 
 **Extract downloaded file, 'cd' into directory and run**:
 
@@ -43,7 +44,7 @@ You can download Bytengine binaries for:
 ## Development
 
 Bytengine is developed on OS X so you should adapt the following instructions
-to your Os/Distro (Only tested on OS X and Ubuntu Linux)
+to your Os/Distro (Only tested on OS X, Ubuntu Linux, Raspbian)
 
 Current Build Prerequisites:
 
