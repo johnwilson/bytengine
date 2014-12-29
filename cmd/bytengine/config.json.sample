@@ -6,6 +6,7 @@
             "authdb":"",
             "username":"",
             "password":"",
+            "userdb":"bytengine_auth",
             "timeout":60
         },
         "filesystem": {

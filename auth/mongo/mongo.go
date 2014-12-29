@@ -1,7 +1,6 @@
 package mongo
 
 import (
-	//"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -19,6 +18,7 @@ type Config struct {
 	AuthDatabase string        `json:"authdb"`
 	Username     string        `json:"username"`
 	Password     string        `json:"password"`
+	UserDatabase string        `json:"userdb"`
 }
 
 func NewAuthentication() *Authentication {
@@ -26,8 +26,7 @@ func NewAuthentication() *Authentication {
 }
 
 const (
-	AuthenticationDatabase   = "bytengine_auth"
-	AuthenticationCollection = "users"
+	AuthenticationCollection = "auth"
 )
 
 type Authentication struct {
@@ -50,7 +49,7 @@ type authToken struct {
 */
 
 func (m *Authentication) getCollection() *mgo.Collection {
-	return m.session.DB(AuthenticationDatabase).C(AuthenticationCollection)
+	return m.session.DB(m.database).C(AuthenticationCollection)
 }
 
 /*
@@ -78,7 +77,7 @@ func (m *Authentication) Start(config string) error {
 		return err
 	}
 	m.session = session
-	m.database = AuthenticationDatabase
+	m.database = c.UserDatabase
 	return nil
 }
 
@@ -89,7 +88,7 @@ func (m *Authentication) ClearAll() error {
 	}
 	exists := false // database exists
 	for _, i := range names {
-		if i == AuthenticationDatabase {
+		if i == m.database {
 			exists = true
 			break
 		}

@@ -24,6 +24,7 @@ func TestMongoBST(t *testing.T) {
             "authdb":"",
             "username":"",
             "password":"",
+            "storedb":"bytestore",
             "timeout":60
         }`,
 	)

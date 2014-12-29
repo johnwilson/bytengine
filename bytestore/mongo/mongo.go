@@ -13,16 +13,13 @@ import (
 	"gopkg.in/mgo.v2"
 )
 
-const (
-	BlobDatabase = "bytengine_bst"
-)
-
 type Config struct {
-	Addresses    []string      `json:"addresses"`
-	Timeout      time.Duration `json:"timeout"`
-	AuthDatabase string        `json:"authdb"`
-	Username     string        `json:"username"`
-	Password     string        `json:"password"`
+	Addresses     []string      `json:"addresses"`
+	Timeout       time.Duration `json:"timeout"`
+	AuthDatabase  string        `json:"authdb"`
+	Username      string        `json:"username"`
+	Password      string        `json:"password"`
+	StoreDatabase string        `json:"storedb"`
 }
 
 type ByteStore struct {
@@ -71,7 +68,7 @@ func (m *ByteStore) Start(config string) error {
 		return err
 	}
 	m.session = session
-	m.database = BlobDatabase
+	m.database = c.StoreDatabase
 	return nil
 }
 

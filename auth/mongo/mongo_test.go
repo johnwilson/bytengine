@@ -13,6 +13,7 @@ const (
         "authdb":"",
         "username":"",
         "password":"",
+        "userdb":"authdb",
         "timeout":60
     }`
 )
