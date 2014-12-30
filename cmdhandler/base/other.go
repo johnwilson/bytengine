@@ -35,7 +35,7 @@ func LoginHandler(cmd bytengine.Command, user *bytengine.User, eng *bytengine.En
 	token := fmt.Sprintf("%x", key)
 	err := eng.StateStore.TokenSet(token, usr, 60*duration)
 	if err != nil {
-		err := fmt.Errorf("Token creation failed")
+		err := fmt.Errorf("Token persistence failed")
 		return nil, err
 	}
 
