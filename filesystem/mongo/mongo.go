@@ -61,9 +61,8 @@ func NewFileSystem() *FileSystem {
 }
 
 const (
-	DatabasePrefix       = "bfs_"
 	FileSystemCollection = "bfs"
-	CounterCollection    = "bytengine.counters"
+	CounterCollection    = "bfs_counters"
 )
 
 type FileSystem struct {
@@ -205,13 +204,11 @@ func (m *FileSystem) findAllChildrenQuery(p string) bson.M {
 }
 
 func (m *FileSystem) getBFSCollection(db string) *mgo.Collection {
-	actual_db := DatabasePrefix + db
-	return m.session.DB(actual_db).C(FileSystemCollection)
+	return m.session.DB(db).C(FileSystemCollection)
 }
 
 func (m *FileSystem) getCounterCollection(db string) *mgo.Collection {
-	actual_db := DatabasePrefix + db
-	return m.session.DB(actual_db).C(CounterCollection)
+	return m.session.DB(db).C(CounterCollection)
 }
 
 /*
@@ -243,6 +240,20 @@ func (m *FileSystem) Start(config string, b *bytengine.ByteStore) error {
 	return nil
 }
 
+func (m *FileSystem) isBfsDatabase(db string) (bool, error) {
+	// get bytengine key
+	q := bson.M{"_id": "bytengine"}
+	c := m.getBFSCollection(db)
+	n, err := c.Find(q).Count()
+	if err != nil {
+		return false, err
+	}
+	if n != 1 {
+		return false, nil
+	}
+	return true, nil
+}
+
 func (m *FileSystem) ClearAll() ([]string, error) {
 	found := make([]string, 0)
 
@@ -252,18 +263,24 @@ func (m *FileSystem) ClearAll() ([]string, error) {
 	}
 
 	for _, db := range dbs {
-		if strings.HasPrefix(db, DatabasePrefix) {
-			err = m.session.DB(db).DropDatabase()
-			if err != nil {
-				return found, err
-			}
-			// drop database from bytestore
-			err = m.bstore.DropDatabase(db)
-			if err != nil {
-				return found, err
-			}
-			found = append(found, strings.TrimPrefix(db, DatabasePrefix))
+		ok, err := m.isBfsDatabase(db)
+		if err != nil {
+			return found, err
 		}
+		if !ok {
+			continue
+		}
+
+		err = m.session.DB(db).DropDatabase()
+		if err != nil {
+			return found, err
+		}
+		// drop database from bytestore
+		err = m.bstore.DropDatabase(db)
+		if err != nil {
+			return found, err
+		}
+		found = append(found, db)
 	}
 
 	return found, nil
@@ -283,11 +300,16 @@ func (m *FileSystem) ListDatabase(filter string) ([]string, error) {
 	}
 
 	for _, db := range dbs {
-		if strings.HasPrefix(db, DatabasePrefix) {
-			db = strings.Replace(db, DatabasePrefix, "", 1) // remove prefix
-			if r.MatchString(db) {
-				found = append(found, db)
-			}
+		ok, err := m.isBfsDatabase(db)
+		if err != nil {
+			return found, err
+		}
+		if !ok {
+			continue
+		}
+
+		if r.MatchString(db) {
+			found = append(found, db)
 		}
 	}
 
@@ -320,7 +342,11 @@ func (m *FileSystem) CreateDatabase(db string) error {
 		return err
 	}
 
-	err = col.Insert(&rn)
+	// create bytengine key
+	key := bson.M{"_id": "bytengine"}
+
+	// add items
+	err = col.Insert(&rn, &key)
 	if err != nil {
 		return err
 	}
@@ -329,8 +355,6 @@ func (m *FileSystem) CreateDatabase(db string) error {
 }
 
 func (m *FileSystem) DropDatabase(db string) error {
-	actual_db := DatabasePrefix + db
-
 	// check if db to be deleted exists
 	dbs, err := m.session.DatabaseNames()
 	if err != nil {
@@ -338,7 +362,7 @@ func (m *FileSystem) DropDatabase(db string) error {
 	}
 	_db_exists := false
 	for _, item := range dbs {
-		if item == actual_db {
+		if item == db {
 			_db_exists = true
 			break
 		}
@@ -348,8 +372,17 @@ func (m *FileSystem) DropDatabase(db string) error {
 		return err
 	}
 
+	ok, err := m.isBfsDatabase(db)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		err := errors.New(fmt.Sprintf("database '%s' isn't a Bytengine database", db))
+		return err
+	}
+
 	// drop db from mongodb
-	err = m.session.DB(actual_db).DropDatabase()
+	err = m.session.DB(db).DropDatabase()
 	if err != nil {
 		return err
 	}

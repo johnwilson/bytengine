@@ -26,7 +26,7 @@ func NewAuthentication() *Authentication {
 }
 
 const (
-	AuthenticationCollection = "auth"
+	AuthenticationCollection = "bfs_auth"
 )
 
 type Authentication struct {
