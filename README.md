@@ -126,6 +126,8 @@ Enter commands:
 
 [Twitter](https://twitter.com/bytengine) - Follow Bytengine
 
+[Hemi v6](https://github.com/johnwilson/hemiv6) - Deploy to Heroku
+
 ## Thanks
 
 [Go project](https://golang.org/project/ "Go project")
