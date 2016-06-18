@@ -7,9 +7,9 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/codegangsta/cli"
 	"github.com/gin-gonic/gin"
 	"github.com/johnwilson/bytengine"
+	"github.com/urfave/cli"
 )
 
 var (
@@ -398,31 +398,29 @@ func main() {
 			cli.StringFlag{Name: "p", Value: "", Usage: "password"},
 			cli.StringFlag{Name: "c", Value: "config.json"},
 		},
-		Action: func(c *cli.Context) {
+		Action: func(c *cli.Context) error {
 			usr := c.String("u")
 			pw := c.String("p")
 			pth := c.String("c")
 
 			err := readConfigFile(pth)
 			if err != nil {
-				fmt.Println("Error: ", err)
-				os.Exit(1)
+				return cli.NewExitError(err.Error(), 1)
 			}
 
 			// create and start bytengine
 			engine := bytengine.NewEngine()
 			err = engine.Start(Configuration.Bytengine)
 			if err != nil {
-				fmt.Println("Error: ", err)
-				os.Exit(1)
+				return cli.NewExitError(err.Error(), 1)
 			}
 
 			err = engine.CreateAdminUser(usr, pw)
 			if err != nil {
-				fmt.Println("Error: ", err)
-				os.Exit(1)
+				return cli.NewExitError(err.Error(), 1)
 			}
 			fmt.Println("...done")
+			return nil
 		},
 	}
 
@@ -431,13 +429,12 @@ func main() {
 		Flags: []cli.Flag{
 			cli.StringFlag{Name: "c", Value: "config.json"},
 		},
-		Action: func(c *cli.Context) {
+		Action: func(c *cli.Context) error {
 			// get configuration file/info
 			pth := c.String("c")
 			err := readConfigFile(pth)
 			if err != nil {
-				fmt.Println("Error: ", err)
-				os.Exit(1)
+				return cli.NewExitError(err.Error(), 1)
 			}
 
 			addr := Configuration.Address
@@ -458,6 +455,8 @@ func main() {
 			router.GET("/bfs/direct/:layer/:database/*path", directaccessHandler)
 
 			router.Run(fmt.Sprintf("%s:%d", addr, port))
+
+			return nil
 		},
 	}
 	app.Commands = []cli.Command{createadminCmd, run}
