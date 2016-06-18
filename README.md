@@ -37,7 +37,7 @@ You can download Bytengine binaries for:
 **Extract downloaded file, 'cd' into directory and run**:
 
 ```
-    ./bytengine createadmin -u="admin" -p"yourpassword"
+    ./bytengine createadmin -u="admin" -p="yourpassword"
     ./bytengine run
 ```
 
