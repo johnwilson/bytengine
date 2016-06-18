@@ -62,7 +62,7 @@ Current Build Prerequisites:
 
 5. Running Bytengine
 ```
-	./bytengine createadmin -u="admin" -p"yourpassword"
+	./bytengine createadmin -u="admin" -p="yourpassword"
 	./bytengine run
 ```
 
