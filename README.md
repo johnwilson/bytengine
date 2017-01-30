@@ -91,7 +91,7 @@ Current Build Prerequisites:
     [u'test']
 ```
 
-#### Using Bytengine Shell **[bshell](http://github.com/johnwilson/bshell/ "bshell")**
+#### Using Bytengine Shell **[bshell](hhttps://github.com/johnwilson/bytengine/tree/master/cmd/bshell "bshell")**
 
 Login:
 
